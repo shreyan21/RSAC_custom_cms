@@ -1,0 +1,25 @@
+{
+  "name": "rsac-directus",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Standalone Directus service for the RSAC-UP website",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "bootstrap": "directus bootstrap",
+    "migrate": "directus database migrate:latest",
+    "start": "directus start"
+  },
+  "dependencies": {
+    "directus": "12.0.2"
+  },
+  "overrides": {
+    "@aws-sdk/xml-builder": {
+      "fast-xml-parser": "5.8.0"
+    },
+    "@google-cloud/storage": {
+      "fast-xml-parser": "5.8.0"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+export const mobileApps = [
+  {
+    key: "hrms",
+    title: "HRMS App",
+    titleHi: "एचआरएमएस ऐप",
+    description: "Human resource management for RSAC-UP staff.",
+    descriptionHi: "आरएसएसी-यूपी कर्मियों हेतु मानव संसाधन प्रबंधन।",
+    url: "/official-media/legacy-rsac/dam/HRMSFinal.apk",
+  },
+  {
+    key: "field-survey",
+    title: "Field Survey RSACUP",
+    titleHi: "फील्ड सर्वे आरएसएसी-यूपी",
+    description: "Ground-truth and field data collection for survey teams.",
+    descriptionHi: "सर्वेक्षण दलों हेतु क्षेत्रीय एवं ग्राउंड-ट्रुथ डेटा संग्रहण।",
+    url: "/official-media/legacy-rsac/dam/Field_Survey_RSACUP.apk",
+  },
+  {
+    key: "corridor-survey",
+    title: "Corridor Survey",
+    titleHi: "कॉरिडोर सर्वे",
+    description: "Linear corridor and utility field survey capture.",
+    descriptionHi: "रेखीय कॉरिडोर एवं उपयोगिता क्षेत्रीय सर्वेक्षण।",
+    url: "/official-media/legacy-rsac/dam/corridor_field_survey_v2.apk",
+  },
+  {
+    key: "orchard-mapping",
+    title: "Orchard Mapping",
+    titleHi: "बाग मानचित्रण",
+    description: "Field mapping of orchards for horticulture studies.",
+    descriptionHi: "उद्यान अध्ययन हेतु बागों का क्षेत्रीय मानचित्रण।",
+    url: "/official-media/legacy-rsac/dam/orchard_App_v2.apk",
+  },
+  {
+    key: "tomato-leaf-disease",
+    title: "Tomato Leaf Disease Detection",
+    titleHi: "टमाटर पत्ती रोग पहचान",
+    description: "AI-based detection of tomato leaf diseases.",
+    descriptionHi: "एआई आधारित टमाटर पत्ती रोग पहचान।",
+    url: "/official-media/legacy-rsac/dam/tomato_app.apk",
+  },
+];

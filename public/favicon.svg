@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="6" y1="2" x2="42" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#149a61"/>
+      <stop offset="1" stop-color="#0a5234"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.3" cy="0.18" r="0.9">
+      <stop stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="orbit" x1="8" y1="14" x2="40" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#7fe3ff" stop-opacity="0.85"/>
+    </linearGradient>
+    <radialGradient id="globe" cx="0.38" cy="0.34" r="0.8">
+      <stop stop-color="#f3fbf6"/>
+      <stop offset="1" stop-color="#a9dcc1"/>
+    </radialGradient>
+    <radialGradient id="sat" cx="0.4" cy="0.35" r="0.8">
+      <stop stop-color="#ffd9a3"/>
+      <stop offset="1" stop-color="#ff9933"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="48" height="48" rx="11" fill="url(#tile)"/>
+  <rect width="48" height="48" rx="11" fill="url(#sheen)"/>
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="10.25" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.5"/>
+
+  <!-- globe -->
+  <circle cx="23" cy="25" r="8.6" fill="url(#globe)"/>
+  <g stroke="#0a5234" stroke-opacity="0.5" stroke-width="1" fill="none" stroke-linecap="round">
+    <path d="M14.6 25h16.8"/>
+    <path d="M16 20.6h14"/>
+    <path d="M16 29.4h14"/>
+    <path d="M23 16.5c4 2.9 4 14.1 0 17"/>
+    <path d="M23 16.5c-4 2.9-4 14.1 0 17"/>
+  </g>
+
+  <!-- orbit + satellite -->
+  <ellipse cx="24" cy="24" rx="16" ry="7.4" transform="rotate(-30 24 24)" fill="none" stroke="url(#orbit)" stroke-width="1.8"/>
+  <circle cx="36.4" cy="13.7" r="3.4" fill="url(#sat)"/>
+  <circle cx="36.4" cy="13.7" r="5.2" fill="#ff9933" opacity="0.16"/>
+</svg>

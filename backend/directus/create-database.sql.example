@@ -1,0 +1,19 @@
+-- Example PostgreSQL database setup for the RSAC Directus CMS.
+-- Run as a PostgreSQL superuser or database admin, then apply postgres-schema.sql.
+-- Change the password before production use.
+
+CREATE USER rsac_directus WITH PASSWORD 'change-this-password';
+
+CREATE DATABASE rsac_cms
+  WITH OWNER rsac_directus
+  ENCODING 'UTF8'
+  TEMPLATE template0;
+
+GRANT ALL PRIVILEGES ON DATABASE rsac_cms TO rsac_directus;
+
+-- After this:
+-- 1. Update backend/directus/.env with DB_DATABASE, DB_USER, and DB_PASSWORD.
+-- 2. Run Directus bootstrap/migrations.
+-- 3. Apply backend/directus/postgres-schema.sql to the database.
+-- 4. Run npm run cms:configure and npm run cms:seed from the project root.
+
