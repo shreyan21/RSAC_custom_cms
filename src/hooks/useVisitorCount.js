@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import cmsConfig from "../data/cmsConfig";
-import {
-  readDirectusCount,
-  recordDirectusVisit,
-} from "../data/directusClient";
+import { readCmsVisitCount, recordCmsVisit } from "../data/cmsInteractions";
 
 let visitorRequest = null;
 
 const loadVisitorCount = async () => {
-  const recordedCount = await recordDirectusVisit();
-  return recordedCount ?? readDirectusCount(cmsConfig.collections.visits);
+  const recordedCount = await recordCmsVisit();
+  return recordedCount ?? readCmsVisitCount();
 };
 
 export const useVisitorCount = () => {

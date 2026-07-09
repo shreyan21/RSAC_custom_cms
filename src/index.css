@@ -3276,44 +3276,6 @@ html:not(.rsac-high-contrast) .rsac-effect-card:focus-within {
   }
 }
 
-/* Reading progress as an exact 3-band tricolor hairline (GIGW: bands
-   never blend). Scroll-driven, so browsers without animation-timeline
-   simply never show it; reduced motion never shows it either. */
-@keyframes rsac-scroll-progress {
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@supports (animation-timeline: scroll()) {
-  @media (prefers-reduced-motion: no-preference) {
-    body::after {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      z-index: 140;
-      pointer-events: none;
-      transform-origin: 0 50%;
-      background: linear-gradient(
-        90deg,
-        #ff9933 0 33.33%,
-        #ffffff 33.33% 66.66%,
-        #138808 66.66% 100%
-      );
-      box-shadow: 0 0.5px 0 rgba(16, 47, 70, 0.18);
-      animation: rsac-scroll-progress linear both;
-      animation-timeline: scroll(root);
-    }
-  }
-}
-
 /* Buttons answer the press — quiet tactility, inline motion styles win. */
 @media (prefers-reduced-motion: no-preference) {
   :where(button, [role="button"]):active {

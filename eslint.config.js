@@ -6,7 +6,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores([
-    'dist',
+    'dist/**',
+    'node_modules/**',
+    'local-drupal/**',
+    '.tools/**',
+    'public/official-media/**',
     '.tmp/**',
     '.tmp-edge*/**',
     'backend/wordpress/**',
@@ -19,7 +23,7 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: { ...globals.browser, __APP_BUILD_DATE__: 'readonly' },
+      globals: { ...globals.browser, ...globals.node, __APP_BUILD_DATE__: 'readonly' },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },

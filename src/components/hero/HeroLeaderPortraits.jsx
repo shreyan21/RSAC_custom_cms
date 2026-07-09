@@ -14,7 +14,6 @@ const LeaderPortrait = ({ leader, fallback }) => {
 
   useEffect(() => {
     if (!target || target === fallback) {
-      setSrc(target || fallback);
       return undefined;
     }
 
@@ -32,10 +31,11 @@ const LeaderPortrait = ({ leader, fallback }) => {
       active = false;
     };
   }, [target, fallback]);
+  const visibleSrc = !target || target === fallback ? target || fallback : src;
 
   return (
     <img
-      src={src}
+      src={visibleSrc}
       alt={leader.alt || leader.name}
       className="hero-leader-image rsac-circular-portrait__image"
       style={{ objectPosition: leader.objectPosition || "center" }}

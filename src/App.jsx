@@ -13,7 +13,6 @@ import GeoportalSection from "./components/sections/GeoportalSection";
 import CommandCenter from "./components/sections/CommandCenter";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/layout/ScrollToTop";
-import ScrollProgress from "./components/layout/ScrollProgress";
 import GlobalLoader from "./components/layout/GlobalLoader";
 import ThemeController from "./components/layout/ThemeController";
 import SmoothScroll from "./components/layout/SmoothScroll";
@@ -28,7 +27,7 @@ import MissionPulse from "./components/sections/MissionPulse";
 import ServicesSection from "./components/sections/ServicesSection";
 import QuickAccess from "./components/sections/QuickAccess";
 import HomeGalleryPreview from "./components/sections/HomeGalleryPreview";
-import { useIsContentLoading, useSiteSettings } from "./hooks/useData";
+import { useSiteSettings } from "./hooks/useData";
 import { useLanguage } from "./hooks/useLanguage";
 import { isCmsPreviewMode } from "./data/directusClient";
 
@@ -155,41 +154,6 @@ const CmsPreviewBanner = () =>
     </div>
   ) : null;
 
-const CmsContentGate = ({ children }) => {
-  const loading = useIsContentLoading();
-  const { isHindi } = useLanguage();
-
-  if (!loading) {
-    return children;
-  }
-
-  return (
-    <main
-      id="main-content"
-      className="grid min-h-screen place-items-center bg-[#f5faf7] px-6 text-center text-[#102f46]"
-      aria-busy="true"
-      aria-live="polite"
-    >
-      <div className="max-w-md">
-        <div
-          className="mx-auto h-1.5 w-40 overflow-hidden rounded-full bg-[#0b6fa4]/15"
-          aria-hidden="true"
-        >
-          <span className="block h-full w-full animate-pulse rounded-full bg-[linear-gradient(90deg,#ff9933_0%,#0b6fa4_55%,#138808_100%)]" />
-        </div>
-        <p className="mt-5 text-sm font-bold uppercase tracking-[0.18em] text-[#0f6f42]">
-          {isHindi ? "सामग्री लोड हो रही है" : "Loading CMS content"}
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {isHindi
-            ? "Directus से सही सामग्री आने के बाद पेज दिखेगा।"
-            : "The page will appear after Directus content is ready."}
-        </p>
-      </div>
-    </main>
-  );
-};
-
 // ======================
 // HOMEPAGE
 // ======================
@@ -312,11 +276,9 @@ function App() {
         <SmoothScroll />
         <ThemeController />
         <ScrollToTop />
-        <ScrollProgress />
         <GlobalLoader />
         <RouteAnnouncer />
 
-        <CmsContentGate>
         <Navbar />
         <CmsPreviewBanner />
 
@@ -608,7 +570,6 @@ function App() {
 
         <Footer />
         <BackToTopButton />
-        </CmsContentGate>
         </DialogProvider>
       </DataProvider>
     </LanguageProvider>

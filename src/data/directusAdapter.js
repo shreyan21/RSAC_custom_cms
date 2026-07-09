@@ -243,7 +243,11 @@ export const directusAssetUrl = (file) => {
     return value;
   }
 
-  return cmsConfig.baseUrl ? `${cmsConfig.baseUrl}/assets/${value}` : "";
+  const directusBaseUrl =
+    cmsConfig.directus?.baseUrl ||
+    (cmsConfig.provider === "directus" ? cmsConfig.baseUrl : "");
+
+  return directusBaseUrl ? `${directusBaseUrl}/assets/${value}` : "";
 };
 
 export const directusImageUrl = (
@@ -251,8 +255,11 @@ export const directusImageUrl = (
   { width = 1200, quality = 80, fit = "cover" } = {}
 ) => {
   const url = directusAssetUrl(file);
-  const assetPrefix = cmsConfig.baseUrl
-    ? `${cmsConfig.baseUrl}/assets/`
+  const directusBaseUrl =
+    cmsConfig.directus?.baseUrl ||
+    (cmsConfig.provider === "directus" ? cmsConfig.baseUrl : "");
+  const assetPrefix = directusBaseUrl
+    ? `${directusBaseUrl}/assets/`
     : "";
 
   if (!url || !assetPrefix || !url.startsWith(assetPrefix)) {

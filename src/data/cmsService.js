@@ -35,6 +35,22 @@ import {
   readPublishedItems,
 } from "./directusClient";
 import { policyPagesHindi } from "./policies.hi.generated";
+import {
+  getDrupalDivisions,
+  getDrupalFacilities,
+  getDrupalFloodData,
+  getDrupalGalleryItems,
+  getDrupalGeoportals,
+  getDrupalMenuItems,
+  getDrupalMobileApps,
+  getDrupalNotices,
+  getDrupalPolicies,
+  getDrupalPublicInfoPages,
+  getDrupalQuickLinks,
+  getDrupalRsacOfficialSections,
+  getDrupalSiteSettings,
+  isDrupalCms,
+} from "./drupalService";
 
 const collections = cmsConfig.collections;
 const iconMap = {
@@ -372,6 +388,13 @@ const applyHomeSectionItems = (settings, rawItems, language) => {
 };
 
 export async function getSiteSettings(language = "en") {
+  if (isDrupalCms()) {
+    const drupalSettings = await getDrupalSiteSettings(language);
+    if (drupalSettings) {
+      return drupalSettings;
+    }
+  }
+
   const [
     settings,
     contentBlockItems,
@@ -596,6 +619,13 @@ const getProfilesByType = async (profileType, fallback, language = "en") => {
 };
 
 export async function getDivisions(language = "en") {
+  if (isDrupalCms()) {
+    const drupalDivisions = await getDrupalDivisions(language);
+    if (drupalDivisions) {
+      return drupalDivisions;
+    }
+  }
+
   const items = await readPublishedItems(collections.divisions);
 
   const divisions = withFallback(
@@ -621,6 +651,13 @@ export async function getDivisions(language = "en") {
 }
 
 export async function getFacilities(language = "en") {
+  if (isDrupalCms()) {
+    const drupalFacilities = await getDrupalFacilities(language);
+    if (drupalFacilities) {
+      return drupalFacilities;
+    }
+  }
+
   const items = await readPublishedItems(collections.facilities);
 
   const facilities = withFallback(
@@ -643,6 +680,13 @@ export async function getFacilities(language = "en") {
 }
 
 export async function getQuickLinks(language = "en") {
+  if (isDrupalCms()) {
+    const drupalQuickLinks = await getDrupalQuickLinks(language);
+    if (drupalQuickLinks) {
+      return drupalQuickLinks;
+    }
+  }
+
   const items = await readPublishedItems(collections.quickLinks, {
     sort: ["sort", "title"],
   });
@@ -664,6 +708,13 @@ export async function getQuickLinks(language = "en") {
 }
 
 export async function getMobileApps(language = "en") {
+  if (isDrupalCms()) {
+    const drupalMobileApps = await getDrupalMobileApps(language);
+    if (drupalMobileApps) {
+      return drupalMobileApps;
+    }
+  }
+
   const items = await readPublishedItems(collections.mobileApps, {
     sort: ["sort", "title"],
   });
@@ -697,6 +748,13 @@ export async function getMobileApps(language = "en") {
 }
 
 export async function getGalleryItems(language = "en") {
+  if (isDrupalCms()) {
+    const drupalGalleryItems = await getDrupalGalleryItems(language);
+    if (drupalGalleryItems) {
+      return drupalGalleryItems;
+    }
+  }
+
   const items = await readPublishedItems(collections.gallery, {
     sort: ["sort", "-date_created", "title"],
   });
@@ -862,6 +920,13 @@ export async function getHeroVideos(language = "en") {
 }
 
 export async function getGeoportals(language = "en") {
+  if (isDrupalCms()) {
+    const drupalGeoportals = await getDrupalGeoportals(language);
+    if (drupalGeoportals) {
+      return drupalGeoportals;
+    }
+  }
+
   const items = await readPublishedItems(collections.geoportals);
 
   return withFallback(
@@ -888,6 +953,13 @@ export async function getGeoportals(language = "en") {
 }
 
 export async function getFloodData(language = "en") {
+  if (isDrupalCms()) {
+    const drupalFloodData = await getDrupalFloodData(language);
+    if (drupalFloodData) {
+      return drupalFloodData;
+    }
+  }
+
   const items = await readPublishedItems(collections.floodReports, {
     // Manual drag-order (the "sort" field) wins so editors can reorder reports
     // in Directus; newest-first by date is the fallback when nothing is dragged.
@@ -923,6 +995,13 @@ export async function getFloodData(language = "en") {
 }
 
 export async function getNotices(language = "en") {
+  if (isDrupalCms()) {
+    const drupalNotices = await getDrupalNotices(language);
+    if (drupalNotices) {
+      return drupalNotices;
+    }
+  }
+
   const items = await readPublishedItems(collections.notices, {
     // Manual drag-order (the "sort" field) wins so editors can reorder notices
     // in Directus; newest-first by date is the fallback when nothing is dragged.
@@ -947,6 +1026,13 @@ export async function getNotices(language = "en") {
 }
 
 export async function getPolicies(language = "en") {
+  if (isDrupalCms()) {
+    const drupalPolicies = await getDrupalPolicies(language);
+    if (drupalPolicies) {
+      return drupalPolicies;
+    }
+  }
+
   const items = await readPublishedItems(collections.policies);
 
   const policies = withFallback(
@@ -980,6 +1066,13 @@ export async function getPolicies(language = "en") {
 }
 
 export async function getPublicInfoPages(language = "en") {
+  if (isDrupalCms()) {
+    const drupalPublicInfoPages = await getDrupalPublicInfoPages(language);
+    if (drupalPublicInfoPages) {
+      return drupalPublicInfoPages;
+    }
+  }
+
   const items = await readPublishedItems(collections.publicInfo);
 
   const cmsPages =
@@ -1016,6 +1109,13 @@ export function getPolicyBySlugLocal(slug, policies) {
 }
 
 export async function getMenuItems(language = "en") {
+  if (isDrupalCms()) {
+    const drupalMenuItems = await getDrupalMenuItems(language);
+    if (drupalMenuItems) {
+      return drupalMenuItems;
+    }
+  }
+
   const items = await readPublishedItems(collections.menu);
 
   if (Array.isArray(items)) {
@@ -1066,6 +1166,13 @@ export async function getMenuItems(language = "en") {
 }
 
 export async function getRsacOfficialSections(language = "en") {
+  if (isDrupalCms()) {
+    const drupalOfficialSections = await getDrupalRsacOfficialSections(language);
+    if (drupalOfficialSections) {
+      return drupalOfficialSections;
+    }
+  }
+
   // The pages payload is the heaviest CMS request: full HTML templates plus
   // thousands of nested content_fields rows. Request only the columns the
   // active language renders — the English site never reads html_hi /

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useContactDetails } from "../../hooks/useData";
-import { submitDirectusFeedback } from "../../data/directusClient";
+import { submitCmsFeedback } from "../../data/cmsInteractions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[\d+\-\s()]{7,}$/;
@@ -120,7 +120,7 @@ const FeedbackForm = () => {
     // Store the submission in the CMS so it works on machines without a mail
     // app; fall back to the visitor's email client when the CMS is offline.
     setSubmitting(true);
-    const stored = await submitDirectusFeedback({
+    const stored = await submitCmsFeedback({
       name: form.name.trim(),
       email: form.email.trim(),
       address: form.address.trim(),

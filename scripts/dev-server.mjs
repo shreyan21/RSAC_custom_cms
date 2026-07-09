@@ -38,6 +38,7 @@ const parseEnvFile = (path) => {
 
 const frontendEnv = parseEnvFile(frontendEnvPath);
 const cmsEnabled = frontendEnv.VITE_CMS_ENABLED === "true";
+const cmsProvider = String(frontendEnv.VITE_CMS_PROVIDER || "directus").toLowerCase();
 const cmsUrl = String(frontendEnv.VITE_CMS_URL || "").replace(/\/+$/, "");
 let cmsHostname = "";
 
@@ -51,6 +52,7 @@ if (cmsUrl) {
 
 const localCms =
   cmsEnabled &&
+  cmsProvider !== "drupal" &&
   ["localhost", "127.0.0.1", "::1"].includes(cmsHostname);
 
 const isDirectusReady = async () => {
@@ -117,10 +119,12 @@ if (localCms && !(await isDirectusReady())) {
   }
 } else if (localCms) {
   console.log(`Using the running local Directus at ${cmsUrl}`);
+} else if (cmsEnabled && cmsProvider === "drupal") {
+  console.log(`Using configured Drupal CMS at ${cmsUrl}`);
 } else if (cmsEnabled) {
   console.log(`Using the configured cloud Directus at ${cmsUrl}`);
 } else {
-  console.log("Directus is disabled; using repository fallback content.");
+  console.log("CMS is disabled; using repository fallback content.");
 }
 
 const vite = spawn(process.execPath, [viteBin, ...args], {

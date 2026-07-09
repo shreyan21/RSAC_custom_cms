@@ -4,8 +4,18 @@ const baseHeaders = {
   Accept: "application/json",
 };
 
+const getDirectusBaseUrl = () =>
+  cmsConfig.directus?.baseUrl ||
+  (cmsConfig.provider === "directus" ? cmsConfig.baseUrl : "");
+
+const canUseDirectus = () =>
+  cmsConfig.enabled &&
+  (cmsConfig.provider === "directus" ||
+    (cmsConfig.provider === "drupal" && cmsConfig.directus?.fallbackEnabled)) &&
+  getDirectusBaseUrl();
+
 const buildUrl = (path, query = {}) => {
-  const url = new URL(`${cmsConfig.baseUrl}${path}`);
+  const url = new URL(`${getDirectusBaseUrl()}${path}`);
 
   Object.entries(query).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") {
@@ -39,18 +49,14 @@ export const isCmsPreviewMode = () => {
 const getDirectusToken = () =>
   isCmsPreviewMode() && cmsConfig.previewDirectusToken
     ? cmsConfig.previewDirectusToken
-    : cmsConfig.token;
+    : cmsConfig.directus?.token || cmsConfig.token;
 
 const directusFetch = async (
   path,
   query,
   { method = "GET", body, anonymous = false, timeoutMs } = {}
 ) => {
-  if (
-    !cmsConfig.enabled ||
-    cmsConfig.provider !== "directus" ||
-    !cmsConfig.baseUrl
-  ) {
+  if (!canUseDirectus()) {
     return null;
   }
 

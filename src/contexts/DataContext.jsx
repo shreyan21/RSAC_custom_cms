@@ -116,10 +116,9 @@ export function DataProvider({ children }) {
     ...createBaseData(language),
     language,
   }));
-  // True while the CMS hydrates content for the active language (drives the
-  // global loading animation). Stays false when the CMS is disabled — the
-  // static fallback is already complete.
-  const [isLoading, setIsLoading] = useState(cmsConfig.enabled);
+  // Fallback content is complete on first paint, so CMS refreshes should never
+  // show a running global loader over the public website.
+  const [isLoading, setIsLoading] = useState(false);
 
   // Publish CMS-edited Interface Labels to the uiLabels store so the t()
   // translator in LanguageProvider (mounted above this provider) can use them.
@@ -232,34 +231,32 @@ export function DataProvider({ children }) {
       }
 
       loading = true;
-      // Hide stale/fallback content during every CMS refresh. This prevents a
-      // cleared Directus field from briefly showing the old default text.
-      setIsLoading(true);
 
-      const [
-        divisions,
-        facilities,
-        contactDetails,
-        officials,
-        leadershipProfiles,
-        scientistProfiles,
-        formerProfiles,
-        technicalProfiles,
-        administrationProfiles,
-        manpowerGroups,
-        heroVideos,
-        geoportals,
-        notices,
-        floodData,
-        policyPages,
-        publicInfoPages,
-        menuItems,
-        rsacOfficialSections,
-        siteSettings,
-        quickLinks,
-        mobileApps,
-        galleryItems,
-      ] = await Promise.allSettled([
+      try {
+        const [
+          divisions,
+          facilities,
+          contactDetails,
+          officials,
+          leadershipProfiles,
+          scientistProfiles,
+          formerProfiles,
+          technicalProfiles,
+          administrationProfiles,
+          manpowerGroups,
+          heroVideos,
+          geoportals,
+          notices,
+          floodData,
+          policyPages,
+          publicInfoPages,
+          menuItems,
+          rsacOfficialSections,
+          siteSettings,
+          quickLinks,
+          mobileApps,
+          galleryItems,
+        ] = await Promise.allSettled([
           getDivisions(language),
           getFacilities(language),
           getContactDetails(language),
@@ -282,54 +279,59 @@ export function DataProvider({ children }) {
           getQuickLinks(language),
           getMobileApps(language),
           getGalleryItems(language),
-        ])
-        .then((results) => results.map(ok))
-        .finally(() => {
-          loading = false;
-        });
+        ]).then((results) => results.map(ok));
 
-      // Restore photos lost from the scraped Hindi bodies (facilities, academics)
-      // using the English generated content, regardless of whether the official
-      // sections came from Directus or the static fallback.
-      let officialSections = rsacOfficialSections;
-      if (language === "hi" && officialSections) {
-        const enSections = (
-          await import("../data/rsacOfficialContent.generated")
-        ).rsacOfficialSections;
-        officialSections = backfillOfficialImages(officialSections, enSections);
-      }
+        // Restore photos lost from the scraped Hindi bodies (facilities, academics)
+        // using the English generated content, regardless of whether the official
+        // sections came from Directus or the static fallback.
+        let officialSections = rsacOfficialSections;
+        if (language === "hi" && officialSections) {
+          const enSections = (
+            await import("../data/rsacOfficialContent.generated")
+          ).rsacOfficialSections;
+          officialSections = backfillOfficialImages(officialSections, enSections);
+        }
 
-      if (!cancelled) {
-        setData((prev) => ({
-          language,
-          divisions: divisions || prev.divisions,
-          facilities: facilities || prev.facilities,
-          contactDetails: contactDetails || prev.contactDetails,
-          officials: officials || prev.officials,
-          leadershipProfiles: leadershipProfiles || prev.leadershipProfiles,
-          scientistProfiles: scientistProfiles || prev.scientistProfiles,
-          formerProfiles: formerProfiles || prev.formerProfiles,
-          technicalProfiles: technicalProfiles || prev.technicalProfiles,
-          administrationProfiles: administrationProfiles || prev.administrationProfiles,
-          manpowerGroups: manpowerGroups || prev.manpowerGroups,
-          heroVideos: heroVideos || prev.heroVideos,
-          activeHeroVideo: (heroVideos && heroVideos[0]) || prev.activeHeroVideo,
-          geoportals: geoportals || prev.geoportals,
-          notices: notices || prev.notices,
-          floodData: floodData || prev.floodData,
-          policyPages: policyPages || prev.policyPages,
-          publicInfoPages: publicInfoPages || prev.publicInfoPages,
-          getPolicyBySlug: policyPages
-            ? (slug) => policyPages.find((p) => p.slug === slug) || defaults.getPolicyBySlug(slug)
-            : prev.getPolicyBySlug,
-          menuItems: menuItems || prev.menuItems,
-          rsacOfficialSections: officialSections || prev.rsacOfficialSections,
-          siteSettings: siteSettings || prev.siteSettings,
-          quickLinks: quickLinks || prev.quickLinks,
-          mobileApps: mobileApps || prev.mobileApps,
-          galleryItems: galleryItems || prev.galleryItems,
-        }));
-        setIsLoading(false);
+        if (!cancelled) {
+          setData((prev) => ({
+            language,
+            divisions: divisions || prev.divisions,
+            facilities: facilities || prev.facilities,
+            contactDetails: contactDetails || prev.contactDetails,
+            officials: officials || prev.officials,
+            leadershipProfiles: leadershipProfiles || prev.leadershipProfiles,
+            scientistProfiles: scientistProfiles || prev.scientistProfiles,
+            formerProfiles: formerProfiles || prev.formerProfiles,
+            technicalProfiles: technicalProfiles || prev.technicalProfiles,
+            administrationProfiles:
+              administrationProfiles || prev.administrationProfiles,
+            manpowerGroups: manpowerGroups || prev.manpowerGroups,
+            heroVideos: heroVideos || prev.heroVideos,
+            activeHeroVideo:
+              (heroVideos && heroVideos[0]) || prev.activeHeroVideo,
+            geoportals: geoportals || prev.geoportals,
+            notices: notices || prev.notices,
+            floodData: floodData || prev.floodData,
+            policyPages: policyPages || prev.policyPages,
+            publicInfoPages: publicInfoPages || prev.publicInfoPages,
+            getPolicyBySlug: policyPages
+              ? (slug) =>
+                  policyPages.find((p) => p.slug === slug) ||
+                  defaults.getPolicyBySlug(slug)
+              : prev.getPolicyBySlug,
+            menuItems: menuItems || prev.menuItems,
+            rsacOfficialSections: officialSections || prev.rsacOfficialSections,
+            siteSettings: siteSettings || prev.siteSettings,
+            quickLinks: quickLinks || prev.quickLinks,
+            mobileApps: mobileApps || prev.mobileApps,
+            galleryItems: galleryItems || prev.galleryItems,
+          }));
+        }
+      } finally {
+        loading = false;
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
 
     }
