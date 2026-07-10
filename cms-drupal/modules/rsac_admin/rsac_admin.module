@@ -1,0 +1,38 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Adds plain editing help and collection presets to RSAC node forms.
+ */
+function rsac_admin_form_node_form_alter(array &$form, FormStateInterface $form_state): void {
+  $node = $form_state->getFormObject()->getEntity();
+  if (!str_starts_with($node->bundle(), 'rsac_')) {
+    return;
+  }
+
+  $form['#attached']['library'][] = 'rsac_admin/admin';
+  $form['rsac_editor_help'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => ['class' => ['rsac-editor-help']],
+    'content' => [
+      '#markup' => '<strong>Editing rule:</strong> save English first. After saving, open <em>Translate</em> and add Hindi manually. Keep Slug, Key, paths, URLs, phone numbers, and email addresses unchanged in Hindi. <a href="' . Url::fromRoute('rsac_admin.dashboard')->toString() . '">Back to RSAC Collections</a>.',
+    ],
+  ];
+
+  if (!$node->isNew()) {
+    return;
+  }
+
+  $allowed_presets = ['field_kind', 'field_profile_type', 'field_section_key', 'field_project_type', 'field_publication_type'];
+  $request = \Drupal::request();
+  foreach ($allowed_presets as $field_name) {
+    $value = $request->query->get($field_name);
+    if (!is_string($value) || $value === '' || empty($form[$field_name]['widget'][0]['value'])) {
+      continue;
+    }
+    $form[$field_name]['widget'][0]['value']['#default_value'] = $value;
+  }
+}

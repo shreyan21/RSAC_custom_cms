@@ -4,7 +4,7 @@ import * as defaults from "../data/defaultData";
 import {
   applyOfficialHindi,
   backfillOfficialImages,
-} from "../data/directusAdapter";
+} from "../data/contentUtils";
 import { policyPagesHindi } from "../data/policies.hi.generated";
 import { decodeLocalizedValue } from "../utils/htmlEntities";
 import {
@@ -283,7 +283,7 @@ export function DataProvider({ children }) {
 
         // Restore photos lost from the scraped Hindi bodies (facilities, academics)
         // using the English generated content, regardless of whether the official
-        // sections came from Directus or the static fallback.
+        // sections came from Drupal or the static fallback.
         let officialSections = rsacOfficialSections;
         if (language === "hi" && officialSections) {
           const enSections = (

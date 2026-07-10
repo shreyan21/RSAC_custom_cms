@@ -4,7 +4,7 @@
  * Images served locally from public/images/gallery (copied from the official
  * RSAC-UP photo gallery) so the site stays independent from rsac.up.gov.in.
  * Add/remove files in that folder and update the list below, or supply them
- * from a Directus rsac_gallery collection later (see cmsService pattern).
+ * from Drupal Gallery Item content.
  *
  * Each item: { id, src, caption, captionHi }
  */

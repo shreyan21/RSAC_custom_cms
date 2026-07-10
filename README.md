@@ -1,71 +1,92 @@
-# RSAC-UP Website
+# RSAC-UP Drupal Website
 
-React/Vite frontend with Drupal as the active headless CMS target. Directus code
-is kept only as optional legacy fallback during migration. Docker is not
-required.
+This folder is Drupal-based test project for RSAC-UP website.
 
-## Start Here
+Original Directus project is separate:
 
-Use Drupal for new CMS setup:
-
-```powershell
-npm install
-npm run cms:setup
-npm run dev
+```text
+D:\rsac_website
 ```
 
-`npm run cms:setup` checks Drupal frontend configuration and whether the Drupal
-JSON:API URL is reachable. It does not start Directus and does not install
-Drupal. Create/configure Drupal by following the Drupal docs below, start Drupal,
-then set `.env.local`.
+Do not edit original project from here.
 
-Local Drupal helper:
+The frontend uses only Drupal JSON:API. The old `rsac_cms` PostgreSQL database is a read-only migration source; Drupal runs from its own PostgreSQL schema/database so old tables remain untouched.
 
-```powershell
-npm run cms:start
-```
+## Local URLs
 
-This starts Drupal only if a real local Drupal project exists and
-`cms-drupal/.env.local` points to it. This React repo does not contain Drupal
-core files.
+- Website: `http://localhost:5173/`
+- Drupal: `http://localhost:8080/`
+- Drupal login: `http://localhost:8080/user/login`
+- RSAC collections: `http://localhost:8080/admin/content/rsac`
+- Drupal JSON:API: `http://localhost:8080/jsonapi`
 
-Legacy Directus setup is still available only when needed:
+## Main Commands
 
-```powershell
-npm run cms:setup:directus
-npm run cms:start:directus
-```
-
-## Drupal Docs
-
-- [cms-drupal/README_DRUPAL_SETUP.md](cms-drupal/README_DRUPAL_SETUP.md): install/configure Drupal without Docker.
-- [cms-drupal/DRUPAL_CONTENT_MODEL.md](cms-drupal/DRUPAL_CONTENT_MODEL.md): required Drupal content types and fields.
-- [cms-drupal/EDITOR_GUIDE.md](cms-drupal/EDITOR_GUIDE.md): editor guide for English/Hindi content.
-- [DRUPAL_RUNTIME_VERIFICATION.md](DRUPAL_RUNTIME_VERIFICATION.md): what is wired to Drupal and what still needs work.
-
-## Transfer And Deployment
-
-- [TRANSFER_AND_BACKUP.md](TRANSFER_AND_BACKUP.md): what to move to another system.
-- [DEPLOYMENT_NGINX.md](DEPLOYMENT_NGINX.md): frontend deploy with Nginx and SDC go-live notes.
-
-## Legacy Directus / Fallback Docs
-
-- [EDITING_GUIDE.md](EDITING_GUIDE.md): legacy Directus editing guide kept for fallback/reference.
-- [HINDI_CONTENT_GUIDE.md](HINDI_CONTENT_GUIDE.md): manual Hindi and English fallback behavior.
-- [SYSTEM_AND_FLOW.md](SYSTEM_AND_FLOW.md): architecture and project map.
-- [FALLBACK_DATA_GUIDE.md](FALLBACK_DATA_GUIDE.md): CMS to fallback to default priority.
-- [CMS_DEVELOPER_NOTES.md](CMS_DEVELOPER_NOTES.md): legacy CMS shapes and maintenance scripts.
-
-## Validation
+Install frontend packages:
 
 ```powershell
-npm run cms:validate
-npm run lint
-npm run build
+npm.cmd install
 ```
 
-`npm run cms:validate` runs the same Drupal configuration check as
-`npm run cms:setup`.
+Start Drupal:
 
-STQC certification applies to the deployed website and department process, not
-source code alone. Do not display a certification mark before formal approval.
+```powershell
+npm.cmd run cms:start
+```
+
+Start website:
+
+```powershell
+npm.cmd run dev
+```
+
+Windows non-technical helper:
+
+```text
+Double-click how_to_edit.cmd
+```
+
+Check Drupal:
+
+```powershell
+npm.cmd run cms:setup
+```
+
+Install or refresh the RSAC collections dashboard and editing fields:
+
+```powershell
+npm.cmd run cms:admin:install
+```
+
+Seed Drupal content:
+
+```powershell
+npm.cmd run cms:seed:drupal
+```
+
+Administrator-only read-only import from the old `rsac_cms` database:
+
+```powershell
+$env:RSAC_SOURCE_DB_PASSWORD="your-private-postgres-password"
+$env:RSAC_SOURCE_UPLOADS="path-to-old-public-uploads"
+npm.cmd run cms:migrate:rsac-db
+```
+
+Build website:
+
+```powershell
+npm.cmd run build
+```
+
+## Guides
+
+- [DRUPAL_EDITOR_USER_GUIDE.md](DRUPAL_EDITOR_USER_GUIDE.md): edit every website section in Drupal.
+- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): move project to another system/server/GitHub.
+
+## CMS Rule
+
+Website reads Drupal first.
+
+If Drupal content is missing, website uses built-in static fallback, so site does not break.
+
+Hindi content must be entered manually in Drupal. If Hindi is missing, website falls back to English.

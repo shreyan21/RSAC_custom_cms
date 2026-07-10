@@ -44,7 +44,7 @@ export const rsacOfficialSections = [
         "sourceUrl": "https://rsac.up.gov.in/en/page/organisational-chart",
         "preview": "Organisational Chart",
         "html": "<div><div><h2>Organisational Chart</h2> <div><div><img src=\"/official-media/siteContent/oc/202604211537456764organisation_21april.jpg\" loading=\"lazy\" decoding=\"async\" alt=\"Organisational Chart\"></div></div></div></div>",
-        "featuredImage": "http://localhost:8055/assets/c766f48c-6cae-470b-bcaf-f82a2eeea91d",
+        "featuredImage": "/official-media/siteContent/oc/202604211537456764organisation_21april.jpg",
         "sort": 2
       },
       {

@@ -6,7 +6,7 @@ import { uiLabelDefaults } from "./uiLabels";
 
 export const siteSettings = {
   // Short button/badge/status wording used across the whole site. Every entry
-  // becomes an "Interface Labels" row in the Directus Website Text Editor.
+  // can be copied into Drupal Site Setting translations.
   interfaceLabels: { ...uiLabelDefaults },
   appearance: {
     fontFamily: "Inter, sans-serif",
@@ -272,7 +272,7 @@ export const siteSettings = {
         summary:
           "Download RSAC-UP mobile applications for staff workflows, field survey, corridor survey, orchard mapping, and crop-disease support.",
         details:
-          "HRMS and survey applications are available from the Geo-Portal section.\nFiles should be uploaded in Directus App Downloads so the website does not depend on external RSAC links.",
+          "HRMS and survey applications are available from the Geo-Portal section.\nFiles should be uploaded in Drupal Downloads so the website does not depend on external RSAC links.",
         icon: "phone",
         buttonLabel: "Open Mobile Apps",
         buttonPath: "/mobile-apps",

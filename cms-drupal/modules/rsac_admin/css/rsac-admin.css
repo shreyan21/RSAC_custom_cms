@@ -1,0 +1,78 @@
+.rsac-admin-intro {
+  background: #eef8ff;
+  border: 1px solid #c9dfec;
+  border-left: 4px solid #0b6fa4;
+  border-radius: 6px;
+  margin: 0 0 1.25rem;
+  padding: 1rem;
+}
+
+.rsac-admin-intro p:last-child {
+  margin-bottom: 0;
+}
+
+.rsac-collection-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.rsac-collection-card {
+  background: #fff;
+  border: 1px solid #d9e3e8;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(18, 50, 74, 0.05);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.rsac-collection-card h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.4rem;
+}
+
+.rsac-collection-card__description {
+  color: #4f5f6b;
+  flex: 1;
+  margin: 0 0 0.75rem;
+}
+
+.rsac-collection-card__stats {
+  color: #0f6f42;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.rsac-collection-card__actions,
+.rsac-collection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rsac-editor-help {
+  background: #f3faf5;
+  border: 1px solid #cde6d5;
+  border-left: 4px solid #0f6f42;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.rsac-language-ready {
+  color: #0f6f42;
+  font-weight: 700;
+}
+
+.rsac-language-missing {
+  color: #9a4d00;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .rsac-collection-grid {
+    grid-template-columns: 1fr;
+  }
+}

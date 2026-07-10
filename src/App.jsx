@@ -29,7 +29,7 @@ import QuickAccess from "./components/sections/QuickAccess";
 import HomeGalleryPreview from "./components/sections/HomeGalleryPreview";
 import { useSiteSettings } from "./hooks/useData";
 import { useLanguage } from "./hooks/useLanguage";
-import { isCmsPreviewMode } from "./data/directusClient";
+import { isCmsPreviewMode } from "./data/cmsPreview";
 
 const OfficialContentIndexPage = lazy(() =>
   import("./pages/OfficialContentPage").then((module) => ({

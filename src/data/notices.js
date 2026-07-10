@@ -1,5 +1,5 @@
 // Local copies under public/documents/notices keep the site independent from
-// the legacy rsac.up.gov.in server. Directus rsac_notices replaces these when
+// the legacy rsac.up.gov.in server. Drupal notice rows replace these when
 // CMS is enabled (see cmsService.getNotices).
 const officialPdf = (file) => `/documents/notices/${file}`;
 

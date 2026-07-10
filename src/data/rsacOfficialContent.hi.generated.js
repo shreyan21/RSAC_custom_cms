@@ -44,7 +44,7 @@ export const rsacOfficialSections = [
         "sourceUrl": "https://rsac.up.gov.in/hi/page/%E0%A4%B8%E0%A4%82%E0%A4%97%E0%A4%A0%E0%A4%A8%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%AE%E0%A4%95-%E0%A4%9A%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%9F",
         "preview": "संगठनात्मक चार्ट",
         "html": "<div> <div> <h2>संगठनात्मक चार्ट</h2> <div><div><img src=\"/official-media/siteContent/oc/202604211537456764organisation_21april.jpg\" alt=\"संगठनात्मक चार्ट\" loading=\"lazy\" decoding=\"async\"></div> </div> </div> </div>",
-        "featuredImage": "http://localhost:8055/assets/c766f48c-6cae-470b-bcaf-f82a2eeea91d",
+        "featuredImage": "/official-media/siteContent/oc/202604211537456764organisation_21april.jpg",
         "sort": 2
       },
       {

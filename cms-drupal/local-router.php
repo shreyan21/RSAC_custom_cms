@@ -3,31 +3,12 @@
 /**
  * Local-only PHP built-in server router for Drupal.
  *
- * Adds CORS headers for the Vite dev server and then routes requests through
- * Drupal's front controller. Use this only for local development.
+ * Routes requests through Drupal's front controller. Local CORS is configured
+ * by Drupal in sites/default/services.yml so headers are emitted only once.
  */
 
 if (PHP_SAPI !== 'cli-server') {
   header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
-  exit;
-}
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowed_origins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
-
-if (in_array($origin, $allowed_origins, TRUE)) {
-  header("Access-Control-Allow-Origin: $origin");
-  header('Vary: Origin');
-  header('Access-Control-Allow-Headers: x-csrf-token, authorization, content-type, accept, origin, x-requested-with');
-  header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
-  header('Access-Control-Max-Age: 1000');
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-  http_response_code(204);
   exit;
 }
 

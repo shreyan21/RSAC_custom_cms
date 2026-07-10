@@ -1,0 +1,5 @@
+rsac_admin.dashboard_tab:
+  route_name: rsac_admin.dashboard
+  title: 'RSAC Collections'
+  base_route: system.admin_content
+  weight: -20

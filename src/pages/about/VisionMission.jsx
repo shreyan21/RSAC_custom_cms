@@ -1,7 +1,7 @@
 import { Compass, ListChecks, Layers, Workflow } from "lucide-react";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
-import { deepMerge } from "../../data/directusAdapter";
+import { deepMerge } from "../../data/contentUtils";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 

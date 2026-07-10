@@ -113,7 +113,7 @@ const clip = (value, max) => {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 };
 
-// Human-friendly row labels for the Directus editor: instead of "Paragraph 1"
+// Human-friendly row labels for CMS editors: instead of "Paragraph 1"
 // or "Text 11", each row is named by the page section it sits under plus a
 // preview of its own text, e.g. "Ongoing Projects → Space Based Information…".
 // The label is cosmetic (editors read it); rendering uses key + value only.
@@ -181,7 +181,7 @@ export const extractPageTextContext = (html) => {
   return context;
 };
 
-// Group the flat text rows into collapsible sections for the Directus editor:
+// Group the flat text rows into collapsible sections for CMS editors:
 // each heading becomes a parent row whose `children` hold the text that follows
 // it (until the next heading). Rows before the first heading go under an "Intro"
 // group. Keys and values are unchanged — only nesting + labels are added; the
@@ -232,7 +232,7 @@ export const extractPageTextTree = (html) => {
   const tree = [];
   let current = null;
   // Section headers are synthetic (key: null) so their tab names stay stable and
-  // never get overwritten by directus-setup's key-based relabeler; the actual
+  // never get overwritten by key-based relabeling; the actual
   // heading/marker text sits inside as an editable child row. Sections are keyed
   // by label so a tab that recurs later in the page (e.g. two "Training
   // Programmes" markers) folds into one section instead of duplicating.

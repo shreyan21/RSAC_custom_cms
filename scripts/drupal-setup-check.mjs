@@ -28,10 +28,10 @@ const baseUrl = String(env.VITE_DRUPAL_URL || env.VITE_CMS_URL || "").replace(
   ""
 );
 const jsonApiPath = env.VITE_DRUPAL_JSONAPI_PATH || "/jsonapi";
-const directusFallback = env.VITE_DIRECTUS_FALLBACK_ENABLED === "true";
+const requestTimeout = Number(env.VITE_CMS_REQUEST_TIMEOUT || 20000);
 
 const isPlaceholderUrl =
-  !baseUrl || /example\.gov\.in|your-drupal-domain|localhost:8055/i.test(baseUrl);
+  !baseUrl || /example\.gov\.in|your-drupal-domain/i.test(baseUrl);
 
 const checkDrupalReachable = async () => {
   if (!baseUrl || isPlaceholderUrl) {
@@ -43,7 +43,7 @@ const checkDrupalReachable = async () => {
 
   const url = `${baseUrl}${jsonApiPath}`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
+  const timeout = setTimeout(() => controller.abort(), requestTimeout);
 
   try {
     const response = await fetch(url, {
@@ -106,13 +106,7 @@ const checks = [
     ok: drupalReachable.ok,
     detail: drupalReachable.detail,
   },
-  {
-    label: "Directus fallback mode",
-    ok: true,
-    detail: directusFallback
-      ? "enabled: Drupal first, Directus second, static fallback last"
-      : "disabled: Drupal first, static fallback last",
-  },
+  { label: "Fallback mode", ok: true, detail: "Drupal first, static fallback last" },
 ];
 
 console.log("RSAC Drupal CMS setup check\n");
@@ -124,8 +118,7 @@ for (const check of checks) {
 
 console.log("\nFrontend runtime:");
 console.log("1. Drupal JSON:API first");
-console.log("2. Directus fallback only if VITE_DIRECTUS_FALLBACK_ENABLED=true");
-console.log("3. Static fallback always remains safe");
+console.log("2. Static fallback always remains safe");
 
 console.log("\nExpected Drupal endpoints:");
 [
@@ -138,14 +131,22 @@ console.log("\nExpected Drupal endpoints:");
   "rsac_gallery_item",
   "rsac_notice_tender_faq",
   "rsac_menu_item",
+  "rsac_project",
+  "rsac_publication",
+  "rsac_contact",
+  "rsac_profile",
+  "rsac_manpower_group",
+  "rsac_hero_video",
+  "rsac_brand_logo",
+  "rsac_organisation_role",
 ].forEach((bundle) => {
   console.log(`- ${baseUrl || "https://your-drupal-domain"}${jsonApiPath}/node/${bundle}`);
 });
 
 console.log("\nDocs:");
-console.log("- cms-drupal/README_DRUPAL_SETUP.md");
-console.log("- cms-drupal/DRUPAL_CONTENT_MODEL.md");
-console.log("- DRUPAL_RUNTIME_VERIFICATION.md");
+console.log("- DRUPAL_EDITOR_USER_GUIDE.md");
+console.log("- PROJECT_TRANSFER_GUIDE.md");
+console.log("- README.md");
 
 if (isPlaceholderUrl || provider !== "drupal" || !cmsEnabled || !drupalReachable.ok) {
   console.log(

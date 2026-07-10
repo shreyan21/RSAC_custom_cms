@@ -1,9 +1,4 @@
-import cmsConfig from "./cmsConfig";
-import {
-  readDirectusCount,
-  recordDirectusVisit,
-  submitDirectusFeedback,
-} from "./directusClient";
+import { isDrupalActive } from "./cmsResolve";
 import {
   readDrupalVisitCount,
   recordDrupalVisit,
@@ -11,31 +6,25 @@ import {
 } from "./drupalClient";
 
 export const submitCmsFeedback = async (record) => {
-  if (cmsConfig.provider === "drupal") {
-    return (
-      (await submitDrupalFeedback(record)) ||
-      (await submitDirectusFeedback(record))
-    );
+  if (isDrupalActive()) {
+    return submitDrupalFeedback(record);
   }
 
-  return submitDirectusFeedback(record);
+  return false;
 };
 
 export const recordCmsVisit = async () => {
-  if (cmsConfig.provider === "drupal") {
-    return (await recordDrupalVisit()) || (await recordDirectusVisit());
+  if (isDrupalActive()) {
+    return recordDrupalVisit();
   }
 
-  return recordDirectusVisit();
+  return null;
 };
 
 export const readCmsVisitCount = async () => {
-  if (cmsConfig.provider === "drupal") {
-    return (
-      (await readDrupalVisitCount()) ||
-      (await readDirectusCount(cmsConfig.collections.visits))
-    );
+  if (isDrupalActive()) {
+    return readDrupalVisitCount();
   }
 
-  return readDirectusCount(cmsConfig.collections.visits);
+  return null;
 };

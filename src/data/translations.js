@@ -559,8 +559,8 @@ export const hiTranslations = {
   Coverage: "कवरेज",
   Action: "कार्य",
   "Related portals": "संबंधित पोर्टल",
-  "Older approved reports can be added as documents or archive links from Directus.":
-    "पुरानी अनुमोदित रिपोर्ट Directus से दस्तावेज या अभिलेख लिंक के रूप में जोड़ी जा सकती हैं।",
+  "Older approved reports can be added as documents or archive links from Drupal.":
+    "पुरानी अनुमोदित रिपोर्ट Drupal से दस्तावेज या अभिलेख लिंक के रूप में जोड़ी जा सकती हैं।",
   "archive on the official RSAC-UP website": "आधिकारिक आरएसएसी-यूपी वेबसाइट पर अभिलेख",
   "Relief Commissioner, Uttar Pradesh": "राहत आयुक्त, उत्तर प्रदेश",
   "State disaster relief operations and flood bulletins.":

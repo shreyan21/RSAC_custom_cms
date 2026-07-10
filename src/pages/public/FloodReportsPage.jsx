@@ -45,14 +45,14 @@ const FloodReportsPage = () => {
 
   // Year archive view (/flood-reports/:year): the complete season mirrored in
   // public/documents/flood/<year>/ — no jump to the legacy site. Years without
-  // a mirrored archive (e.g. a new season) fall back to Directus reports.
+  // a mirrored archive (e.g. a new season) fall back to CMS reports.
   const archiveReports = year ? floodReportsByYear[year] : undefined;
   const visibleReports = year
     ? archiveReports ||
       floodReports.filter((report) => String(report.date).startsWith(year))
     : floodReports;
 
-  // Year buttons: editable list from Directus when provided, otherwise every
+  // Year buttons: editable list from CMS when provided, otherwise every
   // mirrored season.
   const archives = floodSection.archives?.length
     ? floodSection.archives

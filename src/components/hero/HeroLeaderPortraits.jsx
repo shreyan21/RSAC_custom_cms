@@ -6,7 +6,7 @@ import primeMinisterFallback from "../../assets/images/pm.webp";
 
 // Show the bundled portrait immediately, then swap to the CMS image only after
 // it has fully decoded off-DOM. This stops the visible "old photo → new photo"
-// blink when the Directus image (usually the same picture) replaces the bundled
+// blink when the CMS image (usually the same picture) replaces the bundled
 // fallback on first load, and never shows a broken/half-loaded frame.
 const LeaderPortrait = ({ leader, fallback }) => {
   const target = leader.image || fallback;

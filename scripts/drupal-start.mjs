@@ -138,7 +138,10 @@ console.log(`Docroot: ${docroot}`);
 console.log("Stop with Ctrl+C.");
 
 const child = spawn(phpBinary, ["-S", `${host}:${port}`, "-t", docroot, router], {
-  cwd: projectRoot,
+  // Drupal still resolves several core/theme paths from process working
+  // directory when served by PHP's built-in server. Use docroot so web
+  // requests match Drush/bootstrap path resolution on Windows.
+  cwd: docroot,
   env: { ...process.env, PATH: `${dirname(phpBinary)};${process.env.PATH || ""}` },
   stdio: "inherit",
 });

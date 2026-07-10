@@ -104,7 +104,7 @@ const divisionCardText = {
     "सुदूर संवेदन एवं जीआईएस में एम.टेक., उद्देश्य, पात्रता, शुल्क संरचना, पुरस्कार तथा शैक्षणिक जानकारी।",
 };
 
-// Division listing highlights stored in Directus `rsac_divisions`.
+// Division listing highlights stored in CMS division rows.
 const divisionHighlightText = {
   "Crop-wise area and production estimation for wheat, paddy, mustard, potato, sugarcane, and Rabi pulses.":
     "गेहूं, धान, सरसों, आलू, गन्ना और रबी दलहनों के लिए फसलवार क्षेत्रफल एवं उत्पादन का आकलन।",
@@ -178,6 +178,6 @@ export const divisionHindiPhrases = {
   ...earthResources, // hand fallback (MT below overrides where it has the run)
   ...divisionHindiPhrasesGenerated, // MT bulk coverage
   ...divisionCardText, // curated card title + summary (win over MT)
-  ...divisionHighlightText, // curated Directus listing highlights
+  ...divisionHighlightText, // curated CMS listing highlights
   ...sharedLabels, // curated short labels win over MT
 };

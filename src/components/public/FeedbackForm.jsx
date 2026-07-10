@@ -25,7 +25,7 @@ const FeedbackForm = () => {
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  // false | "cms" (stored in Directus) | "mail" (mailto fallback)
+  // false | "cms" (stored in Drupal) | "mail" (mailto fallback)
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 

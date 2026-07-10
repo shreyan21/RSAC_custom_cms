@@ -1,5 +1,5 @@
 import cmsConfig from "./cmsConfig";
-import { isCmsPreviewMode } from "./directusClient";
+import { isCmsPreviewMode } from "./cmsPreview";
 
 const baseHeaders = {
   Accept: "application/vnd.api+json, application/json",

@@ -15,7 +15,7 @@ const getInitialLanguage = () => {
     return "en";
   }
 
-  // Directus Live Preview (and shareable links) can force a language via ?lang=hi
+  // Shareable links can force a language via ?lang=hi
   // so the embedded page matches the CMS English/Hindi editing toggle.
   const requested = new URLSearchParams(window.location.search).get("lang");
   if (supportedLanguages.has(requested)) {

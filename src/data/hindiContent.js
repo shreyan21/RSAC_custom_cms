@@ -1152,7 +1152,7 @@ export const floodSectionHindi = {
   ],
   archiveHeading: "वर्षवार बाढ़ अभिलेख",
   archiveNote:
-    "पुराने स्वीकृत रिपोर्ट दस्तावेज या अभिलेख लिंक के रूप में Directus से जोड़े जा सकते हैं।",
+    "पुराने स्वीकृत रिपोर्ट दस्तावेज या अभिलेख लिंक के रूप में Drupal से जोड़े जा सकते हैं।",
   resourcesHeading: "संबंधित पोर्टल",
   resources: [
     {

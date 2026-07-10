@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -238,6 +238,13 @@ const drupalInstalled = () => {
   return /Successful/i.test(output);
 };
 
+const copyRsacAdminModule = () => {
+  const source = join(root, "cms-drupal", "modules", "rsac_admin");
+  const destination = join(drupalDocroot, "modules", "custom", "rsac_admin");
+  mkdirSync(dirname(destination), { recursive: true });
+  cpSync(source, destination, { recursive: true, force: true });
+};
+
 const installDrupal = () => {
   if (!existsSync(join(drupalRoot, "composer.json"))) {
     composer("create-project", "drupal/recommended-project", drupalRoot, "--no-interaction");
@@ -261,6 +268,8 @@ const installDrupal = () => {
     );
   }
 
+  copyRsacAdminModule();
+
   drush(
     "pm:enable",
     "language",
@@ -274,6 +283,7 @@ const installDrupal = () => {
     "menu_ui",
     "rest",
     "serialization",
+    "rsac_admin",
     "-y"
   );
 
@@ -327,7 +337,6 @@ VITE_CMS_PROVIDER=drupal
 VITE_CMS_URL=http://localhost:8080
 VITE_DRUPAL_JSONAPI_PATH=/jsonapi
 VITE_DRUPAL_LANGUAGE_PREFIX_MODE=path
-VITE_DIRECTUS_FALLBACK_ENABLED=false
 `,
       "utf8"
     );

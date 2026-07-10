@@ -1264,7 +1264,7 @@ html[data-rsac-theme="cms"] .rsac-rich-content :where(ul, ol):not(.rsac-numbered
      faint watermark of the same topical texture shown vividly in the header
      banner, on a light base so the title/summary stay high-contrast. All three
      layers derive from the CMS-driven --official-card-* vars, so an editor's
-     colour/icon change in Directus flows straight through. */
+     colour/icon change in Drupal flows straight through. */
   background:
     linear-gradient(
       180deg,

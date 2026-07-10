@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /directus/
 
 Sitemap: https://rsac.up.gov.in/sitemap.xml
 

@@ -1,6 +1,6 @@
 // Registry of short interface wordings (buttons, badges, statuses) that appear
 // across the site through the t() translator in LanguageContext. Every entry
-// below is seeded into Directus as an "Interface Labels" content block so
+// below can be entered in Drupal site settings so
 // editors can reword any of them (English and Hindi) without code changes.
 // The slug is derived from the English text; components keep calling
 // t("English text") and the CMS override wins when present.

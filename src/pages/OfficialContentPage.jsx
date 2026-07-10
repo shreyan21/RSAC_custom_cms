@@ -35,7 +35,7 @@ import { scrollToTarget } from "../utils/scroll";
 import { hiTranslations } from "../data/translations";
 import { divisionHindiPhrases } from "../data/divisionHindiPhrases";
 import { isUnmirroredLegacyMedia } from "../data/officialMedia";
-import { sectionOverrideKey } from "../data/directusAdapter";
+import { sectionOverrideKey } from "../data/contentUtils";
 import { SHOW_BREADCRUMBS } from "../config/uiConfig";
 
 // Translate the visible text of an English rich-content HTML string into Hindi,
@@ -307,8 +307,7 @@ const defaultOfficialCardTheme = {
     "linear-gradient(135deg, rgba(11, 111, 164, 0.86), rgba(15, 111, 66, 0.68)), repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 20px), repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 1px, transparent 1px 20px)",
 };
 
-// Editors pick these by name in Directus (Website Pages → Card Icon); keys
-// must stay in sync with the dropdown choices in scripts/directus-setup.mjs.
+// Editors pick these by name in Drupal page fields.
 const officialCardIconChoices = {
   sprout: Sprout,
   cpu: Cpu,
@@ -1455,12 +1454,12 @@ const removeImportedArtifacts = (document) => {
   removableNodes.forEach((node) => node.remove());
 };
 
-// CMS-authored bodies (e.g. Hindi HTML pasted into Directus) often carry inline
+// CMS-authored bodies (e.g. Hindi HTML pasted into Drupal) often carry inline
 // sizing/positioning copied from the source — fixed pixel widths, float,
 // position, table width attributes. Inline styles and presentational size
 // attributes outrank the .rsac-rich-content design-system CSS, so they overflow
 // the container and break the responsive layout when the Hindi body is edited in
-// Directus. Strip ONLY the layout-affecting declarations/attributes here; keep
+// Drupal. Strip ONLY the layout-affecting declarations/attributes here; keep
 // harmless formatting (color, bold, text-align) so an editor's emphasis
 // survives. The scraped generated content has none of these, so this is a no-op
 // there — it only guards content entered through the CMS.
@@ -3526,6 +3525,295 @@ const OfficialHtmlContent = ({
   );
 };
 
+const flexibleGridColumns = {
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
+  4: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
+};
+
+const flexibleBlockType = (block) =>
+  String(block?.type || block?.kind || "rich_text")
+    .trim()
+    .toLowerCase()
+    .replace(/[ -]+/g, "_");
+
+const flexibleColumns = (value, fallback = 3) =>
+  flexibleGridColumns[Math.min(4, Math.max(1, Number(value) || fallback))];
+
+const flexibleItems = (value) => (Array.isArray(value) ? value : []);
+
+const flexibleText = (value, language) =>
+  localizeOfficialText(String(value || ""), language);
+
+const FlexibleHeading = ({ block, language }) => {
+  const heading = block.heading || block.title;
+  if (!heading || block.showHeading === false) {
+    return null;
+  }
+
+  return (
+    <div className="mb-4">
+      {block.eyebrow && (
+        <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0b6fa4]">
+          {flexibleText(block.eyebrow, language)}
+        </p>
+      )}
+      <h2 className="text-xl font-extrabold leading-snug text-[#102f46] sm:text-2xl">
+        {flexibleText(heading, language)}
+      </h2>
+      {block.intro && (
+        <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+          {flexibleText(block.intro, language)}
+        </p>
+      )}
+    </div>
+  );
+};
+
+const FlexibleLink = ({ item, language, className = "" }) => {
+  const href = item?.url || item?.path || item?.href || "";
+  const label = flexibleText(
+    item?.linkLabel || item?.label || item?.title || "Open",
+    language
+  );
+  if (!href) {
+    return null;
+  }
+
+  const content = (
+    <>
+      <span>{label}</span>
+      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+    </>
+  );
+  const classes = `inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#0f6f42] px-3.5 py-2 text-sm font-bold text-white no-underline transition hover:bg-[#0b5f38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f6f42] ${className}`;
+
+  return /^\/(?!\/)/.test(href) && !/^\/sites\//i.test(href) ? (
+    <Link to={href} className={classes}>
+      {content}
+    </Link>
+  ) : (
+    <a
+      href={href}
+      className={classes}
+      target={/^https?:/i.test(href) ? "_blank" : undefined}
+      rel={/^https?:/i.test(href) ? "noreferrer" : undefined}
+    >
+      {content}
+    </a>
+  );
+};
+
+const FlexibleCmsBlocks = ({ blocks, page }) => {
+  const { language } = useLanguage();
+  const visibleBlocks = flexibleItems(blocks).filter(
+    (block) => block && block.hidden !== true && block.enabled !== false
+  );
+
+  if (!visibleBlocks.length) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6" data-cms-layout="flexible">
+      {visibleBlocks.map((block, blockIndex) => {
+        const type = flexibleBlockType(block);
+        const key = block.id || block.key || `${type}-${blockIndex}`;
+        const items = flexibleItems(block.items);
+        const shellClass = block.variant === "plain"
+          ? "min-w-0"
+          : "min-w-0 rounded-lg border border-slate-200 bg-white p-4 sm:p-5";
+
+        if (["rich_text", "text", "html", "body"].includes(type)) {
+          const html = block.html || block.body || block.text || "";
+          if (!html) return null;
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <OfficialHtmlContent
+                html={html}
+                pageTitle={block.heading || page.title}
+                sectionKey={page.sectionKey}
+                stripMediaHeadings={false}
+              />
+            </section>
+          );
+        }
+
+        if (type === "heading") {
+          return (
+            <section key={key} className="min-w-0">
+              <FlexibleHeading block={block} language={language} />
+            </section>
+          );
+        }
+
+        if (type === "divider") {
+          return <hr key={key} className="border-0 border-t border-slate-200" />;
+        }
+
+        if (type === "cards") {
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <div className={`grid items-stretch gap-4 ${flexibleColumns(block.columns)}`}>
+                {items.map((item, itemIndex) => (
+                  <article
+                    key={item.id || item.key || `${key}-card-${itemIndex}`}
+                    className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-[#fbfdfc] shadow-[0_10px_28px_rgba(18,50,74,0.055)]"
+                  >
+                    {(item.image || item.src) && (
+                      <img
+                        src={item.image || item.src}
+                        alt={flexibleText(item.alt || item.title, language)}
+                        className="aspect-[16/9] w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex flex-1 flex-col p-4">
+                      {item.title && (
+                        <h3 className="text-lg font-extrabold leading-snug text-[#102f46]">
+                          {flexibleText(item.title, language)}
+                        </h3>
+                      )}
+                      {(item.text || item.summary || item.description) && (
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                          {flexibleText(
+                            item.text || item.summary || item.description,
+                            language
+                          )}
+                        </p>
+                      )}
+                      {(item.url || item.path || item.href) && (
+                        <div className="mt-auto pt-4">
+                          <FlexibleLink item={item} language={language} />
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        }
+
+        if (["list", "ordered_list"].includes(type)) {
+          const ordered = type === "ordered_list" || block.ordered === true;
+          const ListTag = ordered ? "ol" : "ul";
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <ListTag className={`${ordered ? "list-decimal" : "list-disc"} space-y-2 pl-6 text-sm leading-relaxed text-slate-700 marker:font-bold marker:text-orange-500`}>
+                {items.map((item, itemIndex) => {
+                  const value = typeof item === "string" ? { text: item } : item;
+                  return (
+                    <li key={value.id || `${key}-item-${itemIndex}`}>
+                      {value.title && (
+                        <strong className="text-[#102f46]">
+                          {flexibleText(value.title, language)}: {" "}
+                        </strong>
+                      )}
+                      {flexibleText(value.text || value.summary || value.label, language)}
+                    </li>
+                  );
+                })}
+              </ListTag>
+            </section>
+          );
+        }
+
+        if (type === "stats") {
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <div className={`grid gap-3 ${flexibleColumns(block.columns, 4)}`}>
+                {items.map((item, itemIndex) => (
+                  <div
+                    key={item.id || `${key}-stat-${itemIndex}`}
+                    className="rounded-lg border border-emerald-900/10 bg-emerald-50/60 p-4 text-center"
+                  >
+                    <strong className="block text-2xl font-extrabold text-[#0f6f42]">
+                      {flexibleText(item.value, language)}
+                    </strong>
+                    <span className="mt-1 block text-sm font-semibold text-slate-700">
+                      {flexibleText(item.label || item.title, language)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        }
+
+        if (type === "table") {
+          const headers = flexibleItems(block.headers || block.columns);
+          const rows = flexibleItems(block.rows);
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <div className="max-w-full overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+                  {headers.length > 0 && (
+                    <thead className="bg-[#eef8ff] text-[#102f46]">
+                      <tr>
+                        {headers.map((header, index) => (
+                          <th key={`${key}-head-${index}`} className="border-b border-slate-200 p-3 font-extrabold">
+                            {flexibleText(header.label || header, language)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody>
+                    {rows.map((row, rowIndex) => (
+                      <tr key={`${key}-row-${rowIndex}`} className="border-b border-slate-100 last:border-0">
+                        {flexibleItems(row).map((cell, cellIndex) => (
+                          <td key={`${key}-cell-${rowIndex}-${cellIndex}`} className="p-3 align-top text-slate-700">
+                            {flexibleText(cell, language)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        }
+
+        if (["links", "buttons"].includes(type)) {
+          return (
+            <section key={key} className={shellClass}>
+              <FlexibleHeading block={block} language={language} />
+              <div className="flex flex-wrap gap-3">
+                {items.map((item, itemIndex) => (
+                  <FlexibleLink
+                    key={item.id || `${key}-link-${itemIndex}`}
+                    item={typeof item === "string" ? { title: item, url: item } : item}
+                    language={language}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        }
+
+        if (["callout", "note"].includes(type)) {
+          return (
+            <aside key={key} className="rounded-lg border-l-4 border-[#0b6fa4] bg-sky-50 p-4 text-sm leading-relaxed text-slate-700">
+              <FlexibleHeading block={block} language={language} />
+              {flexibleText(block.text || block.body, language)}
+            </aside>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+};
+
 const buildDivisionSectionsFromHtml = (page) => {
   if (typeof DOMParser === "undefined") {
     return [
@@ -3990,6 +4278,11 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   );
   const peopleAnchor = `${page.slug}-people`;
   const contentAnchor = `${page.slug}-details`;
+  const structuredBlocks = flexibleItems(page.sections);
+  const pageLinks = flexibleItems(page.links);
+  const linkBlock = pageLinks.length
+    ? [{ type: "links", heading: "Related links", items: pageLinks }]
+    : [];
 
   return (
     <div>
@@ -4035,11 +4328,25 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
       )}
 
       <div id={contentAnchor} className="scroll-mt-36">
-        <OfficialHtmlContent
-          html={page.html}
-          pageTitle={page.title}
-          stripProfiles={profiles.length > 0}
-        />
+        {structuredBlocks.length ? (
+          <FlexibleCmsBlocks
+            blocks={[...structuredBlocks, ...linkBlock]}
+            page={page}
+          />
+        ) : (
+          <>
+            <OfficialHtmlContent
+              html={page.html}
+              pageTitle={page.title}
+              stripProfiles={profiles.length > 0}
+            />
+            {linkBlock.length > 0 && (
+              <div className="mt-6">
+                <FlexibleCmsBlocks blocks={linkBlock} page={page} />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -4055,7 +4362,7 @@ const escapeExtraItemHtml = (text) =>
   })[character]);
 
 // Editor-added rows join the section's existing list so they inherit its
-// numbering and indentation. Directus appends newly created rows at the end of
+// numbering and indentation. CMS editors append newly created rows at the end of
 // the editor list, so reverse and prepend them here: newest visible item = 1.
 // Only when the section has no list to extend do the extras fall back to their
 // own <ul>, which the rich-content renderer still styles consistently.
@@ -4090,7 +4397,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
     const built = buildDivisionSections(page);
     // Editor tab renames: content_fields section-header rows are synthetic
     // (no html text node), so a renamed header reaches the page as a
-    // label -> new-name override instead (see normalizeDirectusContentPage).
+    // label -> new-name override instead.
     // Editor-added rows (no key, so no template slot) arrive the same way and
     // are appended to their section as an extra list.
     const overrides = page.sectionLabelOverrides || {};
@@ -4122,7 +4429,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
     sections.find((section) => section.key === activeSectionKey) || sections[0];
 
   // The tab splitter keys on the scraped <span> tab-strip markup. When a CMS
-  // edit strips those spans (Directus rich-text editors drop <span> on save),
+  // edit strips those spans (some rich-text editors drop <span> on save),
   // the body collapses so no overview/category panel can be built and only the
   // profile section survives — hiding the entire division write-up. Fall back to
   // the full rich renderer whenever no HTML body section was produced so the
