@@ -2,6 +2,12 @@ import { ExternalLink, MapPinned, Navigation } from "lucide-react";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 
+const cardEyebrowSizeClasses = {
+  small: "text-xs",
+  normal: "text-sm",
+  large: "text-lg sm:text-xl",
+};
+
 const RsacLocationMap = ({ compact = false }) => {
   const { location } = useSiteSettings();
   const { t } = useLanguage();
@@ -31,7 +37,10 @@ const RsacLocationMap = ({ compact = false }) => {
       </span>
 
       {location.cardEyebrow && (
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-[#0b6fa4]">
+        <p className={`mt-5 font-bold uppercase tracking-[0.12em] text-[#0b6fa4] ${
+          cardEyebrowSizeClasses[location.cardEyebrowSize]
+            || cardEyebrowSizeClasses.normal
+        }`}>
           {location.cardEyebrow}
         </p>
       )}

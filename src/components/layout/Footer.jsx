@@ -8,12 +8,15 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useContactDetails, useSiteSettings } from "../../hooks/useData";
+import { useContactDetails, useDataContext, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useVisitorCount } from "../../hooks/useVisitorCount";
 
 const formatReviewDate = (value, fallback, locale) => {
-  const parsed = new Date(`${value}T00:00:00`);
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))
+    ? `${value}T00:00:00`
+    : value;
+  const parsed = new Date(normalized);
 
   if (Number.isNaN(parsed.getTime())) {
     return fallback;
@@ -33,17 +36,28 @@ const hiddenStatutoryLinkTargets = new Set([
   "/sitemap",
 ]);
 
+const footerHeadingSizeClasses = {
+  small: "text-sm",
+  normal: "text-lg",
+  large: "text-2xl",
+};
+
 const Footer = () => {
   const { isHindi } = useLanguage();
+  const { contentVersion } = useDataContext();
   const contactDetails = useContactDetails();
   const { branding, footer } = useSiteSettings();
   const visitorCount = useVisitorCount();
   const currentYear = new Date().getFullYear();
+  const lastUpdated = contentVersion || footer.reviewDate;
   const reviewLabel = formatReviewDate(
-    footer.reviewDate,
+    lastUpdated,
     footer.reviewLabel,
     isHindi ? "hi-IN" : "en-IN"
   );
+  const contactHeading = footer.contactHeading || (isHindi ? "संपर्क" : "Contact");
+  const contactHeadingSize = footerHeadingSizeClasses[footer.contactHeadingSize]
+    || footerHeadingSizeClasses.normal;
   const statutoryLinks = (footer.statutoryLinks || []).filter(
     (link) => !hiddenStatutoryLinkTargets.has(link.path || link.url)
   );
@@ -72,9 +86,9 @@ const Footer = () => {
             <section aria-labelledby="footer-contact-heading">
               <h2
                 id="footer-contact-heading"
-                className="text-xs font-extrabold uppercase tracking-[0.22em] text-white"
+                className={`${contactHeadingSize} font-extrabold leading-tight text-white`}
               >
-                {isHindi ? "संपर्क" : "Contact"}
+                {contactHeading}
               </h2>
               <div className="mt-6 space-y-3">
                 <a
@@ -203,7 +217,7 @@ const Footer = () => {
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <p className="text-sm text-orange-300">
                 {isHindi ? "अंतिम अद्यतन:" : "Last updated:"}{" "}
-                <time dateTime={footer.reviewDate}>{reviewLabel}</time>
+                <time dateTime={lastUpdated}>{reviewLabel}</time>
               </p>
               <p
                 className="inline-flex items-center gap-2 text-xs text-white/65"

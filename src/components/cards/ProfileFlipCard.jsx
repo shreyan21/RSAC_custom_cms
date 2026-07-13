@@ -173,14 +173,14 @@ const ProfileFlipCard = ({
 
   if (!canFlip) {
     return (
-      <article className="rsac-cv-card min-h-[348px]">
+      <article className="rsac-profile-card rsac-cv-card min-h-[348px]">
         {front}
       </article>
     );
   }
 
   return (
-    <article className="profile-flip-card rsac-cv-card min-h-[348px]" tabIndex={0}>
+    <article className="profile-flip-card rsac-profile-card rsac-cv-card min-h-[348px]" tabIndex={0}>
       <div className="profile-flip-inner min-h-[348px]">
         {front}
 

@@ -69,7 +69,7 @@ const Navbar = () => {
   const headerTone = isOpen
     ? "bg-[#041220] border-b border-white/10 shadow-[0_16px_48px_rgba(4,18,32,0.22)]"
     : scrolled
-      ? "bg-white/85 backdrop-blur-xl border-b border-emerald-900/10 shadow-[0_12px_40px_rgba(18,50,74,0.08)]"
+      ? "bg-white border-b border-emerald-900/10 shadow-[0_12px_40px_rgba(18,50,74,0.08)]"
       : "bg-transparent";
   // Home has a dark hero behind the transparent navbar → light text when not
   // scrolled. Inner pages are light at the top → keep dark text.
@@ -79,41 +79,21 @@ const Navbar = () => {
   const subtitleTone = overDark ? "text-white/72" : "text-slate-600";
 
   useEffect(() => {
-    // Reading window.scrollY in a scroll listener forces a synchronous layout
-    // on every scrolled frame (the read lands right after framer-motion's
-    // style writes) — it was the biggest reflow source in scroll traces.
-    // A sentinel + IntersectionObserver flips the same >30px state with no
-    // layout reads at all.
-    if (typeof IntersectionObserver !== "undefined") {
-      const sentinel = document.createElement("div");
-      sentinel.setAttribute("aria-hidden", "true");
-      sentinel.style.cssText =
-        "position:absolute;top:0;left:0;width:1px;height:31px;pointer-events:none;visibility:hidden;";
-      document.body.prepend(sentinel);
-
-      const observer = new IntersectionObserver(([entry]) => {
-        setScrolled(!entry.isIntersecting);
+    let frame = 0;
+    const update = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const nextScrolled = window.scrollY > 30;
+        setScrolled((current) => current === nextScrolled ? current : nextScrolled);
       });
-      observer.observe(sentinel);
-
-      return () => {
-        observer.disconnect();
-        sentinel.remove();
-      };
-    }
-
-    const handleScroll = () => {
-      const nextScrolled = window.scrollY > 30;
-      setScrolled((current) =>
-        current === nextScrolled ? current : nextScrolled
-      );
     };
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    update();
+    window.addEventListener("scroll", update, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
     };
   }, []);
 

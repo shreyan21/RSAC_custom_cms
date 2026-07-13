@@ -111,6 +111,8 @@ try {
   const facilityRowKey = facilityEnglishBlock?.children?.[0]?.key;
   const facilityHindiBlock = facilityDraft.dataHi.blocks?.find((block) => block.children?.some((child) => child.key === facilityRowKey));
   if (!facilityRowKey || !facilityHindiBlock) throw new Error("Facility section rows are not aligned between English and Hindi.");
+  facilityEnglishBlock.value = `${facilityEnglishBlock.value} [HEADING VERIFY]`;
+  facilityHindiBlock.value = `${facilityHindiBlock.value} शीर्षक-परीक्षण`;
   facilityEnglishBlock.children[0].value = `${facilityEnglishBlock.children[0].value} [ROW VERIFY]`;
   const facilityHindiRow = facilityHindiBlock.children.find((child) => child.key === facilityRowKey);
   facilityHindiRow.value = `${facilityHindiRow.value} पंक्ति-परीक्षण`;
@@ -131,6 +133,9 @@ try {
   const facilityHindiSaved = facilityHindi.find((item) => item.slug === facilityDraft.dataEn.slug);
   if (!facilityEnglishSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("[ROW VERIFY]"))) || !facilityHindiSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("पंक्ति-परीक्षण")))) {
     throw new Error("Focused facility section row did not persist separately in English and Hindi.");
+  }
+  if (!facilityEnglishSaved.blocks.some((block) => block.value?.endsWith("[HEADING VERIFY]")) || !facilityHindiSaved.blocks.some((block) => block.value?.endsWith("शीर्षक-परीक्षण"))) {
+    throw new Error("Imported page section headings did not persist separately in English and Hindi.");
   }
   if (facilityEnglishSaved.contentWidth !== "wide" || facilityHindiSaved.contentWidth !== "wide" || facilityEnglishSaved.contentSize !== "large" || facilityHindiSaved.mediaSize !== "compact") {
     throw new Error(`Shared page sizing controls did not reach both website languages: ${JSON.stringify({ en: { contentWidth: facilityEnglishSaved.contentWidth, contentSize: facilityEnglishSaved.contentSize, mediaSize: facilityEnglishSaved.mediaSize }, hi: { contentWidth: facilityHindiSaved.contentWidth, contentSize: facilityHindiSaved.contentSize, mediaSize: facilityHindiSaved.mediaSize } })}`);
@@ -223,16 +228,45 @@ for (const bootstrap of [englishBootstrap, hindiBootstrap]) {
     throw new Error("Forest Completed Projects still contains cross-division rows.");
   }
 }
-const findCipdmPage = (bootstrap) => bootstrap.rsacOfficialSections
-  .flatMap((section) => section.pages || [])
-  .find((page) => page.slug === "computer-image-processing-division");
-const englishCipdmResearch = findCipdmPage(englishBootstrap)?.blocks
-  ?.find((block) => block.editorMode === "numbered_list");
-const hindiCipdmResearch = findCipdmPage(hindiBootstrap)?.blocks
-  ?.find((block) => block.editorMode === "numbered_list");
-if ((englishCipdmResearch?.children || []).length < 20 || (hindiCipdmResearch?.children || []).length < 20) {
-  throw new Error("CIPDM research papers are not exposed as structured CMS rows in both languages.");
+const expectedPublicationCounts = new Map([
+  ["computer-image-processing-division", 21],
+  ["agriculture-resources-division1", 54],
+  ["earth-resources-division1", 113],
+  ["forest-resources-ecology-division", 51],
+  ["geo-spatial-data-bank-division1", 65],
+  ["landuse-amp;-urban-survey-division1", 56],
+  ["soil-resources-division1", 96],
+  ["surface-water-resources-division1", 208],
+  ["training-division", 24],
+]);
+const publicationLabelPattern = /research|paper|\u0936\u094b\u0927\s*\u092a\u0924\u094d\u0930/iu;
+const punctuationOnlyPattern = /^[\s,.;:\u0964|/()[\]{}\-\u2013\u2014\u2022\u00b7]+$/u;
+const findDivisionPage = (bootstrap, slug) => bootstrap.rsacOfficialSections
+  .find((section) => section.key === "divisions")?.pages
+  ?.find((page) => page.slug === slug);
+
+for (const [language, bootstrap] of [["English", englishBootstrap], ["Hindi", hindiBootstrap]]) {
+  for (const [slug, expectedCount] of expectedPublicationCounts) {
+    const block = findDivisionPage(bootstrap, slug)?.blocks?.find((candidate) =>
+      candidate.editorMode === "numbered_list" &&
+      publicationLabelPattern.test(`${candidate.value || ""} ${candidate.label || ""}`)
+    );
+    const visibleRows = (block?.children || []).filter((item) => !item.hidden);
+    if (!block?.normalizedItemRows || visibleRows.length !== expectedCount) {
+      throw new Error(`${language} ${slug} exposes ${visibleRows.length} normalized publication rows; expected ${expectedCount}.`);
+    }
+    const malformed = visibleRows.find((item) => {
+      const value = String(item.value || "").trim();
+      return !value || punctuationOnlyPattern.test(value);
+    });
+    if (malformed) {
+      throw new Error(`${language} ${slug} contains an empty or punctuation-only publication row.`);
+    }
+  }
 }
+
+const hindiCipdmResearch = findDivisionPage(hindiBootstrap, "computer-image-processing-division")?.blocks
+  ?.find((block) => block.editorMode === "numbered_list");
 if (!hindiCipdmResearch.children.some((item) => /[\u0900-\u097f]/u.test(item.value || ""))) {
   throw new Error("CIPDM Hindi research rows do not contain separate Hindi content.");
 }

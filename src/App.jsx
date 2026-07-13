@@ -13,6 +13,7 @@ import GeoportalSection from "./components/sections/GeoportalSection";
 import CommandCenter from "./components/sections/CommandCenter";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/layout/ScrollToTop";
+import ScrollProgress from "./components/layout/ScrollProgress";
 import GlobalLoader from "./components/layout/GlobalLoader";
 import ThemeController from "./components/layout/ThemeController";
 import SmoothScroll from "./components/layout/SmoothScroll";
@@ -106,7 +107,7 @@ const defaultHiddenHomeSections = [
 ];
 
 const HomePage = () => {
-  const { layout } = useSiteSettings();
+  const { layout, appearance = {} } = useSiteSettings();
   const baseOrder =
     Array.isArray(layout?.homeSections) && layout.homeSections.length
       ? layout.homeSections
@@ -170,7 +171,12 @@ const HomePage = () => {
   };
 
   return (
-    <main id="main-content" className="rsac-home-flow">
+    <main
+      id="main-content"
+      className="rsac-home-flow"
+      data-rsac-home-heading-size={appearance.homeHeadingSize || "normal"}
+      data-rsac-home-body-size={appearance.homeBodySize || "normal"}
+    >
 
       <Hero />
 
@@ -211,6 +217,7 @@ function App() {
         <ScrollToTop />
         <GlobalLoader />
         <RouteAnnouncer />
+        <ScrollProgress />
 
         <Navbar />
 

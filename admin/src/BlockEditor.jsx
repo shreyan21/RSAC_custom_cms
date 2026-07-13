@@ -111,13 +111,16 @@ function ImportedNumberedItems({ block, onChange }) {
       </div>
       <p className="imported-list-help">Edit one numbered row at a time. New items appear first on the website automatically.</p>
       <div className="imported-list-items">
-        {visible.map(({ child, index, number }) => (
-          <label className="imported-list-item" key={child.key || index}>
-            <span>{number}</span>
-            <span>Item {number}<textarea rows="3" value={child.value || ""} onChange={(event) => updateItem(index, { value: event.target.value })} /></span>
-            <button type="button" className="danger-icon" title={`Remove item ${number}`} onClick={() => removeItem(index)}><Trash2 /></button>
-          </label>
-        ))}
+        {visible.map(({ child, index, number }) => {
+          const itemLabel = child.groupLabel ? `${child.groupLabel} - Item ${number}` : `Item ${number}`;
+          return (
+            <label className="imported-list-item" key={child.key || index}>
+              <span>{number}</span>
+              <span>{itemLabel}<textarea rows="3" value={child.value || ""} onChange={(event) => updateItem(index, { value: event.target.value })} /></span>
+              <button type="button" className="danger-icon" title={`Remove ${itemLabel}`} onClick={() => removeItem(index)}><Trash2 /></button>
+            </label>
+          );
+        })}
         {!visible.length && <p className="empty-inline">No matching item.</p>}
       </div>
       {removed > 0 && (
@@ -211,7 +214,7 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
         const isOpen = focusedIndex === index;
         const sourceLabel = importedSourceLabel(block);
         const isPeopleReference = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(sourceLabel);
-        const isImported = Array.isArray(block.children) && block.children.length > 0;
+        const isImported = Array.isArray(block.children);
         const importedCount = (block.children || []).filter((child) => !child.hidden).length;
         const itemCount = block.editorMode === "numbered_list" || importedCount ? importedCount : (block.items || []).length;
         return (
@@ -225,9 +228,9 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
               {isPeopleReference ? (
                 <div className="collection-reference"><strong>Use the dedicated people collection</strong><p>Open <b>Scientists / Officials / Staff</b> to add, edit, remove, reorder, or replace profile photographs. This prevents names, roles, and photos from becoming disconnected.</p></div>
               ) : block.editorMode === "numbered_list" ? (
-                <><div className="locked-section-name"><strong>Website section</strong><span>{sourceLabel}</span><small>Kept fixed so content cannot move into the wrong division tab.</small></div><ImportedNumberedItems block={block} onChange={(patch) => update(index, patch)} /></>
+                <><label>Section heading<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label><ImportedNumberedItems block={block} onChange={(patch) => update(index, patch)} /></>
               ) : isImported ? (
-                <><div className="locked-section-name"><strong>Website section</strong><span>{sourceLabel}</span><small>Open one field, edit it, then save the page.</small></div><ImportedContentFields block={block} onChange={(patch) => update(index, patch)} /></>
+                <>{block.controlsSectionLabel !== false && <label>Section heading<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label>}<p className="imported-list-help">Every visible text row in this section can be edited separately.</p><ImportedContentFields block={block} onChange={(patch) => update(index, patch)} /></>
               ) : (
                 <>
                   {block.type !== "divider" && <label>Section heading<input value={block.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>}

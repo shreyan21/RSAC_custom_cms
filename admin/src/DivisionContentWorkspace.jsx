@@ -207,11 +207,15 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label>{isPhotoSection(label) && <button className="secondary" onClick={onOpenGallery}><Images /> Open Gallery uploads</button>}</div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
-      {typeof currentBlock?.value === "string" && currentBlock.value.trim() && <label className="field-row"><span>Section heading</span><input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
+      {currentBlock?.controlsSectionLabel !== false && typeof currentBlock?.value === "string" && <label className="field-row"><span>Section heading</span><input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
       <div className="workspace-row-list">
         {filteredRows.map((child) => {
           const number = rows.findIndex((row) => row.key === child.key) + 1;
-          const fieldLabel = numbered ? `Item ${number}` : String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
+          const fieldLabel = numbered
+            ? child.groupLabel
+              ? `${child.groupLabel} - Item ${number}`
+              : `Item ${number}`
+            : String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
           return <label className="workspace-row" key={child.key}><span className="workspace-row-number">{number}</span><span><strong>{fieldLabel}</strong><textarea rows="3" value={child.value || ""} onChange={(event) => updateRow(child.key, event.target.value)} /></span><button type="button" className="danger-icon" title={`Remove ${fieldLabel}`} onClick={() => removeRow(child.key)}><Trash2 /></button></label>;
         })}
         {!filteredRows.length && <div className="empty-panel">No matching rows. Use Add at top.</div>}

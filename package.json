@@ -18,6 +18,9 @@
     "cms:validate": "node scripts/custom-cms-check.mjs",
     "cms:audit": "node scripts/cms-content-audit.mjs",
     "cms:repair-pages": "node scripts/repair-cms-page-parity.mjs",
+    "cms:normalize-publications": "node scripts/normalize-numbered-publications.mjs",
+    "cms:ensure-text-fields": "node scripts/ensure-page-text-fields.mjs",
+    "cms:text-coverage": "node scripts/cms-text-coverage.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

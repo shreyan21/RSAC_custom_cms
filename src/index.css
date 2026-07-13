@@ -196,6 +196,25 @@ html[lang="hi"] .rsac-display {
   line-height: 1;
 }
 
+.rsac-kicker.rsac-kicker--small {
+  font-size: 0.6875rem;
+}
+
+.rsac-kicker.rsac-kicker--normal {
+  font-size: 0.8125rem;
+}
+
+.rsac-kicker.rsac-kicker--large {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+@media (min-width: 640px) {
+  .rsac-kicker.rsac-kicker--large {
+    font-size: 1.125rem;
+  }
+}
+
 /* Constrain editorial copy to a comfortable reading measure. */
 .rsac-measure {
   max-width: 42rem;
@@ -773,42 +792,7 @@ body.rsac-search-open {
 .page-shell-surface {
   isolation: isolate;
   position: relative;
-  background:
-    radial-gradient(
-      82% 58% at 2% 0%,
-      rgba(255, 153, 51, 0.18) 0%,
-      rgba(255, 247, 237, 0.44) 28%,
-      transparent 58%
-    ),
-    radial-gradient(
-      76% 58% at 98% 6%,
-      rgba(14, 165, 233, 0.15) 0%,
-      transparent 56%
-    ),
-    /* Soft rose and violet auras keep long pages lively without touching
-       text contrast (washes stay under ~7% alpha). */
-    radial-gradient(
-      54% 44% at 86% 64%,
-      rgba(244, 63, 94, 0.06) 0%,
-      transparent 62%
-    ),
-    radial-gradient(
-      50% 42% at 6% 58%,
-      rgba(124, 58, 237, 0.055) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      72% 62% at 48% 98%,
-      rgba(19, 136, 8, 0.12) 0%,
-      transparent 58%
-    ),
-    linear-gradient(
-      180deg,
-      #fffaf2 0%,
-      color-mix(in srgb, var(--rsac-primary) 8%, white) 30%,
-      color-mix(in srgb, var(--rsac-secondary) 8%, white) 66%,
-      color-mix(in srgb, var(--rsac-primary) 7%, white) 100%
-    );
+  background: linear-gradient(180deg, #f7fafc 0%, #ffffff 18rem, #f5faf7 100%);
 }
 
 .page-shell-surface::before {
@@ -818,26 +802,17 @@ body.rsac-search-open {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 14%, rgba(255, 153, 51, 0.08) 0 0.55rem, transparent 0.62rem),
-    radial-gradient(circle at 84% 18%, rgba(11, 111, 164, 0.08) 0 0.5rem, transparent 0.58rem),
     repeating-linear-gradient(
       90deg,
-      rgba(11, 111, 164, 0.045) 0 1px,
+      rgba(11, 111, 164, 0.025) 0 1px,
       transparent 1px 72px
     ),
     repeating-linear-gradient(
       0deg,
-      rgba(15, 111, 66, 0.04) 0 1px,
+      rgba(15, 111, 66, 0.022) 0 1px,
       transparent 1px 72px
-    ),
-    linear-gradient(
-      118deg,
-      rgba(255, 153, 51, 0.08) 0%,
-      transparent 28%,
-      rgba(19, 136, 8, 0.06) 72%,
-      transparent 100%
     );
-  background-size: auto, auto, 72px 72px, 72px 72px, auto;
+  background-size: 72px 72px, 72px 72px;
 }
 
 .rsac-scroll-progress {
@@ -848,6 +823,7 @@ body.rsac-search-open {
   width: 100%;
   height: 3px;
   transform-origin: 0 50%;
+  transition: transform 90ms linear;
   background: linear-gradient(90deg, #ff9933 0%, #0b6fa4 52%, #138808 100%);
   box-shadow: 0 0 18px rgba(11, 111, 164, 0.28);
 }
@@ -1629,6 +1605,193 @@ html[data-rsac-theme="cms"] .rsac-rich-content :where(ul, ol):not(.rsac-numbered
   filter: saturate(1.08) contrast(1.03);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .rsac-scroll-progress {
+    transition: none;
+  }
+}
+
+.official-index-card__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* Division directory cards compose the icon and title directly into the
+   themed visual. Accent variables still come from each page's CMS theme. */
+.official-index-grid[data-official-section="divisions"] {
+  gap: 1.25rem;
+}
+
+.official-index-card--division {
+  min-height: 21rem;
+  border-color: color-mix(
+    in srgb,
+    var(--official-card-accent) 18%,
+    #d8e4ea
+  );
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(8, 32, 50, 0.05),
+    0 12px 30px rgba(18, 50, 74, 0.07);
+}
+
+.official-index-card--division::after {
+  inset: auto 0 0;
+  width: auto;
+  height: 3px;
+}
+
+.official-index-card--division .official-index-card__visual {
+  min-height: 11.25rem;
+  flex: 0 0 auto;
+  border-bottom: 1px solid color-mix(
+    in srgb,
+    var(--official-card-accent) 20%,
+    #d9e5eb
+  );
+  border-radius: 0;
+  padding: 1rem;
+}
+
+.official-index-card--division .official-index-card__watermark {
+  top: 34%;
+  right: 1rem;
+}
+
+.official-index-card__visual-title {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  min-height: 5.4rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(
+    102deg,
+    color-mix(in srgb, var(--official-card-accent) 72%, #071827),
+    color-mix(in srgb, var(--official-card-accent-2) 62%, #071827)
+  );
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.official-index-card__visual-title-icon {
+  display: inline-flex;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 2.8rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    background-color 300ms ease,
+    transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.official-index-card__visual-title-icon svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  stroke-width: 1.8;
+}
+
+.official-index-card__visual-title-text {
+  min-width: 0;
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-shadow: 0 1px 2px rgba(3, 20, 30, 0.24);
+}
+
+html[data-rsac-theme="cms"]
+  .page-shell-surface
+  .official-index-card__visual-title-text {
+  color: #ffffff;
+}
+
+.official-index-card--division .official-index-card__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 1rem 1.2rem 1.15rem;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    color-mix(in srgb, var(--official-card-accent) 3%, #ffffff) 100%
+  );
+}
+
+.official-index-card--division .official-index-card__summary {
+  min-height: 3.85rem;
+  margin-top: 0;
+}
+
+.official-index-card--division .official-index-card__action {
+  width: 100%;
+  min-height: 2.75rem;
+  justify-content: space-between;
+  border-top: 1px solid color-mix(
+    in srgb,
+    var(--official-card-accent) 16%,
+    #dbe6ec
+  );
+  border-radius: 0;
+  background: transparent;
+  padding: 0.8rem 0 0;
+  color: color-mix(in srgb, var(--official-card-accent) 82%, #082032);
+}
+
+.official-index-card--division:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--official-card-accent) 42%,
+    #cbdbe5
+  );
+  box-shadow:
+    0 2px 4px rgba(8, 32, 50, 0.06),
+    0 20px 44px rgba(18, 50, 74, 0.12);
+}
+
+.official-index-card--division:hover .official-index-card__action {
+  background: transparent;
+  color: color-mix(in srgb, var(--official-card-accent) 90%, #061827);
+}
+
+.official-index-card--division:hover .official-index-card__visual-title-icon {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 639px) {
+  .official-index-card--division {
+    min-height: 19.5rem;
+  }
+
+  .official-index-card--division .official-index-card__visual {
+    min-height: 10.75rem;
+  }
+
+  .official-index-card__visual-title {
+    min-height: 5.15rem;
+    padding: 0.8rem 0.9rem;
+  }
+
+  .official-index-card__visual-title-text {
+    font-size: 1.02rem;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1741,10 +1904,7 @@ html:not(.rsac-high-contrast)
   :is(.page-shell-surface, .rsac-home-flow)
   a[class*="block"][class*="bg-white"] {
   background-image:
-    radial-gradient(70% 78% at 18% 0%, rgba(255, 153, 51, 0.1) 0%, transparent 58%),
-    radial-gradient(82% 80% at 100% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 62%),
-    radial-gradient(74% 64% at 50% 100%, rgba(16, 185, 129, 0.07) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 253, 250, 0.96) 100%);
+    linear-gradient(135deg, rgba(255, 247, 237, 0.72) 0%, rgba(255, 255, 255, 0.98) 28%, rgba(240, 249, 255, 0.72) 72%, rgba(240, 253, 244, 0.76) 100%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.88) inset,
     0 14px 38px rgba(18, 50, 74, 0.075);
@@ -2558,6 +2718,56 @@ a:focus-visible {
 ::selection {
   background: rgba(34, 197, 94, 0.22);
   color: #12324a;
+}
+
+/* CMS-selectable homepage reading sizes. The hero keeps its carefully fitted
+   typography; these presets apply to the editable content sections below it. */
+.rsac-home-flow[data-rsac-home-heading-size="compact"] > :not(:first-child) h2 {
+  font-size: clamp(1.55rem, 3vw, 2.2rem) !important;
+}
+
+.rsac-home-flow[data-rsac-home-heading-size="large"] > :not(:first-child) h2 {
+  font-size: clamp(2.1rem, 4vw, 3.2rem) !important;
+}
+
+.rsac-home-flow[data-rsac-home-body-size="compact"] > :not(:first-child) :is(p, li) {
+  font-size: 0.88rem !important;
+}
+
+.rsac-home-flow[data-rsac-home-body-size="large"] > :not(:first-child) :is(p, li) {
+  font-size: 1.08rem !important;
+  line-height: 1.75;
+}
+
+.rsac-lively-panel {
+  border-top: 3px solid var(--rsac-panel-accent, #f97316) !important;
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--rsac-panel-accent, #f97316) 7%, white) 0%, white 36%) !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-page-content :where(article, section)[class*="border"]:not(.rsac-lively-panel):not(.rsac-profile-card) {
+  border-top-color: var(--rsac-panel-accent, #0ea5e9);
+  border-top-width: 3px;
+  box-shadow: 0 14px 38px color-mix(in srgb, var(--rsac-panel-accent, #0ea5e9) 10%, transparent);
+}
+
+.rsac-page-content :where(article, section)[class*="border"]:nth-child(5n + 1) {
+  --rsac-panel-accent: #f97316;
+}
+
+.rsac-page-content :where(article, section)[class*="border"]:nth-child(5n + 2) {
+  --rsac-panel-accent: #0ea5e9;
+}
+
+.rsac-page-content :where(article, section)[class*="border"]:nth-child(5n + 3) {
+  --rsac-panel-accent: #16a34a;
+}
+
+.rsac-page-content :where(article, section)[class*="border"]:nth-child(5n + 4) {
+  --rsac-panel-accent: #e11d48;
+}
+
+.rsac-page-content :where(article, section)[class*="border"]:nth-child(5n) {
+  --rsac-panel-accent: #ca8a04;
 }
 
 .rsac-page-content {

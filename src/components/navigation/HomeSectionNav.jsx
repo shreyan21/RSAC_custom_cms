@@ -9,6 +9,7 @@ import {
   Route,
   Smartphone,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -44,6 +45,26 @@ const sectionAnchors = {
 const HomeSectionNav = () => {
   const { homeSections, layout } = useSiteSettings();
   const { t } = useLanguage();
+  const [stickyTop, setStickyTop] = useState(136);
+
+  useEffect(() => {
+    const header = document.querySelector(".rsac-navbar");
+    if (!header) return undefined;
+
+    const updateStickyTop = () => {
+      setStickyTop(Math.ceil(header.getBoundingClientRect().bottom) + 2);
+    };
+    updateStickyTop();
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateStickyTop);
+    observer?.observe(header);
+    window.addEventListener("resize", updateStickyTop, { passive: true });
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateStickyTop);
+    };
+  }, []);
   const hiddenSections = new Set(
     Array.isArray(layout?.hiddenHomeSections)
       ? layout.hiddenHomeSections
@@ -84,7 +105,8 @@ const HomeSectionNav = () => {
   return (
     <nav
       aria-label={t("Homepage sections")}
-      className="sticky top-[6.9rem] z-40 border-y border-slate-200/80 bg-white px-3 py-2 shadow-[0_8px_28px_rgba(18,50,74,0.07)] sm:top-[7.35rem]"
+      style={{ top: `${stickyTop}px` }}
+      className="sticky z-40 border-y border-slate-200/80 bg-white px-3 py-2 shadow-[0_8px_28px_rgba(18,50,74,0.07)]"
     >
       <div
         data-lenis-prevent

@@ -117,6 +117,7 @@ The same three-step editor is used by **About Pages** and **Training and Academi
 | Homepage content | Open this CMS collection |
 |---|---|
 | Show, hide or reorder complete homepage sections | Homepage and Global Text -> Homepage section visibility and order |
+| Increase/decrease homepage section headings and paragraph/card text | Homepage and Global Text -> Homepage text sizes |
 | Hero heading, description lines, statistics, leader names/photos and buttons | Homepage and Global Text -> Homepage hero |
 | Hero video or poster | Hero Banners / Videos |
 | Objective, Implementation, Approach, Sphere of Activities and Mobile Apps tabs | Homepage Feature Tabs |
@@ -128,7 +129,7 @@ The same three-step editor is used by **About Pages** and **Training and Academi
 | Individual application cards | Application Cards |
 | Statistics-section heading | Homepage and Global Text -> Statistics section |
 | Individual statistics | Impact Statistics |
-| Location heading, address, map query and directions label | Homepage and Global Text -> Location section |
+| Location/Visit label, its size, address, map query and directions label | Homepage and Global Text -> Location section |
 | Leadership/update headings | Homepage and Global Text -> Optional homepage sections |
 | Leadership people | Scientists / Officials / Staff |
 | What's New scrolling records | Notices and Tenders |
@@ -138,10 +139,13 @@ The same three-step editor is used by **About Pages** and **Training and Academi
 | Individual geoportals | Geoportals |
 | Gallery heading and button | Homepage and Global Text -> Photo gallery |
 | Gallery photographs | Gallery |
-| Footer description and labels | Homepage and Global Text -> Footer |
-| Footer/menu links | Header / Footer Menu |
+| Footer description, Contact / संपर्क heading and its size | Homepage and Global Text -> Footer |
+| Related-institution footer links | Homepage and Global Text -> Footer |
+| Header and footer navigation menus | Header / Footer Menu |
 
 English and Hindi have separate tabs inside **Homepage and Global Text**. Section visibility/order is saved for both language records; keep both layouts aligned.
+
+The footer **Last updated** date is automatic. It reflects the newest CMS content change, including an archive/removal, and does not need to be typed after every edit. The stored Review date is used only if the database has no update timestamp.
 
 ### Change Card Pictures and Themes
 
@@ -152,7 +156,7 @@ English and Hindi have separate tabs inside **Homepage and Global Text**. Sectio
 
 ### Remove a Heading
 
-For the Gallery heading, open **Site Settings**, then **Photo gallery**, and clear **Main heading**. For another route, open **Page Headings** and choose its path. Use **Hide main heading** to hide it. A blank heading override keeps the page's existing heading, which allows layout-only settings without renaming the page.
+For the Gallery heading, open **Homepage and Global Text**, then **Photo gallery**, and clear **Main heading**. For another route, open **Page Headings** and choose its path. Use **Hide main heading** to hide it or **Hide introduction** to remove the paragraph below it. For Geo Portals, edit the `/geoportals` row. A blank override keeps the page's existing text, which allows layout-only settings without renaming the page.
 
 ### Add a Notice, Tender, Project, or Publication
 
@@ -226,7 +230,7 @@ Open **Site Settings**. Normal editors see grouped text fields; technical JSON r
 
 ### Hide or Rename a Page Heading
 
-Open **Page Headings** and edit the row matching the page path, such as `/contact`. Check **Hide main heading** to remove only the large repeated heading. Keep the small flag heading visible, then choose Small, Normal, or Large. The same row can set body text size, content width, content image size, and spacing. Add a new row for another exact route; `/divisions/*` can control every division detail page.
+Open **Page Headings** and edit the row matching the page path, such as `/contact` or `/geoportals`. Check **Hide main heading** to remove the large heading or **Hide introduction** to remove its descriptive paragraph. Keep the small flag heading visible, then choose Small, Normal, or Large. The same row can set body text size, content width, content image size, and spacing. Add a new row for another exact route; `/divisions/*` can control every division detail page.
 
 ### Change Website Fonts
 

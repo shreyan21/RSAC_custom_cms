@@ -2555,6 +2555,31 @@ const splitHtmlAtFirstMedia = (html) => {
   };
 };
 
+const trimMediaTail = (sections, sectionKey) => {
+  const sectionIndex = findSectionIndex(sections, sectionKey);
+
+  if (sectionIndex === -1) {
+    return sections;
+  }
+
+  const split = splitHtmlAtFirstMedia(sections[sectionIndex].html);
+
+  if (!split) {
+    return sections;
+  }
+
+  return removeEmptySections(
+    sections.map((section, index) =>
+      index === sectionIndex
+        ? {
+            ...section,
+            html: split.beforeHtml,
+          }
+        : section
+    )
+  );
+};
+
 const moveMediaTail = (
   sections,
   {
@@ -2813,6 +2838,17 @@ const normalizeDivisionSections = (page, sections) => {
     "mtech",
   ];
 
+  if (page.slug === "agriculture-resources-division1") {
+    normalized = moveSectionTail(normalized, {
+      sourceKeys: ["overview"],
+      destinationKey: "map-photos",
+      destinationLabel: "Map/Photos",
+      marker: /Related Photos/i,
+      heading: "Map/Photos",
+      afterKey: "research-papers",
+    });
+  }
+
   if (page.slug === "computer-image-processing-division") {
     normalized = moveSectionTail(normalized, {
       sourceKeys: allContentKeys.filter((key) => key !== "map-photos"),
@@ -2993,6 +3029,7 @@ const normalizeDivisionSections = (page, sections) => {
       sectionKey: "completed-projects",
       marker: /Facilities Available|Databank with different types of maps/i,
     });
+    normalized = trimMediaTail(normalized, "technical-reports");
     normalized = relabelSections(normalized, {
       "ongoing-projects": "Ongoing Projects",
       "completed-projects": "Completed Projects",
@@ -4188,6 +4225,7 @@ const buildDivisionSections = (page) => {
       ...section,
       ...localized,
       key: section.key,
+      structureHtml: section.html,
     };
   });
 };
@@ -4252,7 +4290,7 @@ const OfficialProfileCard = ({
 
   return (
     <article
-      className="profile-flip-card rsac-cv-card h-full min-h-[328px] min-w-0 max-w-full"
+      className="profile-flip-card rsac-profile-card rsac-cv-card h-full min-h-[328px] min-w-0 max-w-full"
       tabIndex={0}
     >
       <div className="profile-flip-inner h-full min-h-[328px] min-w-0 max-w-full">
@@ -4340,7 +4378,7 @@ const OfficialStaticProfileCard = ({ profile }) => {
   const imageUrl = getProfileImage(profile);
 
   return (
-    <article className="rsac-cv-row flex h-full min-h-[118px] gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-[0_10px_28px_rgba(18,50,74,0.055)]">
+    <article className="rsac-profile-card rsac-cv-row flex h-full min-h-[118px] gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-[0_10px_28px_rgba(18,50,74,0.055)]">
       <div className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)]">
         {imageUrl ? (
           <img
@@ -4439,9 +4477,10 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   const peopleAnchor = `${page.slug}-people`;
   const contentAnchor = `${page.slug}-details`;
   const pageBlocks = flexibleItems(page.blocks);
+  const hasImportedHtml = Boolean(String(page.html || "").trim());
   const structuredBlocks = [
     ...flexibleItems(page.sections),
-    ...pageBlocks.filter((block) => !flexibleItems(block?.children).length),
+    ...(!hasImportedHtml ? pageBlocks : []),
   ];
   const pageLinks = flexibleItems(page.links);
   const pageWithCmsRows = useMemo(() => ({
@@ -4634,7 +4673,7 @@ const importedBlockSourceLabel = (block) => {
   return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "";
 };
 
-const applyImportedNumberedItems = (html, children) => {
+const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
   const createItemFromChild = (child) => {
@@ -4660,38 +4699,67 @@ const applyImportedNumberedItems = (html, children) => {
   const importedCount = children.filter((child) => !String(child?.key || "").startsWith("cms-")).length;
   const candidates = Array.from(parsed.body.querySelectorAll("ul, ol"))
     .filter((list) => !list.parentElement?.closest("li"))
-    .map((list) => ({ list, items: Array.from(list.children).filter((child) => child.tagName === "LI") }))
+    .map((list, listIndex) => ({
+      list,
+      listIndex,
+      items: Array.from(list.children).filter((child) => child.tagName === "LI"),
+    }))
     .filter(({ items }) => items.length);
-  const target = candidates.sort((left, right) => Math.abs(left.items.length - importedCount) - Math.abs(right.items.length - importedCount))[0];
+  const sourceItems = candidates.flatMap(({ items, listIndex }) =>
+    items.map((item) => ({ item, listIndex }))
+  );
   const allowedDifference = Math.max(3, Math.ceil(importedCount * 0.2));
-  if (!target || Math.abs(target.items.length - importedCount) > allowedDifference) return buildListFromChildren();
+  if (!sourceItems.length) return buildListFromChildren();
 
-  const nextItems = [];
+  // Legacy imports sometimes exposed every inline text node as a CMS row. In
+  // that case rebuilding a list would turn one citation into author/comma/year
+  // fragments. Keep the original HTML intact until the normalized CMS rows are
+  // available instead of publishing malformed content.
+  if (Math.abs(sourceItems.length - importedCount) > allowedDifference) {
+    return html || "";
+  }
+
+  const nextItemsByList = candidates.map(() => []);
+  const groupLabelsByList = candidates.map(() => "");
+  const newItems = [];
   let sourceIndex = 0;
   children.forEach((child) => {
     const isNew = child.isNew || String(child.key || "").startsWith("cms-");
     const value = String(child.value || "").trim();
     if (isNew) {
       const item = createItemFromChild(child);
-      if (item) nextItems.push(item);
+      if (item) newItems.push(item);
       return;
     }
 
-    const original = target.items[sourceIndex++];
+    const source = sourceItems[sourceIndex++];
     if (child.hidden || !value) return;
-    if (!original) {
+    if (!source) {
       const item = createItemFromChild(child);
-      if (item) nextItems.push(item);
+      if (item) newItems.push(item);
       return;
     }
-    const item = original.cloneNode(true);
+    const item = source.item.cloneNode(true);
     if (compactText(item.textContent) !== compactText(value)) item.textContent = value;
     item.dataset.cmsChildKey = child.key || "";
-    nextItems.push(item);
+    if (!groupLabelsByList[source.listIndex] && child.groupLabel) {
+      groupLabelsByList[source.listIndex] = String(child.groupLabel).trim();
+    }
+    nextItemsByList[source.listIndex].push(item);
   });
-  target.items.slice(sourceIndex).forEach((item) => nextItems.push(item.cloneNode(true)));
-  target.list.classList.add("rsac-numbered-list");
-  target.list.replaceChildren(...nextItems);
+  sourceItems.slice(sourceIndex).forEach(({ item, listIndex }) => {
+    nextItemsByList[listIndex].push(item.cloneNode(true));
+  });
+  nextItemsByList[0].unshift(...newItems);
+  candidates.forEach(({ list, listIndex }) => {
+    list.classList.add("rsac-numbered-list");
+    list.replaceChildren(...nextItemsByList[listIndex]);
+    const headingValue = String(groupHeadingOverrides[listIndex] || groupLabelsByList[listIndex] || "").trim();
+    if (!headingValue) return;
+    const headings = Array.from(parsed.body.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+    const heading = headings.filter((candidate) => candidate.compareDocumentPosition(list) & 4).at(-1);
+    if (heading) heading.textContent = headingValue;
+  });
   return parsed.body.innerHTML;
 };
 
@@ -4756,7 +4824,7 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
 
 const applyImportedBlockHeading = (html, block) => {
   const value = String(block?.value || "").trim();
-  if (typeof DOMParser === "undefined" || !html || !value) return html || "";
+  if (typeof DOMParser === "undefined" || !html) return html || "";
 
   const parsed = new DOMParser().parseFromString(html, "text/html");
   const source = compactText(String(block.label || "").replace(/^section\s*:\s*/i, "")).toLowerCase();
@@ -4766,16 +4834,21 @@ const applyImportedBlockHeading = (html, block) => {
       const text = compactText(heading.textContent).toLowerCase();
       return source && (text.startsWith(source) || source.startsWith(text));
     });
-  if (target && compactText(target.textContent) !== compactText(value)) target.textContent = value;
+  if (target && !value) target.remove();
+  else if (target && compactText(target.textContent) !== compactText(value)) target.textContent = value;
   return parsed.body.innerHTML;
 };
 
 const applyImportedPageBlocks = (html, blocks) => {
-  const editableBlocks = flexibleItems(blocks).filter((block) => block?.children?.length && !block.hidden);
+  const editableBlocks = flexibleItems(blocks).filter((block) =>
+    !block.hidden && (Array.isArray(block.children) || block.key)
+  );
   if (!editableBlocks.length) return html || "";
   let nextHtml = html || "";
   editableBlocks.forEach((block) => {
-    nextHtml = applyImportedBlockHeading(nextHtml, block);
+    if (block.controlsSectionLabel !== false) {
+      nextHtml = applyImportedBlockHeading(nextHtml, block);
+    }
     nextHtml = applyImportedContentFields(nextHtml, block.children, { insertNew: false });
   });
   if (typeof DOMParser === "undefined") return nextHtml;
@@ -4807,7 +4880,18 @@ const applyImportedPageBlocks = (html, blocks) => {
 const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
-    const built = buildDivisionSections(page);
+    const ordinaryBlocks = flexibleItems(page.blocks)
+      .filter((block) => block?.editorMode !== "numbered_list")
+      .map((block) => ({
+        ...block,
+        children: flexibleItems(block.children).filter((child) =>
+          !child.isNew && !String(child.key || "").startsWith("cms-")
+        ),
+      }));
+    const built = buildDivisionSections({
+      ...page,
+      html: applyImportedPageBlocks(page.html, ordinaryBlocks),
+    });
     // Editor tab renames: content_fields section-header rows are synthetic
     // (no html text node), so a renamed header reaches the page as a
     // label -> new-name override instead.
@@ -4815,6 +4899,17 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
     // are appended to their section as an extra list.
     const overrides = page.sectionLabelOverrides || {};
     const extras = page.sectionExtraItems || {};
+    const editablePageBlocks = flexibleItems(page.blocks);
+    const headingOverridesBySource = new Map();
+    editablePageBlocks
+      .filter((block) => block.controlsSectionLabel === false && Array.isArray(block.children))
+      .forEach((block) => {
+        const key = sectionOverrideKey(block.sourceLabel || block.label || "");
+        const values = block.children
+          .filter((child) => !child.hidden && String(child.value || "").trim())
+          .map((child) => String(child.value).trim());
+        if (key && values.length) headingOverridesBySource.set(key, values);
+      });
     let nextSections = built.map((section) => {
       const matchKey = sectionOverrideKey(section.label);
       let next = section;
@@ -4828,10 +4923,11 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
       const override = overrides[matchKey];
       return override ? { ...next, label: override } : next;
     });
-    flexibleItems(page.blocks)
-      .filter((block) => block?.children?.length && !block.hidden)
+    editablePageBlocks
+      .filter((block) => Array.isArray(block?.children) && !block.hidden)
       .forEach((block) => {
-        const sourceKey = sectionOverrideKey(importedBlockSourceLabel(block));
+        const sourceLabel = block.sourceLabel || block.label || importedBlockSourceLabel(block);
+        const sourceKey = sectionOverrideKey(sourceLabel);
         let sectionIndex = nextSections.findIndex((section) => sectionOverrideKey(section.label) === sourceKey);
         if (sectionIndex < 0 && sourceKey.includes("research paper")) {
           sectionIndex = nextSections.findIndex((section) => ["research-papers", "research-paper-published"].includes(section.key));
@@ -4840,11 +4936,19 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
           sectionIndex = nextSections.findIndex((section) => section.key === "overview");
         }
         if (sectionIndex < 0 || nextSections[sectionIndex].type !== "html") return;
+        const visibleLabel = block.controlsSectionLabel === false
+          ? ""
+          : String(block.value || "").trim();
         nextSections = nextSections.map((section, index) => index === sectionIndex
           ? {
               ...section,
+              ...(visibleLabel ? { label: visibleLabel } : {}),
               html: block.editorMode === "numbered_list"
-                ? applyImportedNumberedItems(section.html, block.children)
+                ? applyImportedNumberedItems(
+                    section.structureHtml || section.html,
+                    block.children,
+                    headingOverridesBySource.get(sourceKey) || []
+                  )
                 : applyImportedContentFields(section.html, block.children),
             }
           : section);
@@ -4990,7 +5094,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
             id={`${page.slug}-${activeSection.key}-panel`}
             role="tabpanel"
             aria-labelledby={`${page.slug}-${activeSection.key}-tab`}
-            className="scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
+            className="rsac-lively-panel scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
           >
             <div
               className="h-1 bg-[linear-gradient(90deg,#ff9933_0%,#ffffff_48%,#138808_100%)]"
@@ -5115,6 +5219,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
       <div>
         <section
           className="official-index-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+          data-official-section={section.key}
           aria-label={`${section.title} ${t("inner pages")}`}
         >
           {section.key === "about-us" && (
@@ -5171,14 +5276,16 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 id={page.slug}
                 to={getPagePath(section, page)}
                 style={getOfficialCardStyle(theme)}
-                className="official-index-card rsac-effect-card group relative flex h-full touch-manipulation cursor-pointer flex-col overflow-hidden rounded-lg border border-slate-200 bg-[#fbfdfc] p-4 text-left no-underline shadow-[0_14px_38px_rgba(18,50,74,0.07)] transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0f6f42]"
+                className={`official-index-card rsac-effect-card group relative flex h-full touch-manipulation cursor-pointer flex-col overflow-hidden rounded-lg border border-slate-200 bg-[#fbfdfc] text-left no-underline shadow-[0_14px_38px_rgba(18,50,74,0.07)] transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0f6f42] ${
+                  section.key === "divisions" ? "official-index-card--division" : "p-4"
+                }`}
                 aria-label={`${t("Open")} ${localizeOfficialText(page.title, language)}`}
               >
                 <span className="rsac-shine-layer" aria-hidden="true" />
                 <div
                   className="official-index-card__visual"
                   data-card-theme={getOfficialCardThemeKey(theme)}
-                  aria-hidden="true"
+                  aria-hidden={section.key === "divisions" ? undefined : true}
                 >
                   {page.featuredImage && (
                     <img
@@ -5190,13 +5297,28 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                     />
                   )}
                   <div className="official-index-card__stalk" />
-                  <span className="official-index-card__watermark">
+                  <span className="official-index-card__watermark" aria-hidden="true">
                     <CardIcon />
                   </span>
-                  <span className="official-index-card__icon">
-                    <CardIcon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="official-index-card__leaf-particles">
+                  {section.key !== "divisions" && (
+                    <span className="official-index-card__icon">
+                      <CardIcon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  )}
+                  {section.key === "divisions" && (
+                    <div className="official-index-card__visual-title">
+                      <span
+                        className="official-index-card__visual-title-icon"
+                        aria-hidden="true"
+                      >
+                        <CardIcon />
+                      </span>
+                      <h2 className="official-index-card__visual-title-text">
+                        {localizeOfficialText(page.title, language)}
+                      </h2>
+                    </div>
+                  )}
+                  <div className="official-index-card__leaf-particles" aria-hidden="true">
                     <span className="absolute top-1 right-1 h-1 w-1" style={{ background: theme.accent }} />
                     <span className="absolute top-2 left-1 h-1.5 w-1.5" style={{ background: theme.accent2 }} />
                     <span className="absolute bottom-1 right-2 h-1 w-1" style={{ background: theme.accent }} />
@@ -5204,19 +5326,23 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                   </div>
                 </div>
 
-                <h2 className="mt-4 text-xl font-extrabold leading-snug text-[#102f46]">
-                  {localizeOfficialText(page.title, language)}
-                </h2>
+                <div className="official-index-card__body">
+                  {section.key !== "divisions" && (
+                    <h2 className="official-index-card__title mt-4 text-xl font-extrabold leading-snug text-[#102f46]">
+                      {localizeOfficialText(page.title, language)}
+                    </h2>
+                  )}
 
-                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
-                  {localizeOfficialText(page.summary || page.preview, language)}
-                </p>
+                  <p className="official-index-card__summary mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
+                    {localizeOfficialText(page.summary || page.preview, language)}
+                  </p>
 
-                <div className="mt-auto flex flex-wrap gap-3 pt-5">
-                  <span className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#0f6f42] px-3.5 py-2 text-sm font-bold text-white transition group-hover:bg-[#0b5f38]">
-                    {section.key === "facilities" ? t("View facility") : t("Open")}
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </span>
+                  <div className="mt-auto flex flex-wrap gap-3 pt-5">
+                    <span className="official-index-card__action inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#0f6f42] px-3.5 py-2 text-sm font-bold text-white transition group-hover:bg-[#0b5f38]">
+                      {section.key === "facilities" ? t("View facility") : t("Open")}
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
                 </div>
               </Link>
             );

@@ -181,6 +181,38 @@ export const extractPageTextContext = (html) => {
   return context;
 };
 
+// Imported division HTML contains an original tab strip that the React page
+// replaces with accessible CMS-driven tabs. Those source labels are structural
+// duplicates, not visible body copy, so coverage checks must not require a
+// second editor field for them.
+export const extractPageStructuralTextKeys = (html) => {
+  const nodes = [];
+  processHtmlText(html, ({ key, value, stack, raw }) => {
+    nodes.push({
+      key,
+      value,
+      inTable: stack.some((tag) => TABLE_TAGS.has(tag)),
+      inList: stack.some((tag) => LIST_TAGS.has(tag)),
+    });
+    return raw;
+  });
+  const markerOf = (node) =>
+    !node.inTable && !node.inList && node.value.length <= 140
+      ? canonicalDivisionSection(node.value)
+      : null;
+  const keys = new Set();
+  for (let index = 0; index + 1 < nodes.length; index += 1) {
+    if (!markerOf(nodes[index]) || !markerOf(nodes[index + 1])) continue;
+    let cursor = index;
+    while (cursor < nodes.length && markerOf(nodes[cursor])) {
+      keys.add(nodes[cursor].key);
+      cursor += 1;
+    }
+    break;
+  }
+  return keys;
+};
+
 // Group the flat text rows into collapsible sections for CMS editors:
 // each heading becomes a parent row whose `children` hold the text that follows
 // it (until the next heading). Rows before the first heading go under an "Intro"

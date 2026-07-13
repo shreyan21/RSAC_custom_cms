@@ -7,7 +7,7 @@
 export const divisionSectionDefinitions = [
   { label: "Scientific Manpower", aliases: ["scientific manpower", "वैज्ञानिक जनशक्ति"] },
   { label: "Ongoing Projects", aliases: ["brief details of ongoing projects", "ongoing scientific projects", "ongoing projects", "ongoing project", "चालू परियोजनाएं", "चालू परियोजनाएँ"] },
-  { label: "Completed Projects", aliases: ["completed/involved projects", "completed involved projects", "completed projects", "completed project", "पूर्ण परियोजनाएं", "पूर्ण परियोजनाएँ"] },
+  { label: "Completed Projects", aliases: ["completed/involved projects", "completed involved projects", "completed projects", "completed project", "पूर्ण परियोजनाएं", "पूर्ण परियोजनाएँ", "पूर्ण प्रोजेक्ट", "पूरा प्रोजेक्ट"] },
   { label: "Technical Reports", aliases: ["list of technical reports disaster management plans atlases", "list of technical reports", "technical reports and atlases", "technical reports and atlas", "technical reports", "तकनीकी रिपोर्ट एवं एटलस", "तकनीकी रिपोर्ट", "तकनीकि रिपोर्ट"] },
   { label: "Publications", aliases: ["publications", "publication", "प्रकाशन"] },
   { label: "Research Paper Published", aliases: ["book chapters published from international publisher", "book/chapters published from international publisher", "list of research papers", "research paper presented/published", "research paper presented published", "research papers published", "research paper published", "शोध पत्र प्रकाशित", "शोध पत्र प्रस्तुत प्रकाशित"] },

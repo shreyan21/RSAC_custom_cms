@@ -69,14 +69,19 @@ const orderPagesLike = (pages, records) => {
 
 export const readPublishedEntries = async () => {
   const { rows } = await pool.query(
-    "SELECT id, collection, entry_key, sort_order, data_en, data_hi, version, updated_at FROM cms_entries WHERE status='published' ORDER BY collection, sort_order, entry_key"
+    `SELECT id, collection, entry_key, sort_order, data_en, data_hi, version, updated_at,
+            (SELECT max(updated_at) FROM cms_entries) AS content_version
+       FROM cms_entries
+      WHERE status='published'
+      ORDER BY collection, sort_order, entry_key`
   );
   return rows;
 };
 
 export const assembleBootstrap = (rows, language = "en") => {
   const contentVersion = rows.reduce((latest, row) => {
-    const value = row.updated_at ? new Date(row.updated_at).toISOString() : "";
+    const source = row.content_version || row.updated_at;
+    const value = source ? new Date(source).toISOString() : "";
     return value > latest ? value : latest;
   }, "");
   const groups = new Map();

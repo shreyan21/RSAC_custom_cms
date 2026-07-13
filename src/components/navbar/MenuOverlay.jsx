@@ -1,4 +1,4 @@
-import { Home, Orbit } from "lucide-react";
+import { Home, Orbit, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMenuItems, useSiteSettings } from "../../hooks/useData";
@@ -296,16 +296,27 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
             </span>
           </Link>
 
-          <Link
-            ref={homeButtonRef}
-            to="/"
-            onClick={closeMenu}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-orange-100 transition duration-150 hover:text-orange-200 active:scale-90 active:bg-white/10 active:text-orange-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-200"
-            aria-label={t("Home") || "Go to homepage"}
-            title={t("Home") || "Go to homepage"}
-          >
-            <Home className="h-6 w-6" aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              ref={homeButtonRef}
+              to="/"
+              onClick={closeMenu}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-orange-100 transition duration-150 hover:text-orange-200 active:scale-90 active:bg-white/10 active:text-orange-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-200"
+              aria-label={t("Home") || "Go to homepage"}
+              title={t("Home") || "Go to homepage"}
+            >
+              <Home className="h-6 w-6" aria-hidden="true" />
+            </Link>
+            <button
+              type="button"
+              onClick={closeMenu}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-orange-100 transition duration-150 hover:bg-white/10 hover:text-orange-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-200"
+              aria-label={ui?.closeMenu || t("Close menu") || "Close menu"}
+              title={ui?.closeMenu || t("Close menu") || "Close menu"}
+            >
+              <X className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         <nav

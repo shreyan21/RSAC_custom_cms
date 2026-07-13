@@ -35,6 +35,13 @@ const settingsGroups = [
     ],
   },
   {
+    label: "Homepage text sizes",
+    fields: [
+      ["appearance.homeHeadingSize", "Section heading size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+      ["appearance.homeBodySize", "Paragraph and card text size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+    ],
+  },
+  {
     label: "Operational domains section",
     fields: [
       ["missionPulse.eyebrow", "Small heading"],
@@ -94,9 +101,11 @@ const settingsGroups = [
     label: "Location section",
     fields: [
       ["location.eyebrow", "Small heading"],
+      ["location.eyebrowSize", "Small heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
       ["location.title", "Section heading"],
       ["location.intro", "Introduction", "textarea"],
       ["location.cardEyebrow", "Map card small heading"],
+      ["location.cardEyebrowSize", "Map card small heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
       ["location.locality", "Locality"],
       ["location.address", "Address", "textarea"],
       ["location.mapQuery", "Map search text", "textarea"],
@@ -131,10 +140,13 @@ const settingsGroups = [
   {
     label: "Footer",
     fields: [
+      ["footer.contactHeading", "Contact heading"],
+      ["footer.contactHeadingSize", "Contact heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+      ["footer.relatedLinks", "Related institution links", "rows", [["name", "Link name"], ["url", "Website URL"]]],
       ["footer.about", "Footer description", "textarea"],
       ["footer.ownership", "Ownership statement", "textarea"],
       ["footer.poweredBy", "Technology statement"],
-      ["footer.reviewDate", "Review date"],
+      ["footer.reviewDate", "Fallback review date (used only without CMS history)"],
       ["footer.assuranceText", "Assurance statement"],
       ["footer.visitorCountLabel", "Visitor counter label"],
       ["footer.webInformationManagerLabel", "Web manager label"],
@@ -268,7 +280,9 @@ function SettingsEditor({ field, value, onChange, onBusy, onError }) {
             ) : (
               <label key={path}>
                 <span>{label}</span>
-                {type === "list"
+                {type === "select"
+                  ? <select value={getAtPath(value, path) || "normal"} onChange={(event) => onChange(setAtPath(value, path, event.target.value))}>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  : type === "list"
                   ? <textarea rows="5" value={Array.isArray(getAtPath(value, path)) ? getAtPath(value, path).join("\n") : ""} onChange={(event) => onChange(setAtPath(value, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
                   : type === "textarea"
                   ? <textarea rows="4" value={getAtPath(value, path) || ""} onChange={(event) => onChange(setAtPath(value, path, event.target.value))} />

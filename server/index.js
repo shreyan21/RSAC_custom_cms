@@ -86,7 +86,7 @@ app.get("/api/content/bootstrap", async (req, res, next) => {
 
 app.get("/api/content/version", async (_req, res, next) => {
   try {
-    const { rows } = await pool.query("SELECT max(updated_at) AS version FROM cms_entries WHERE status='published'");
+    const { rows } = await pool.query("SELECT max(updated_at) AS version FROM cms_entries");
     res.set("Cache-Control", "no-store");
     res.json({ version: rows[0].version?.toISOString?.() || "" });
   } catch (error) { next(error); }

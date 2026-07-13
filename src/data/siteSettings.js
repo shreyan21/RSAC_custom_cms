@@ -332,12 +332,14 @@ export const siteSettings = {
   },
   location: {
     eyebrow: "Find the Centre",
+    eyebrowSize: "normal",
     // Title + intro intentionally blank (removed from the site). Blanking the
     // baked default too stops the old text flashing during the CMS load window.
     // Set these in the Website Text Editor if the copy is ever wanted back.
     title: "",
     intro: "",
     cardEyebrow: "Visit RSAC-UP",
+    cardEyebrowSize: "large",
     locality: "Jankipuram, Lucknow",
     address:
       "Sector G, Jankipuram, Kursi Road, Lucknow, Uttar Pradesh 226021",
@@ -351,8 +353,7 @@ export const siteSettings = {
     relatedLinks: [
       { name: "ISRO", url: "https://www.isro.gov.in" },
       { name: "NRSC", url: "https://www.nrsc.gov.in" },
-      { name: "India-WRIS", url: "https://indiawris.gov.in" },
-      { name: "PM GatiShakti", url: "https://gati.gov.in" },
+      { name: "Space Applications Centre (SAC)", url: "https://www.sac.gov.in/" },
       { name: "Survey of India", url: "https://surveyofindia.gov.in" },
       { name: "CST Uttar Pradesh", url: "https://cst.up.gov.in" },
     ],
