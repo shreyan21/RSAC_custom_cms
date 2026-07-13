@@ -1,6 +1,5 @@
 // Local copies under public/documents/notices keep the site independent from
-// the legacy rsac.up.gov.in server. Drupal notice rows replace these when
-// CMS is enabled (see cmsService.getNotices).
+// the legacy rsac.up.gov.in server. Current notice rows come from the custom CMS.
 const officialPdf = (file) => `/documents/notices/${file}`;
 
 export const notices = [

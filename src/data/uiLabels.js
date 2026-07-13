@@ -1,6 +1,6 @@
 // Registry of short interface wordings (buttons, badges, statuses) that appear
 // across the site through the t() translator in LanguageContext. Every entry
-// below can be entered in Drupal site settings so
+// below can be entered in custom CMS site settings so
 // editors can reword any of them (English and Hindi) without code changes.
 // The slug is derived from the English text; components keep calling
 // t("English text") and the CMS override wins when present.

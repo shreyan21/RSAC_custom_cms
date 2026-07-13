@@ -27,20 +27,22 @@ const HeroContent = () => {
 
   return (
     <div className="hero-content-panel relative z-10 w-full max-w-4xl">
-      <motion.div
-        {...riseIn}
-        transition={{ delay: 0.1, duration: 0.7 }}
-        className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.1] py-2 pl-2.5 pr-4"
-      >
-        <span
-          className="geo-tricolor-bar"
-          style={{ height: "1.05rem" }}
-          aria-hidden="true"
-        />
-        <span className="rsac-kicker text-orange-200/95">
-          {t("Geospatial Intelligence for Uttar Pradesh")}
-        </span>
-      </motion.div>
+      {hero.eyebrow && (
+        <motion.div
+          {...riseIn}
+          transition={{ delay: 0.1, duration: 0.7 }}
+          className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.1] py-2 pl-2.5 pr-4"
+        >
+          <span
+            className="geo-tricolor-bar"
+            style={{ height: "1.05rem" }}
+            aria-hidden="true"
+          />
+          <span className="rsac-kicker text-orange-200/95">
+            {hero.eyebrow}
+          </span>
+        </motion.div>
+      )}
 
       <MaskReveal
         as="h1"

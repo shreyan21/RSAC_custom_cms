@@ -1,19 +1,26 @@
 import { handleNestedWheel } from "../utils/nestedScroll";
 import {
   ArrowRight,
+  BedDouble,
+  BookOpen,
+  Building2,
   Cpu,
   Database,
   Droplets,
   FileText,
+  FlaskConical,
   GraduationCap,
   Landmark,
   MapIcon,
   Mountain,
+  Printer,
   Satellite,
+  ScanLine,
   Sprout,
   Trees,
   UserRound,
   Waves,
+  Wrench,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
@@ -26,6 +33,7 @@ import {
 import { formerProfiles as staticFormerRoster } from "../data/formerProfiles";
 import {
   useRsacOfficialSections,
+  useDivisions,
   useFormerProfiles,
   useScientistProfiles,
   useSiteSettings,
@@ -174,6 +182,78 @@ const formerSectionDefinitions = [
 
 const officialCardThemes = [
   {
+    matcher: /lidar|bathymetry|sonar|point-cloud/i,
+    label: "LiDAR and Bathymetry",
+    icon: ScanLine,
+    accent: "#075985",
+    accent2: "#0f766e",
+    texture:
+      "linear-gradient(145deg, rgba(7, 89, 133, 0.92), rgba(15, 118, 110, 0.7)), repeating-radial-gradient(circle at 74% 56%, rgba(255,255,255,0.2) 0 2px, transparent 2px 13px)",
+  },
+  {
+    matcher: /water analysis|water-quality laboratory/i,
+    label: "Water Analysis Laboratory",
+    icon: FlaskConical,
+    accent: "#0369a1",
+    accent2: "#14b8a6",
+    texture:
+      "linear-gradient(145deg, rgba(3, 105, 161, 0.92), rgba(20, 184, 166, 0.68)), radial-gradient(circle at 78% 28%, rgba(255,255,255,0.25) 0 4px, transparent 5px), radial-gradient(circle at 68% 62%, rgba(255,255,255,0.16) 0 7px, transparent 8px)",
+  },
+  {
+    matcher: /soil analysis|soil laboratory/i,
+    label: "Soil Analysis Laboratory",
+    icon: FlaskConical,
+    accent: "#7c4a24",
+    accent2: "#6b8e23",
+    texture:
+      "linear-gradient(180deg, rgba(107, 142, 35, 0.82) 0 24%, rgba(124, 74, 36, 0.92) 25% 100%), repeating-linear-gradient(0deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 18px)",
+  },
+  {
+    matcher: /library|books|journals|opac/i,
+    label: "Library and Knowledge",
+    icon: BookOpen,
+    accent: "#7c3e18",
+    accent2: "#b78a35",
+    texture:
+      "linear-gradient(135deg, rgba(124, 62, 24, 0.92), rgba(183, 138, 53, 0.72)), repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 3px, transparent 3px 24px)",
+  },
+  {
+    matcher: /cartography|reprography|reprographic|printing|lamination/i,
+    label: "Cartography and Reprography",
+    icon: Printer,
+    accent: "#344f72",
+    accent2: "#c07c2f",
+    texture:
+      "linear-gradient(135deg, rgba(52, 79, 114, 0.92), rgba(192, 124, 47, 0.68)), repeating-linear-gradient(45deg, rgba(255,255,255,0.16) 0 1px, transparent 1px 16px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.1) 0 1px, transparent 1px 16px)",
+  },
+  {
+    matcher: /training hostel|hostels|guest|trainees/i,
+    label: "Training Hostel",
+    icon: BedDouble,
+    accent: "#6b4e8a",
+    accent2: "#b56b39",
+    texture:
+      "linear-gradient(135deg, rgba(107, 78, 138, 0.9), rgba(181, 107, 57, 0.68)), repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 2px, transparent 2px 28px)",
+  },
+  {
+    matcher: /service block|backup power|transformer|dg set|ups|pump infrastructure/i,
+    label: "Service Infrastructure",
+    icon: Building2,
+    accent: "#475569",
+    accent2: "#c26c23",
+    texture:
+      "linear-gradient(135deg, rgba(71, 85, 105, 0.94), rgba(194, 108, 35, 0.68)), repeating-linear-gradient(90deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 18px), repeating-linear-gradient(0deg, rgba(255,255,255,0.1) 0 1px, transparent 1px 18px)",
+  },
+  {
+    matcher: /technical cell|activity monitoring|institutional documentation/i,
+    label: "Technical Coordination",
+    icon: Wrench,
+    accent: "#334155",
+    accent2: "#0f766e",
+    texture:
+      "linear-gradient(135deg, rgba(51, 65, 85, 0.94), rgba(15, 118, 110, 0.68)), repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 18px)",
+  },
+  {
     matcher: /agriculture|crop|horticulture|farm/i,
     label: "Agriculture Resources",
     icon: Sprout,
@@ -225,7 +305,7 @@ const officialCardThemes = [
     // Checked before Geo-Spatial: the School of Geoinformatics summary mentions
     // "GIS" (which the data-bank matcher also claims), so ordering this first
     // gives geoinformatics content its own map-graticule identity.
-    matcher: /geoinformatic|geo-?informatics|remote sensing and gis/i,
+    matcher: /geoinformatic|geo[-\s]?informatics?|remote sensing and gis/i,
     label: "Geoinformatics",
     icon: Satellite,
     accent: "#4338ca",
@@ -307,8 +387,11 @@ const defaultOfficialCardTheme = {
     "linear-gradient(135deg, rgba(11, 111, 164, 0.86), rgba(15, 111, 66, 0.68)), repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 20px), repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 1px, transparent 1px 20px)",
 };
 
-// Editors pick these by name in Drupal page fields.
+// Editors pick these by name in custom CMS page fields.
 const officialCardIconChoices = {
+  "bed-double": BedDouble,
+  "book-open": BookOpen,
+  building: Building2,
   sprout: Sprout,
   cpu: Cpu,
   mountain: Mountain,
@@ -321,6 +404,10 @@ const officialCardIconChoices = {
   landmark: Landmark,
   "user-round": UserRound,
   satellite: Satellite,
+  "flask-conical": FlaskConical,
+  printer: Printer,
+  "scan-line": ScanLine,
+  wrench: Wrench,
   "file-text": FileText,
 };
 
@@ -383,6 +470,12 @@ const getOfficialCardStyle = (theme) => ({
   "--official-card-accent-2": theme.accent2,
   "--official-card-texture": theme.texture,
 });
+
+const getOfficialCardThemeKey = (theme) =>
+  String(theme?.label || "official-content")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 
 
@@ -1454,12 +1547,12 @@ const removeImportedArtifacts = (document) => {
   removableNodes.forEach((node) => node.remove());
 };
 
-// CMS-authored bodies (e.g. Hindi HTML pasted into Drupal) often carry inline
+// CMS-authored bodies (for example, pasted Hindi HTML) often carry inline
 // sizing/positioning copied from the source — fixed pixel widths, float,
 // position, table width attributes. Inline styles and presentational size
 // attributes outrank the .rsac-rich-content design-system CSS, so they overflow
 // the container and break the responsive layout when the Hindi body is edited in
-// Drupal. Strip ONLY the layout-affecting declarations/attributes here; keep
+// the source editor. Strip ONLY layout-affecting declarations/attributes here; keep
 // harmless formatting (color, bold, text-align) so an editor's emphasis
 // survives. The scraped generated content has none of these, so this is a no-op
 // there — it only guards content entered through the CMS.
@@ -1893,7 +1986,7 @@ const removeEmptySections = (sections) =>
   );
 
 const isSerialNumberHeader = (value) =>
-  /^(?:(?:sl|sr)\.?\s*(?:no|number)|s\.?\s*(?:no|number|n))\.?$/i.test(
+  /^(?:(?:sl|sr)\.?\s*(?:no|number)|s\.?\s*(?:no|number|n)|serial\s*(?:no|number)|क्र\.?\s*सं\.?|क्रम(?:\s*संख्या|ांक)|अनुक्रमांक)(?:\.|\u0964)?$/iu.test(
     compactText(value)
   );
 
@@ -1944,6 +2037,9 @@ const sortElementsLatestFirst = (elements, getText) => {
     .sort((left, right) => {
       if (left.editorAdded !== right.editorAdded) {
         return left.editorAdded ? -1 : 1;
+      }
+      if (left.editorAdded && right.editorAdded) {
+        return left.index - right.index;
       }
       if (left.rank === null && right.rank === null) {
         return left.index - right.index;
@@ -2031,6 +2127,11 @@ const fillSerialNumbersInDocument = (document, sectionKey) => {
     if (serialIndex === -1) {
       return;
     }
+
+    const serialHeaderCell = headerRow.children[serialIndex];
+    serialHeaderCell.textContent = /[\u0900-\u097f]/u.test(serialHeaderCell.textContent || "")
+      ? "क्र. सं."
+      : "S.No.";
 
     let serial = 1;
     rows.slice(rows.indexOf(headerRow) + 1).forEach((row) => {
@@ -4280,6 +4381,10 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   const contentAnchor = `${page.slug}-details`;
   const structuredBlocks = flexibleItems(page.sections);
   const pageLinks = flexibleItems(page.links);
+  const pageWithCmsRows = useMemo(() => ({
+    ...page,
+    html: applyImportedPageBlocks(page.html, page.blocks),
+  }), [page]);
   const linkBlock = pageLinks.length
     ? [{ type: "links", heading: "Related links", items: pageLinks }]
     : [];
@@ -4336,7 +4441,7 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
         ) : (
           <>
             <OfficialHtmlContent
-              html={page.html}
+              html={pageWithCmsRows.html}
               pageTitle={page.title}
               stripProfiles={profiles.length > 0}
             />
@@ -4391,6 +4496,223 @@ const appendExtraItemsToSection = (html, items) => {
   return `<ul class="rsac-added-items">${liMarkup}</ul>${html || ""}`;
 };
 
+const managedDivisionSectionDefinitions = [
+  { key: "overview", label: "Overview", aliases: ["overview"] },
+  { key: "ongoing-projects", label: "Ongoing Projects", aliases: ["ongoing-projects"], afterKey: "overview" },
+  { key: "completed-projects", label: "Completed Projects", aliases: ["completed-projects"], afterKey: "ongoing-projects" },
+  { key: "research-papers", label: "Research Papers", aliases: ["research-papers", "research-paper-published"], afterKey: "completed-projects" },
+  { key: "technical-reports", label: "Technical Reports", aliases: ["technical-reports"], afterKey: "research-papers" },
+  { key: "publications", label: "Publications", aliases: ["publications"], afterKey: "technical-reports" },
+  { key: "training-programmes", label: "Training Programmes", aliases: ["training-programmes"], afterKey: "publications" },
+  { key: "training-hostel", label: "Training Hostel", aliases: ["training-hostel"], afterKey: "training-programmes" },
+];
+
+const managedItemMarkup = (item, language) => {
+  const lines = [
+    item.authors,
+    item.publicationName,
+    [item.year, item.date].filter(Boolean).join(" | "),
+    item.details,
+  ].filter(Boolean).map((value) => `<span>${escapeExtraItemHtml(value)}</span>`);
+  const links = [
+    item.documentUrl && `<a href="${escapeExtraItemHtml(item.documentUrl)}">${language === "hi" ? "दस्तावेज़ देखें" : "View document"}</a>`,
+    item.externalUrl && `<a href="${escapeExtraItemHtml(item.externalUrl)}" target="_blank" rel="noopener noreferrer">${language === "hi" ? "वेबपृष्ठ खोलें" : "Open webpage"}</a>`,
+  ].filter(Boolean).join(" | ");
+  return `<strong>${escapeExtraItemHtml(item.title)}</strong>${lines.length ? `<div>${lines.join("<br>")}</div>` : ""}${links ? `<div>${links}</div>` : ""}`;
+};
+
+const appendManagedItemsToSection = (html, items, language) => {
+  if (!items?.length) return html || "";
+  const itemBodies = items.map((item) => managedItemMarkup(item, language));
+  const liMarkup = itemBodies.map((body) => `<li data-rsac-added-item="true" data-rsac-managed-item="true">${body}</li>`).join("");
+  if (typeof DOMParser === "undefined") return `<ol class="rsac-numbered-list">${liMarkup}</ol>${html || ""}`;
+
+  const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  const topLevelList = Array.from(parsed.body.querySelectorAll("ul, ol")).find((list) => !list.parentElement?.closest("li"));
+  if (topLevelList) {
+    topLevelList.classList.add("rsac-numbered-list");
+    topLevelList.insertAdjacentHTML("afterbegin", liMarkup);
+    return parsed.body.innerHTML;
+  }
+
+  const table = parsed.body.querySelector("table");
+  if (table) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const headerRow = rows.find((row) => row.querySelector("th")) || rows[0];
+    if (headerRow) {
+      let serialIndex = Array.from(headerRow.children).findIndex((cell) => isSerialNumberHeader(cell.textContent));
+      if (serialIndex < 0) {
+        const header = parsed.createElement("th");
+        header.textContent = language === "hi" ? "क्र. सं." : "S.No.";
+        headerRow.prepend(header);
+        rows.filter((row) => row !== headerRow).forEach((row) => row.prepend(parsed.createElement("td")));
+        serialIndex = 0;
+      }
+      const cellCount = headerRow.children.length;
+      const detailIndex = serialIndex === 0 ? 1 : 0;
+      const rowMarkup = itemBodies.map((body) => `<tr data-rsac-added-item="true" data-rsac-managed-item="true">${Array.from({ length: cellCount }, (_, index) => `<td>${index === detailIndex ? body : ""}</td>`).join("")}</tr>`).join("");
+      const firstDataRow = rows.find((row) => row !== headerRow);
+      if (firstDataRow) firstDataRow.insertAdjacentHTML("beforebegin", rowMarkup);
+      else (table.querySelector("tbody") || table).insertAdjacentHTML("beforeend", rowMarkup);
+      return parsed.body.innerHTML;
+    }
+  }
+
+  return `<ol class="rsac-numbered-list">${liMarkup}</ol>${parsed.body.innerHTML}`;
+};
+
+const importedBlockSourceLabel = (block) => {
+  const childLabel = (block?.children || []).find((child) => child?.label)?.label || "";
+  return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "";
+};
+
+const applyImportedNumberedItems = (html, children) => {
+  if (typeof DOMParser === "undefined" || !children?.length) return html || "";
+  const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  const buildListFromChildren = () => {
+    const list = parsed.createElement("ol");
+    list.classList.add("rsac-numbered-list");
+    children.forEach((child) => {
+      const value = String(child.value || "").trim();
+      if (child.hidden || !value) return;
+      const item = parsed.createElement("li");
+      item.textContent = value;
+      item.dataset.cmsChildKey = child.key || "";
+      if (child.isNew || String(child.key || "").startsWith("cms-")) item.dataset.rsacAddedItem = "true";
+      list.appendChild(item);
+    });
+    return list.outerHTML;
+  };
+  const importedCount = children.filter((child) => !String(child?.key || "").startsWith("cms-")).length;
+  const candidates = Array.from(parsed.body.querySelectorAll("ul, ol"))
+    .filter((list) => !list.parentElement?.closest("li"))
+    .map((list) => ({ list, items: Array.from(list.children).filter((child) => child.tagName === "LI") }))
+    .filter(({ items }) => items.length);
+  const target = candidates.sort((left, right) => Math.abs(left.items.length - importedCount) - Math.abs(right.items.length - importedCount))[0];
+  const allowedDifference = Math.max(3, Math.ceil(importedCount * 0.2));
+  if (!target || Math.abs(target.items.length - importedCount) > allowedDifference) return buildListFromChildren();
+
+  const nextItems = [];
+  let sourceIndex = 0;
+  children.forEach((child) => {
+    const isNew = child.isNew || String(child.key || "").startsWith("cms-");
+    const value = String(child.value || "").trim();
+    if (isNew) {
+      if (!child.hidden && value) {
+        const item = parsed.createElement("li");
+        item.textContent = value;
+        item.dataset.rsacAddedItem = "true";
+        item.dataset.cmsChildKey = child.key;
+        nextItems.push(item);
+      }
+      return;
+    }
+
+    const original = target.items[sourceIndex++];
+    if (!original || child.hidden || !value) return;
+    const item = original.cloneNode(true);
+    if (compactText(item.textContent) !== compactText(value)) item.textContent = value;
+    item.dataset.cmsChildKey = child.key || "";
+    nextItems.push(item);
+  });
+  target.items.slice(sourceIndex).forEach((item) => nextItems.push(item.cloneNode(true)));
+  target.list.classList.add("rsac-numbered-list");
+  target.list.replaceChildren(...nextItems);
+  return parsed.body.innerHTML;
+};
+
+const applyImportedContentFields = (html, children, { insertNew = true } = {}) => {
+  if (typeof DOMParser === "undefined" || !children?.length) return html || "";
+  const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  const textNodes = () => {
+    const nodes = [];
+    const walker = parsed.createTreeWalker(parsed.body, 4);
+    let node = walker.nextNode();
+    while (node) {
+      if (compactText(node.nodeValue)) nodes.push(node);
+      node = walker.nextNode();
+    }
+    return nodes;
+  };
+  const newChildren = [];
+
+  children.forEach((child) => {
+    const value = String(child.value || "").trim();
+    const isNew = child.isNew || String(child.key || "").startsWith("cms-");
+    if (isNew) {
+      if (!child.hidden && value) newChildren.push(child);
+      return;
+    }
+
+    const nodes = textNodes();
+    const valueKey = compactText(value).toLowerCase();
+    const labelParts = String(child.label || "").split(/\s*(?:\u2192|->)\s*/u);
+    const previewKey = compactText(labelParts.slice(1).join(" ").replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
+    const exactNode = valueKey ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === valueKey) : null;
+    const matchedNode = exactNode || (previewKey
+      ? nodes.find((node) => {
+          const nodeKey = compactText(node.nodeValue).toLowerCase();
+          return nodeKey.startsWith(previewKey) || previewKey.startsWith(nodeKey);
+        })
+      : null);
+    if (!matchedNode) return;
+
+    if (child.hidden || !value) {
+      const removable = matchedNode.parentElement?.closest("li, tr, p, h1, h2, h3, h4, h5, h6, figcaption");
+      if (removable && parsed.body.contains(removable)) removable.remove();
+      else matchedNode.nodeValue = "";
+      return;
+    }
+    if (!exactNode) matchedNode.nodeValue = value;
+  });
+
+  if (insertNew && newChildren.length) {
+    const targetList = Array.from(parsed.body.querySelectorAll("ul, ol")).find((list) => !list.parentElement?.closest("li"));
+    [...newChildren].reverse().forEach((child) => {
+      const item = parsed.createElement(targetList ? "li" : "p");
+      item.textContent = child.value;
+      item.dataset.rsacAddedItem = "true";
+      item.dataset.cmsChildKey = child.key || "";
+      if (targetList) targetList.prepend(item);
+      else parsed.body.prepend(item);
+    });
+  }
+  return parsed.body.innerHTML;
+};
+
+const applyImportedPageBlocks = (html, blocks) => {
+  const editableBlocks = flexibleItems(blocks).filter((block) => block?.children?.length && !block.hidden);
+  if (!editableBlocks.length) return html || "";
+  let nextHtml = html || "";
+  editableBlocks.forEach((block) => {
+    nextHtml = applyImportedContentFields(nextHtml, block.children, { insertNew: false });
+  });
+  if (typeof DOMParser === "undefined") return nextHtml;
+
+  const parsed = new DOMParser().parseFromString(nextHtml, "text/html");
+  editableBlocks.forEach((block) => {
+    const newChildren = block.children.filter((child) => (child.isNew || String(child.key || "").startsWith("cms-")) && !child.hidden && String(child.value || "").trim());
+    if (!newChildren.length) return;
+    const labelKey = compactText(importedBlockSourceLabel(block).replace(/^section\s*:\s*/i, "")).toLowerCase();
+    const candidates = Array.from(parsed.body.querySelectorAll("h1, h2, h3, h4, h5, h6, p, strong"));
+    let anchor = candidates.find((element) => compactText(element.textContent).toLowerCase() === labelKey)
+      || candidates.find((element) => compactText(element.textContent).toLowerCase().includes(labelKey));
+    newChildren.forEach((child) => {
+      const item = parsed.createElement("p");
+      item.textContent = child.value;
+      item.dataset.rsacAddedItem = "true";
+      item.dataset.cmsChildKey = child.key || "";
+      if (anchor) {
+        anchor.after(item);
+        anchor = item;
+      } else {
+        parsed.body.prepend(item);
+      }
+    });
+  });
+  return parsed.body.innerHTML;
+};
+
 const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
@@ -4402,7 +4724,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
     // are appended to their section as an extra list.
     const overrides = page.sectionLabelOverrides || {};
     const extras = page.sectionExtraItems || {};
-    return built.map((section) => {
+    let nextSections = built.map((section) => {
       const matchKey = sectionOverrideKey(section.label);
       let next = section;
       const added = extras[matchKey];
@@ -4415,7 +4737,47 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
       const override = overrides[matchKey];
       return override ? { ...next, label: override } : next;
     });
-  }, [page]);
+    flexibleItems(page.blocks)
+      .filter((block) => block?.children?.length && !block.hidden)
+      .forEach((block) => {
+        const sourceKey = sectionOverrideKey(importedBlockSourceLabel(block));
+        let sectionIndex = nextSections.findIndex((section) => sectionOverrideKey(section.label) === sourceKey);
+        if (sectionIndex < 0 && sourceKey.includes("research paper")) {
+          sectionIndex = nextSections.findIndex((section) => ["research-papers", "research-paper-published"].includes(section.key));
+        }
+        if (sectionIndex < 0 && /division|resources|school of geo/i.test(sourceKey)) {
+          sectionIndex = nextSections.findIndex((section) => section.key === "overview");
+        }
+        if (sectionIndex < 0 || nextSections[sectionIndex].type !== "html") return;
+        nextSections = nextSections.map((section, index) => index === sectionIndex
+          ? {
+              ...section,
+              html: block.editorMode === "numbered_list"
+                ? applyImportedNumberedItems(section.html, block.children)
+                : applyImportedContentFields(section.html, block.children),
+            }
+          : section);
+      });
+    const managed = page.managedSectionItems || {};
+    managedDivisionSectionDefinitions.forEach((definition) => {
+      const items = managed[definition.key];
+      if (!items?.length) return;
+      const existingIndex = findSectionIndex(nextSections, definition.aliases);
+      if (existingIndex >= 0 && nextSections[existingIndex].type === "html") {
+        nextSections = nextSections.map((section, index) => index === existingIndex
+          ? { ...section, html: appendManagedItemsToSection(section.html, items, language) }
+          : section);
+        return;
+      }
+      nextSections = upsertSection(nextSections, {
+        key: definition.key,
+        label: definition.label,
+        type: "html",
+        html: appendManagedItemsToSection("", items, language),
+      }, definition.afterKey);
+    });
+    return nextSections;
+  }, [page, language]);
   const [activeSectionState, setActiveSectionState] = useState({
     pageSlug: page.slug,
     key: sections[0]?.key || "",
@@ -4607,6 +4969,7 @@ const Breadcrumbs = ({ section, page }) => {
 
 export const OfficialContentIndexPage = ({ sectionKey }) => {
   const officialSections = useRsacOfficialSections();
+  const divisions = useDivisions();
   const { t, language } = useLanguage();
   const section = officialSections.find((item) => item.key === sectionKey);
 
@@ -4620,7 +4983,23 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
 
   const visiblePages = section.pages.filter(
     (page) => !(section.key === "about-us" && formerPages.includes(page.slug))
-  );
+  ).sort((left, right) => {
+    if (section.key !== "divisions") return 0;
+    const normalize = (value) => String(value || "").toLowerCase()
+      .replace(/&amp;|&/g, "and")
+      .replace(/\bdivisions?\b/g, "")
+      .replace(/[^\p{Letter}\p{Number}]+/gu, "");
+    const rank = (page) => {
+      const title = normalize(page.title);
+      const slug = normalize(String(page.slug || "").replace(/amp/g, ""));
+      const index = divisions.findIndex((division) =>
+        (normalize(division.slug) && slug.startsWith(normalize(division.slug))) ||
+        (normalize(division.title) && title === normalize(division.title))
+      );
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    };
+    return rank(left) - rank(right);
+  });
   const formerTheme = getOfficialCardTheme(section, {
     title: "Our Formers",
     summary: "Former Chairman Governing Body, Directors, and Scientists.",
@@ -4633,7 +5012,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
 
   return (
     <PageShell
-      eyebrow={section.eyebrow}
+      eyebrow={section.key === "divisions" ? undefined : section.eyebrow}
       title={section.title}
       intro={section.intro}
       largeEyebrow={headerCollapsed && !!section.eyebrow}
@@ -4656,8 +5035,15 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
               aria-label={t("Open Our Formers")}
             >
               <span className="rsac-shine-layer" aria-hidden="true" />
-              <div className="official-index-card__visual" aria-hidden="true">
+              <div
+                className="official-index-card__visual"
+                data-card-theme={getOfficialCardThemeKey(formerTheme)}
+                aria-hidden="true"
+              >
                 <div className="official-index-card__stalk" />
+                <span className="official-index-card__watermark">
+                  <FormerThemeIcon />
+                </span>
                 <span className="official-index-card__icon">
                   <FormerThemeIcon className="h-5 w-5" aria-hidden="true" />
                 </span>
@@ -4698,8 +5084,24 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 aria-label={`${t("Open")} ${localizeOfficialText(page.title, language)}`}
               >
                 <span className="rsac-shine-layer" aria-hidden="true" />
-                <div className="official-index-card__visual" aria-hidden="true">
+                <div
+                  className="official-index-card__visual"
+                  data-card-theme={getOfficialCardThemeKey(theme)}
+                  aria-hidden="true"
+                >
+                  {page.featuredImage && (
+                    <img
+                      className="official-index-card__image"
+                      src={page.featuredImage}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
                   <div className="official-index-card__stalk" />
+                  <span className="official-index-card__watermark">
+                    <CardIcon />
+                  </span>
                   <span className="official-index-card__icon">
                     <CardIcon className="h-5 w-5" aria-hidden="true" />
                   </span>
@@ -4895,14 +5297,10 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
 
   return (
     <PageShell
-      eyebrow={section.eyebrow}
-      title={isDivision ? undefined : localizeOfficialText(t(page.title), language)}
-      intro={
-        isDivision
-          ? undefined
-          : localizeOfficialText(page.summary || page.preview, language)
-      }
-      largeEyebrow={isDivision}
+      eyebrow={isDivision ? undefined : section.eyebrow}
+      title={localizeOfficialText(t(page.title), language)}
+      intro={isDivision ? undefined : localizeOfficialText(page.summary || page.preview, language)}
+      largeEyebrow={false}
       density="compact"
       actions={
         <BackButton

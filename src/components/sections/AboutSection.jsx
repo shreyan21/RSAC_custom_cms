@@ -28,6 +28,12 @@ const AboutSection = () => {
   const shouldReduceMotion = useReducedMotion();
   const { about } = useSiteSettings();
   const { t } = useLanguage();
+  const primaryAction = about.primaryAction === undefined
+    ? { label: t("About RSAC-UP"), path: "/about-us/read-more-about-us" }
+    : about.primaryAction;
+  const secondaryAction = about.secondaryAction === undefined
+    ? { label: t("Organisation Chart"), path: "/organisation-chart" }
+    : about.secondaryAction;
 
   return (
     <section
@@ -168,19 +174,23 @@ const AboutSection = () => {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/about-us/read-more-about-us"
-              className="geo-btn-saffron group inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f97316]"
-            >
-              {t("About RSAC-UP")}
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" aria-hidden="true" />
-            </Link>
-            <Link
-              to="/organisation-chart"
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-[#102f46] transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b6fa4]"
-            >
-              {t("Organisation Chart")}
-            </Link>
+            {primaryAction?.label && primaryAction?.path && (
+              <Link
+                to={primaryAction.path}
+                className="geo-btn-saffron group inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f97316]"
+              >
+                {primaryAction.label}
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" aria-hidden="true" />
+              </Link>
+            )}
+            {secondaryAction?.label && secondaryAction?.path && (
+              <Link
+                to={secondaryAction.path}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-[#102f46] transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b6fa4]"
+              >
+                {secondaryAction.label}
+              </Link>
+            )}
           </div>
         </ScrollScale>
       </div>

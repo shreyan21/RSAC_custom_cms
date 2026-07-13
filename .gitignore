@@ -1,76 +1,87 @@
-# Logs
-logs
+# Secrets and machine-specific environment
+.env
+.env.*
+!.env.example
+*.local
+.npmrc
+.aws/
+.s3cfg
+
+# Installed dependencies and generated builds
+node_modules/
+dist/
+dist-admin/
+dist-ssr/
+coverage/
+.cache/
+.vite/
+*.tsbuildinfo
+
+# Runtime data: back up privately, never push to GitHub
+server/uploads/
+backups/
+*.dump
+*.sql
+*.tar.gz
+*handoff*.zip
+*handoff*.sql
+backup_file.sql
+
+# Large flood-document archive: transfer privately or with Git LFS
+/public/documents/flood/
+
+# Logs, reports, and temporary files
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-local-drupal/
-.tools/
-cms-drupal/.env.local
-cms-drupal/seed-data.generated.json
-coverage/
-.cache/
-.vite/
-backups/
 playwright-report/
 test-results/
-*.tsbuildinfo
-*.local
-.env
-.env.*
-!.env.example
-*.mp4
-!src/assets/videos/*.mp4
+output/
+.tmp/
+.tmp-*
+.tmp-edge*
+.tmp-chrome*
+*.bak
+*.orig
+*.tmp
+*.sw?
+__pycache__/
+*.py[cod]
+video-compare-check.png
 
-# Editor directories and files
+# Local tools and retired CMS runtimes
+local-drupal/
+.tools/
+cms-drupal/
+backend/wordpress/
+
+# Local AI/editor metadata
+.agents/
+.claude/
+.codex/
+.aidesigner/
+.codex-remote-attachments/
+.mcp.json
+AGENTS.md
+skills-lock.json
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
-*.mp4
-/public/documents/flood
-!src/assets/videos/*.mp4
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
-*.bak
-*.orig
-*.tmp
-.aws/
-.s3cfg
-.npmrc
-video-compare-check.png
-.tmp/
-.tmp-edge*
-.tmp-chrome*
-.aidesigner/
-.agents/
-.claude/
-.codex/
-.mcp.json
-AGENTS.md
-skills-lock.json
-.tmp-*.log
-.codex-remote-attachments/
-__pycache__/
-*.py[cod]
-backups/*.sql
-backups/*.zip
-backend/wordpress
-node_modules
-output/*
-# Deployment archives belong in private object storage, not source control.
-*handoff*.zip
-*handoff*.sql
-*.dump
-*.tar.gz
 
-backup_file.sql
+# Large generated videos are excluded except approved source assets
+*.mp4
+!src/assets/videos/*.mp4
+
+# Intentionally committed and therefore NOT ignored:
+# - server/seed-data.generated.json (starter CMS content)
+# - public/cms-media/ (migrated public CMS images)
+# - package-lock.json (repeatable dependency versions)

@@ -1,71 +1,36 @@
 @echo off
 setlocal
 pushd "%~dp0"
-title RSAC Drupal Editing Helper
-
-if /i "%~1"=="start" goto start_all
-if /i "%~1"=="admin" goto open_admin
-if /i "%~1"=="website" goto open_website
-if /i "%~1"=="validate" goto validate
-if /i "%~1"=="install" goto install_admin
-if /i "%~1"=="guide" goto guide
+title RSAC-UP Custom CMS Helper
 
 :menu
 cls
 echo ============================================================
-echo RSAC-UP DRUPAL EDITING HELPER
+echo RSAC-UP CUSTOM CMS HELPER
 echo ============================================================
-echo.
-echo 1. Start Drupal and website, then open both
-echo 2. Open Drupal RSAC Collections
+echo 1. Start website, CMS portal, and API
+echo 2. Open CMS portal
 echo 3. Open website
-echo 4. Validate Drupal connection
-echo 5. Refresh Drupal editing dashboard
+echo 4. Validate database content
+echo 5. Run bilingual edit smoke test
 echo 6. Open editor guide
 echo 0. Exit
 echo.
-set "choice="
 set /p choice=Choose option: 
 if "%choice%"=="1" goto start_all
-if "%choice%"=="2" goto open_admin
-if "%choice%"=="3" goto open_website
-if "%choice%"=="4" goto validate
-if "%choice%"=="5" goto install_admin
-if "%choice%"=="6" goto guide
+if "%choice%"=="2" start "" "http://localhost:5174/" & goto menu
+if "%choice%"=="3" start "" "http://localhost:5173/" & goto menu
+if "%choice%"=="4" call npm.cmd run cms:validate & pause & goto menu
+if "%choice%"=="5" call npm.cmd run cms:smoke & pause & goto menu
+if "%choice%"=="6" start "" "%~dp0CMS_USER_GUIDE.md" & goto menu
 if "%choice%"=="0" goto end
 goto menu
 
 :start_all
-start "RSAC Drupal" cmd /k npm.cmd run cms:start
-start "RSAC Website" cmd /k npm.cmd run dev
-echo Starting Drupal and website. Wait a few seconds...
-timeout /t 8 /nobreak >nul
-start "" "http://localhost:8080/admin/content/rsac"
+start "RSAC Custom Stack" cmd /k npm.cmd run dev:all
+timeout /t 5 /nobreak >nul
+start "" "http://localhost:5174/"
 start "" "http://localhost:5173/"
-goto menu
-
-:open_admin
-start "" "http://localhost:8080/admin/content/rsac"
-goto menu
-
-:open_website
-start "" "http://localhost:5173/"
-goto menu
-
-:validate
-call npm.cmd run cms:validate
-echo.
-pause
-goto menu
-
-:install_admin
-call npm.cmd run cms:admin:install
-echo.
-pause
-goto menu
-
-:guide
-start "" "%~dp0DRUPAL_EDITOR_USER_GUIDE.md"
 goto menu
 
 :end

@@ -8,8 +8,8 @@ export default defineConfig([
   globalIgnores([
     'dist/**',
     'node_modules/**',
-    'local-drupal/**',
-    '.tools/**',
+    'dist-admin/**',
+    'server/seed-data.generated.json',
     'public/official-media/**',
     '.tmp/**',
     '.tmp-edge*/**',

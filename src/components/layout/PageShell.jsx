@@ -1,5 +1,25 @@
 import Reveal from "../motion/Reveal";
 import PageTrail from "../navigation/PageTrail";
+import { useLocation } from "react-router-dom";
+import { useSiteSettings } from "../../hooks/useData";
+
+const headingClasses = {
+  compact: "mt-3 text-[1.55rem] md:text-[2rem]",
+  normal: "mt-3 text-[1.9rem] md:text-[2.5rem]",
+  large: "mt-3 text-[2.25rem] md:text-[3rem]",
+};
+
+const normalizeHeading = (value) => String(value || "")
+  .toLowerCase()
+  .replace(/rsac(?:\s*[-–—]\s*|\s*)up/g, "")
+  .replace(/[^\p{Letter}\p{Number}]+/gu, "")
+  .trim();
+
+const matchesPath = (settingPath, pathname) => {
+  if (!settingPath) return false;
+  if (settingPath === pathname) return true;
+  return settingPath.endsWith("/*") && pathname.startsWith(settingPath.slice(0, -1));
+};
 
 const PageShell = ({
   eyebrow,
@@ -13,6 +33,20 @@ const PageShell = ({
   largeEyebrow = false,
 }) => {
   const isCompact = density === "compact";
+  const { pathname } = useLocation();
+  const { pageDisplaySettings = [] } = useSiteSettings();
+  const display = pageDisplaySettings.find((item) => item.path === pathname)
+    || pageDisplaySettings.find((item) => matchesPath(item.path, pathname));
+  const configuredEyebrow = display?.eyebrow?.trim() || eyebrow;
+  const configuredTitle = display?.title?.trim() || title;
+  const configuredIntro = display?.intro?.trim() || intro;
+  const redundantTitle = configuredEyebrow && configuredTitle
+    && normalizeHeading(configuredEyebrow) === normalizeHeading(configuredTitle);
+  const resolvedEyebrow = display?.hideEyebrow ? undefined : configuredEyebrow;
+  const resolvedTitle = display?.hideTitle || redundantTitle ? undefined : configuredTitle;
+  const resolvedIntro = display?.hideIntro ? undefined : configuredIntro;
+  const effectiveLargeEyebrow = largeEyebrow || (!resolvedTitle && Boolean(resolvedEyebrow));
+  const headingSize = display?.headingSize || "normal";
 
   return (
     <main
@@ -28,36 +62,42 @@ const PageShell = ({
         <PageTrail items={breadcrumbs} />
 
         <Reveal
-          className={`grid lg:grid-cols-[0.95fr_0.55fr] lg:items-end ${
+          className={`grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end ${
             isCompact ? "gap-5" : "gap-8"
           }`}
         >
           <div>
-            {eyebrow && (
+            {resolvedEyebrow && (
               <p
                 className={`rsac-kicker flex items-center text-[#c2410c] ${
-                  largeEyebrow ? "gap-3 text-[0.9rem] tracking-[0.3em]" : "gap-2.5"
+                  effectiveLargeEyebrow
+                    ? "gap-3 text-[1.2rem] tracking-[0.12em] md:text-[1.45rem]"
+                    : "gap-2.5"
                 }`}
               >
                 <span
                   className="geo-tricolor-bar"
-                  style={{ height: largeEyebrow ? "1.5rem" : "1.05rem" }}
+                  style={{ height: effectiveLargeEyebrow ? "1.7rem" : "1.05rem" }}
                   aria-hidden="true"
                 />
-                {eyebrow}
+                {resolvedEyebrow}
               </p>
             )}
 
-            {title && (
+            {resolvedTitle && (
               <>
                 <h1
                   className={`rsac-display max-w-5xl font-extrabold leading-tight tracking-[-0.022em] text-[#082032] ${
                     isCompact
-                      ? "mt-3 text-[1.9rem] md:text-[2.5rem]"
-                      : "mt-4 text-[2.4rem] md:text-[3.3rem]"
+                      ? headingClasses[headingSize] || headingClasses.normal
+                      : headingSize === "compact"
+                        ? "mt-4 text-[2rem] md:text-[2.7rem]"
+                        : headingSize === "large"
+                          ? "mt-4 text-[2.8rem] md:text-[3.8rem]"
+                          : "mt-4 text-[2.4rem] md:text-[3.3rem]"
                   }`}
                 >
-                  {title}
+                  {resolvedTitle}
                 </h1>
 
                 <span
@@ -67,7 +107,7 @@ const PageShell = ({
               </>
             )}
 
-            {intro && (
+            {resolvedIntro && (
               <p
                 className={`max-w-3xl text-base font-semibold text-slate-700 ${
                   isCompact
@@ -75,13 +115,13 @@ const PageShell = ({
                     : "mt-5 leading-[1.8] md:text-lg"
                 }`}
               >
-                {intro}
+                {resolvedIntro}
               </p>
             )}
           </div>
 
           {actions && (
-            <div className="flex flex-wrap gap-3 lg:justify-end">
+            <div className="flex flex-wrap gap-3 sm:justify-end">
               {actions}
             </div>
           )}

@@ -1,6 +1,0 @@
-rsac_admin.dashboard:
-  title: 'RSAC Collections'
-  description: 'Edit website pages, divisions, staff, notices, media, and translations.'
-  route_name: rsac_admin.dashboard
-  parent: system.admin_content
-  weight: -20

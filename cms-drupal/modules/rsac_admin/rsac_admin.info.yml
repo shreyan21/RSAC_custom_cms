@@ -1,9 +1,0 @@
-name: RSAC Content Dashboard
-type: module
-description: Collection dashboard and bilingual editing help for RSAC-UP Drupal.
-package: RSAC-UP
-core_version_requirement: ^10.3 || ^11
-dependencies:
-  - drupal:content_translation
-  - drupal:language
-  - drupal:node

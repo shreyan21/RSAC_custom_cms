@@ -1,92 +1,54 @@
-# RSAC-UP Drupal Website
+# RSAC-UP Custom CMS Website
 
-This folder is Drupal-based test project for RSAC-UP website.
+This test project now uses a custom stack:
 
-Original Directus project is separate:
+- Public website: React, port `5173`
+- CMS portal: React, port `5174`
+- Content API: Express, port `3000`
+- Database: PostgreSQL database `rsac_custom_cms`
 
-```text
-D:\rsac_website
-```
+The original project at `D:\rsac_website` and the old `rsac_cms` database are not modified. The website does not call Drupal or Directus at runtime.
 
-Do not edit original project from here.
+## First Setup
 
-The frontend uses only Drupal JSON:API. The old `rsac_cms` PostgreSQL database is a read-only migration source; Drupal runs from its own PostgreSQL schema/database so old tables remain untouched.
-
-## Local URLs
-
-- Website: `http://localhost:5173/`
-- Drupal: `http://localhost:8080/`
-- Drupal login: `http://localhost:8080/user/login`
-- RSAC collections: `http://localhost:8080/admin/content/rsac`
-- Drupal JSON:API: `http://localhost:8080/jsonapi`
-
-## Main Commands
-
-Install frontend packages:
+Requirements: Node.js 20+, npm, and PostgreSQL 14+.
 
 ```powershell
 npm.cmd install
-```
-
-Start Drupal:
-
-```powershell
-npm.cmd run cms:start
-```
-
-Start website:
-
-```powershell
-npm.cmd run dev
-```
-
-Windows non-technical helper:
-
-```text
-Double-click how_to_edit.cmd
-```
-
-Check Drupal:
-
-```powershell
+$env:POSTGRES_ADMIN_PASSWORD="your-local-postgres-password"
 npm.cmd run cms:setup
+Remove-Item Env:\POSTGRES_ADMIN_PASSWORD
 ```
 
-Install or refresh the RSAC collections dashboard and editing fields:
+Setup creates the separate database, seeds the bilingual content, and stores generated local credentials only in ignored `.env.local`.
+
+## Start Everything
 
 ```powershell
-npm.cmd run cms:admin:install
+npm.cmd run dev:all
 ```
 
-Seed Drupal content:
+Open:
+
+- Website: `http://localhost:5173`
+- CMS: `http://localhost:5174`
+- API check: `http://localhost:3000/api/health`
+
+CMS username is `admin`. Read `CMS_ADMIN_PASSWORD` from local `.env.local`. Never commit or share that file.
+
+## Checks
 
 ```powershell
-npm.cmd run cms:seed:drupal
-```
-
-Administrator-only read-only import from the old `rsac_cms` database:
-
-```powershell
-$env:RSAC_SOURCE_DB_PASSWORD="your-private-postgres-password"
-$env:RSAC_SOURCE_UPLOADS="path-to-old-public-uploads"
-npm.cmd run cms:migrate:rsac-db
-```
-
-Build website:
-
-```powershell
+npm.cmd run cms:validate
+npm.cmd run lint
 npm.cmd run build
+npm.cmd run build:admin
 ```
 
 ## Guides
 
-- [DRUPAL_EDITOR_USER_GUIDE.md](DRUPAL_EDITOR_USER_GUIDE.md): edit every website section in Drupal.
-- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): move project to another system/server/GitHub.
+- [CMS_USER_GUIDE.md](CMS_USER_GUIDE.md): edit every website area in English and Hindi.
+- [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md): system flow and responsibility of each maintained source file.
+- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): GitHub, backup, transfer, and SDC deployment.
 
-## CMS Rule
-
-Website reads Drupal first.
-
-If Drupal content is missing, website uses built-in static fallback, so site does not break.
-
-Hindi content must be entered manually in Drupal. If Hindi is missing, website falls back to English.
+The code includes accessibility, security, responsive layout, audit history, bilingual content, and structured publishing controls. Official GIGW conformance and STQC certification still require formal testing and approval by the authorised assessment body.

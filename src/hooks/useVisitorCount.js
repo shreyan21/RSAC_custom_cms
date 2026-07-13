@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import cmsConfig from "../data/cmsConfig";
 import { readCmsVisitCount, recordCmsVisit } from "../data/cmsInteractions";
 
 let visitorRequest = null;
@@ -13,10 +12,6 @@ export const useVisitorCount = () => {
   const [count, setCount] = useState(null);
 
   useEffect(() => {
-    if (!cmsConfig.enabled) {
-      return undefined;
-    }
-
     let cancelled = false;
 
     if (!visitorRequest) {

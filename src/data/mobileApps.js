@@ -5,6 +5,7 @@ export const mobileApps = [
     titleHi: "एचआरएमएस ऐप",
     description: "Human resource management for RSAC-UP staff.",
     descriptionHi: "आरएसएसी-यूपी कर्मियों हेतु मानव संसाधन प्रबंधन।",
+    thumbnail: "/images/mobile-apps/hrms.png",
     url: "/official-media/legacy-rsac/dam/HRMSFinal.apk",
   },
   {
@@ -13,6 +14,7 @@ export const mobileApps = [
     titleHi: "फील्ड सर्वे आरएसएसी-यूपी",
     description: "Ground-truth and field data collection for survey teams.",
     descriptionHi: "सर्वेक्षण दलों हेतु क्षेत्रीय एवं ग्राउंड-ट्रुथ डेटा संग्रहण।",
+    thumbnail: "/images/mobile-apps/field-survey.jpg",
     url: "/official-media/legacy-rsac/dam/Field_Survey_RSACUP.apk",
   },
   {
@@ -21,6 +23,7 @@ export const mobileApps = [
     titleHi: "कॉरिडोर सर्वे",
     description: "Linear corridor and utility field survey capture.",
     descriptionHi: "रेखीय कॉरिडोर एवं उपयोगिता क्षेत्रीय सर्वेक्षण।",
+    thumbnail: "/images/mobile-apps/corridor-survey.png",
     url: "/official-media/legacy-rsac/dam/corridor_field_survey_v2.apk",
   },
   {
@@ -29,6 +32,7 @@ export const mobileApps = [
     titleHi: "बाग मानचित्रण",
     description: "Field mapping of orchards for horticulture studies.",
     descriptionHi: "उद्यान अध्ययन हेतु बागों का क्षेत्रीय मानचित्रण।",
+    thumbnail: "/images/mobile-apps/orchard-mapping.jpg",
     url: "/official-media/legacy-rsac/dam/orchard_App_v2.apk",
   },
   {
@@ -37,6 +41,7 @@ export const mobileApps = [
     titleHi: "टमाटर पत्ती रोग पहचान",
     description: "AI-based detection of tomato leaf diseases.",
     descriptionHi: "एआई आधारित टमाटर पत्ती रोग पहचान।",
+    thumbnail: "/images/mobile-apps/tomato-disease.png",
     url: "/official-media/legacy-rsac/dam/tomato_app.apk",
   },
 ];

@@ -1,30 +1,26 @@
-import { isDrupalActive } from "./cmsResolve";
-import {
-  readDrupalVisitCount,
-  recordDrupalVisit,
-  submitDrupalFeedback,
-} from "./drupalClient";
+import { cmsRequest } from "./customCmsClient";
 
 export const submitCmsFeedback = async (record) => {
-  if (isDrupalActive()) {
-    return submitDrupalFeedback(record);
+  try {
+    await cmsRequest("/api/feedback", { method: "POST", body: JSON.stringify(record) });
+    return true;
+  } catch {
+    return false;
   }
-
-  return false;
 };
 
 export const recordCmsVisit = async () => {
-  if (isDrupalActive()) {
-    return recordDrupalVisit();
+  try {
+    return (await cmsRequest("/api/visits", { method: "POST" })).count;
+  } catch {
+    return null;
   }
-
-  return null;
 };
 
 export const readCmsVisitCount = async () => {
-  if (isDrupalActive()) {
-    return readDrupalVisitCount();
+  try {
+    return (await cmsRequest("/api/visits")).count;
+  } catch {
+    return null;
   }
-
-  return null;
 };

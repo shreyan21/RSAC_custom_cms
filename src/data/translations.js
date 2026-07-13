@@ -222,6 +222,11 @@ export const hiTranslations = {
   Overview: "अवलोकन",
   "Ongoing Projects": "चालू परियोजनाएं",
   "Completed Projects": "पूर्ण परियोजनाएं",
+  "S.No.": "क्र. सं.",
+  "S. No.": "क्र. सं.",
+  "Sr. No.": "क्र. सं.",
+  "Sl. No.": "क्र. सं.",
+  "Serial No.": "क्र. सं.",
   "Research Papers": "शोध पत्र",
   "Research Paper Published": "शोध पत्र प्रकाशित",
   "Research Papers Published": "शोध पत्र प्रकाशित",
@@ -559,8 +564,8 @@ export const hiTranslations = {
   Coverage: "कवरेज",
   Action: "कार्य",
   "Related portals": "संबंधित पोर्टल",
-  "Older approved reports can be added as documents or archive links from Drupal.":
-    "पुरानी अनुमोदित रिपोर्ट Drupal से दस्तावेज या अभिलेख लिंक के रूप में जोड़ी जा सकती हैं।",
+  "Older approved reports can be added as documents or archive links from the CMS.":
+    "पुरानी अनुमोदित रिपोर्ट सीएमएस से दस्तावेज या अभिलेख लिंक के रूप में जोड़ी जा सकती हैं।",
   "archive on the official RSAC-UP website": "आधिकारिक आरएसएसी-यूपी वेबसाइट पर अभिलेख",
   "Relief Commissioner, Uttar Pradesh": "राहत आयुक्त, उत्तर प्रदेश",
   "State disaster relief operations and flood bulletins.":

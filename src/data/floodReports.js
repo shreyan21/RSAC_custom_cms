@@ -3,9 +3,7 @@
  *
  * Mirrors the "Flood" section of the official RSAC-UP website, where daily
  * flood inundation reports are published during the monsoon season.
- * Local PDF copies keep the fallback website independent from the legacy site.
- * Drupal flood report documents replace these files when CMS is
- * enabled (see cmsService.getFloodData).
+ * Historical local PDFs remain available while current rows come from the CMS.
  */
 
 const floodPdf2025 = (file) => `/documents/flood/2025/${file}`;
@@ -43,7 +41,7 @@ export const floodSection = {
   ],
   archiveHeading: "Year-wise flood archive",
   archiveNote:
-    "Older approved reports can be added as documents or archive links from Drupal.",
+    "Older approved reports can be added as documents or archive links from the CMS.",
   archives: [],
   resourcesHeading: "Related portals",
   resources: [

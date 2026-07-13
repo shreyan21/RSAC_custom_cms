@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
-import { useContactDetails } from "../../hooks/useData";
 import { submitCmsFeedback } from "../../data/cmsInteractions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,12 +19,9 @@ const initialForm = {
 
 const FeedbackForm = () => {
   const { isHindi } = useLanguage();
-  const contact = useContactDetails();
-  const feedbackEmail = contact?.email || "director.rsac-up@rsac.up.gov.in";
-
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  // false | "cms" (stored in Drupal) | "mail" (mailto fallback)
+  // false | "cms" (stored successfully)
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -117,8 +113,7 @@ const FeedbackForm = () => {
       return;
     }
 
-    // Store the submission in the CMS so it works on machines without a mail
-    // app; fall back to the visitor's email client when the CMS is offline.
+    // Store the submission in the custom CMS so it is available to authorised staff.
     setSubmitting(true);
     const stored = await submitCmsFeedback({
       name: form.name.trim(),
@@ -137,24 +132,7 @@ const FeedbackForm = () => {
       return;
     }
 
-    const body = [
-      `${L.name}: ${form.name}`,
-      `${L.email}: ${form.email}`,
-      `${L.phone}: ${form.phone}`,
-      `${L.address}: ${form.address}`,
-      `${L.country}: ${form.country}`,
-      `${L.state}: ${form.state}`,
-      `${L.district}: ${form.district}`,
-      "",
-      `${L.comments}:`,
-      form.comments,
-    ].join("\n");
-
-    const mailto = `mailto:${feedbackEmail}?subject=${encodeURIComponent(
-      "Website Feedback"
-    )}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
-    setSent("mail");
+    setErrors({ submit: isHindi ? "प्रतिक्रिया दर्ज नहीं हो सकी। कृपया पुनः प्रयास करें।" : "Feedback could not be submitted. Please try again." });
   };
 
   const handleReset = () => {
@@ -360,6 +338,7 @@ const FeedbackForm = () => {
           {L.reset}
         </button>
       </div>
+      {renderError("submit")}
     </form>
   );
 };

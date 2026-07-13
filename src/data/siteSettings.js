@@ -6,7 +6,7 @@ import { uiLabelDefaults } from "./uiLabels";
 
 export const siteSettings = {
   // Short button/badge/status wording used across the whole site. Every entry
-  // can be copied into Drupal Site Setting translations.
+  // can be copied into custom CMS Site Settings translations.
   interfaceLabels: { ...uiLabelDefaults },
   appearance: {
     fontFamily: "Inter, sans-serif",
@@ -272,7 +272,7 @@ export const siteSettings = {
         summary:
           "Download RSAC-UP mobile applications for staff workflows, field survey, corridor survey, orchard mapping, and crop-disease support.",
         details:
-          "HRMS and survey applications are available from the Geo-Portal section.\nFiles should be uploaded in Drupal Downloads so the website does not depend on external RSAC links.",
+          "HRMS and survey applications are available from the Geo-Portal section.\nFiles should be uploaded in CMS Downloads so the website does not depend on external RSAC links.",
         icon: "phone",
         buttonLabel: "Open Mobile Apps",
         buttonPath: "/mobile-apps",

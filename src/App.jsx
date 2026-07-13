@@ -28,8 +28,6 @@ import ServicesSection from "./components/sections/ServicesSection";
 import QuickAccess from "./components/sections/QuickAccess";
 import HomeGalleryPreview from "./components/sections/HomeGalleryPreview";
 import { useSiteSettings } from "./hooks/useData";
-import { useLanguage } from "./hooks/useLanguage";
-import { isCmsPreviewMode } from "./data/cmsPreview";
 
 const OfficialContentIndexPage = lazy(() =>
   import("./pages/OfficialContentPage").then((module) => ({
@@ -79,80 +77,15 @@ const PublicInfoPage = lazy(() => import("./pages/public/PublicInfoPage"));
 const GalleryPage = lazy(() => import("./pages/public/GalleryPage"));
 const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage"));
 
-const routeFallbackCards = Array.from({ length: 6 }, (_, index) => index);
-
-const RouteFallback = () => {
-  const { t } = useLanguage();
-
-  return (
-  <main
-    id="main-content"
-    className="min-h-screen bg-[#f4f9fc] px-5 pb-16 pt-32 sm:px-8 sm:pt-36 md:px-12 lg:px-20"
-  >
-    <section className="mx-auto max-w-7xl" aria-live="polite" aria-busy="true">
-      <div className="max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0b6fa4]">
-          {t("Loading Official Records")}
-        </p>
-        <h1 className="mt-3 text-3xl font-extrabold text-[#102f46]">
-          {t("Preparing page content")}
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {t("Please wait while the selected section is loaded.")}
-        </p>
-      </div>
-
-      <div className="mt-7 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_16px_48px_rgba(18,50,74,0.07)]">
-        <div
-          className="h-1 bg-[linear-gradient(90deg,#ff9933_0%,#ffffff_48%,#138808_100%)]"
-          aria-hidden="true"
-        />
-
-        <div className="p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div className="min-w-0 flex-1">
-              <div className="h-3 w-40 animate-pulse rounded bg-sky-100" />
-              <div className="mt-3 h-7 w-full max-w-md animate-pulse rounded bg-slate-100" />
-            </div>
-            <div className="h-10 w-36 animate-pulse rounded-lg bg-emerald-50" />
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {routeFallbackCards.map((item) => (
-              <div
-                key={`route-fallback-card-${item}`}
-                className="flex min-h-28 gap-3 rounded-lg border border-slate-200 bg-[#fbfdfc] p-3"
-              >
-                <div className="h-20 w-16 shrink-0 animate-pulse rounded-lg bg-slate-100" />
-                <div className="min-w-0 flex-1">
-                  <div className="h-4 w-4/5 animate-pulse rounded bg-slate-100" />
-                  <div className="mt-4 h-3 w-28 animate-pulse rounded bg-sky-100" />
-                  <div className="mt-2 h-4 w-full animate-pulse rounded bg-slate-100" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-  );
-};
+const RouteFallback = () => (
+  <div className="min-h-24" aria-busy="true">
+    <span className="sr-only">Loading</span>
+  </div>
+);
 
 const officialContentRoute = (element) => (
   <Suspense fallback={<RouteFallback />}>{element}</Suspense>
 );
-
-const CmsPreviewBanner = () =>
-  isCmsPreviewMode() ? (
-    <div
-      className="fixed bottom-4 left-4 z-[240] rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-amber-900 shadow-[0_12px_30px_rgba(18,50,74,0.16)]"
-      role="status"
-      aria-live="polite"
-    >
-      CMS Preview
-    </div>
-  ) : null;
 
 // ======================
 // HOMEPAGE
@@ -280,7 +213,6 @@ function App() {
         <RouteAnnouncer />
 
         <Navbar />
-        <CmsPreviewBanner />
 
         <Routes>
 

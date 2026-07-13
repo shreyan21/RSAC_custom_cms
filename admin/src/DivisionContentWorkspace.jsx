@@ -1,0 +1,180 @@
+import { useMemo, useState } from "react";
+import { ArrowLeft, Images, Languages, Plus, Save, Search, Trash2, Undo2, UserRound } from "lucide-react";
+
+const sourceLabel = (block) => {
+  const childLabel = (block?.children || []).find((child) => child?.label)?.label || "";
+  return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "Section";
+};
+
+const titleOf = (page) => page?.dataEn?.title || page?.entryKey || "Untitled division";
+const isPeopleSection = (label) => /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(label);
+const isPhotoSection = (label) => /map\s*\/\s*photos?|photos?|तस्वीर|मानचित्र/iu.test(label);
+
+const visibleRows = (block) => (block?.children || []).filter((child) => !child.hidden);
+
+const matchingBlockIndex = (data, referenceBlock, fallbackIndex) => {
+  const blocks = data?.blocks || [];
+  const referenceKeys = new Set((referenceBlock?.children || []).map((child) => child.key).filter(Boolean));
+  if (referenceKeys.size) {
+    let bestIndex = -1;
+    let bestScore = 0;
+    blocks.forEach((block, index) => {
+      const score = (block.children || []).reduce((count, child) => count + (referenceKeys.has(child.key) ? 1 : 0), 0);
+      if (score > bestScore) {
+        bestIndex = index;
+        bestScore = score;
+      }
+    });
+    if (bestIndex >= 0) return bestIndex;
+  }
+  return fallbackIndex < blocks.length ? fallbackIndex : -1;
+};
+
+export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", onSave, onClose, onOpenPeople, onOpenGallery, notify }) {
+  const [search, setSearch] = useState("");
+  const [draft, setDraft] = useState(null);
+  const [sectionIndex, setSectionIndex] = useState(null);
+  const [language, setLanguage] = useState("en");
+  const [rowSearch, setRowSearch] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const filteredPages = useMemo(() => pages.filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase())), [pages, search]);
+  const englishBlocks = draft?.dataEn?.blocks || [];
+  const currentData = language === "hi" ? draft?.dataHi : draft?.dataEn;
+  const englishBlock = englishBlocks[sectionIndex];
+  const currentBlockIndex = language === "hi" ? matchingBlockIndex(currentData, englishBlock, sectionIndex) : sectionIndex;
+  const currentBlock = currentData?.blocks?.[currentBlockIndex];
+  const label = sourceLabel(currentBlock || englishBlock);
+  const rows = visibleRows(currentBlock);
+  const filteredRows = rows.filter((child) => `${child.label || ""} ${child.value || ""}`.toLowerCase().includes(rowSearch.toLowerCase()));
+  const removedCount = (currentBlock?.children || []).filter((child) => child.hidden).length;
+  const numbered = currentBlock?.editorMode === "numbered_list" || /research|paper|report|project|publication|software|programme|शोध|रिपोर्ट|परियोजना|प्रकाशन/iu.test(label);
+  const itemName = workspaceKind === "facilities" ? "facility" : workspaceKind === "about-us" ? "page" : workspaceKind === "academics" ? "training page" : "division";
+  const searchPlaceholder = workspaceKind === "facilities" ? "Search laboratory, library, hostel..." : workspaceKind === "about-us" ? "Search chairman, vision, organisation..." : workspaceKind === "academics" ? "Search training or academics..." : "Search Computer Image, Agriculture, Training...";
+
+  const openPage = (page) => {
+    setDraft(structuredClone(page));
+    setSectionIndex(null);
+    setLanguage("en");
+    setRowSearch("");
+  };
+
+  const updateLanguageBlocks = (updater) => setDraft((current) => {
+    const target = language === "hi" ? "dataHi" : "dataEn";
+    const data = structuredClone(current[target] || {});
+    const fallbackBlocks = structuredClone(current.dataEn?.blocks || []);
+    data.blocks = Array.isArray(data.blocks) ? data.blocks : fallbackBlocks.map((block) => ({ ...block, children: (block.children || []).map((child) => ({ ...child, value: "" })) }));
+    const targetIndex = target === "dataHi" ? matchingBlockIndex(data, fallbackBlocks[sectionIndex], sectionIndex) : sectionIndex;
+    const safeIndex = targetIndex >= 0 ? targetIndex : sectionIndex;
+    data.blocks[safeIndex] = updater(data.blocks[safeIndex] || structuredClone(fallbackBlocks[sectionIndex] || {}));
+    return { ...current, [target]: data };
+  });
+
+  const updateRow = (key, value) => updateLanguageBlocks((block) => ({
+    ...block,
+    children: (block.children || []).map((child) => child.key === key ? { ...child, value } : child),
+  }));
+
+  const updateBothLanguages = (updater) => setDraft((current) => {
+    const next = structuredClone(current);
+    const baseBlocks = structuredClone(current.dataEn?.blocks || []);
+    for (const target of ["dataEn", "dataHi"]) {
+      next[target] ||= {};
+      next[target].blocks = Array.isArray(next[target].blocks) ? next[target].blocks : baseBlocks.map((block) => ({ ...block, children: (block.children || []).map((child) => ({ ...child, value: "" })) }));
+      const targetIndex = target === "dataHi" ? matchingBlockIndex(next[target], baseBlocks[sectionIndex], sectionIndex) : sectionIndex;
+      const safeIndex = targetIndex >= 0 ? targetIndex : sectionIndex;
+      next[target].blocks[safeIndex] = updater(next[target].blocks[safeIndex] || structuredClone(baseBlocks[sectionIndex] || {}), target);
+    }
+    return next;
+  });
+
+  const addAtTop = () => {
+    const key = `cms-${crypto.randomUUID()}`;
+    updateBothLanguages((block, target) => ({
+      ...block,
+      children: [{
+        key,
+        label: `${sourceLabel(block)} -> New item`,
+        value: "",
+        isNew: true,
+        language: target === "dataHi" ? "hi" : "en",
+      }, ...(block.children || [])],
+    }));
+  };
+
+  const removeRow = (key) => updateBothLanguages((block) => ({
+    ...block,
+    children: (block.children || []).flatMap((child) => {
+      if (child.key !== key) return [child];
+      return child.isNew || String(child.key || "").startsWith("cms-") ? [] : [{ ...child, hidden: true }];
+    }),
+  }));
+
+  const restoreRows = () => updateBothLanguages((block) => ({
+    ...block,
+    children: (block.children || []).map((child) => ({ ...child, hidden: false })),
+  }));
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const saved = await onSave(draft);
+      setDraft(structuredClone(saved));
+      notify("Division section saved. Website will refresh within a few seconds.", "success");
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!draft) {
+    return (
+      <section className="division-workspace">
+        <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>No page HTML. Choose the {itemName} whose content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> Collections</button></div>
+        <label className="workspace-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
+        <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span>Open sections</span></button>)}</div>
+      </section>
+    );
+  }
+
+  if (sectionIndex === null) {
+    return (
+      <section className="division-workspace">
+        <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose only the section you need. Other sections stay closed.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
+        <div className="workspace-card-grid workspace-section-grid">{englishBlocks.map((block, index) => {
+          const sectionLabel = sourceLabel(block);
+          const count = visibleRows(block).length;
+          return <button type="button" className="workspace-card" key={block.id || `${sectionLabel}-${index}`} onClick={() => { setSectionIndex(index); setRowSearch(""); }}><strong>{sectionLabel}</strong><span>{isPeopleSection(sectionLabel) ? "Open people controls" : isPhotoSection(sectionLabel) ? "Open photo section" : `${count} editable ${count === 1 ? "row" : "rows"}`}</span></button>;
+        })}</div>
+      </section>
+    );
+  }
+
+  if (isPeopleSection(label)) {
+    return (
+      <section className="division-workspace">
+        <div className="division-workspace-head"><div><span>Step 3 of 3</span><h2>{label}</h2><p>Names, roles, profile details, and photographs use one dedicated collection.</p></div><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button></div>
+        <div className="workspace-reference"><UserRound /><h3>Scientists / Officials / Staff</h3><p>Open the people collection to add, edit, remove, reorder, or replace profile photographs without breaking cards.</p><button className="primary" onClick={onOpenPeople}>Open people collection</button></div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="division-workspace division-workspace-editor">
+      <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>{label}</h2><p>{numbered ? "New items appear first and become number 1." : "Edit one website line at a time."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+      <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
+      <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label>{isPhotoSection(label) && <button className="secondary" onClick={onOpenGallery}><Images /> Open Gallery uploads</button>}</div>
+      <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
+      <div className="workspace-row-list">
+        {filteredRows.map((child) => {
+          const number = rows.findIndex((row) => row.key === child.key) + 1;
+          const fieldLabel = numbered ? `Item ${number}` : String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
+          return <label className="workspace-row" key={child.key}><span className="workspace-row-number">{number}</span><span><strong>{fieldLabel}</strong><textarea rows="3" value={child.value || ""} onChange={(event) => updateRow(child.key, event.target.value)} /></span><button type="button" className="danger-icon" title={`Remove ${fieldLabel}`} onClick={() => removeRow(child.key)}><Trash2 /></button></label>;
+        })}
+        {!filteredRows.length && <div className="empty-panel">No matching rows. Use Add at top.</div>}
+      </div>
+      {removedCount > 0 && <button className="secondary workspace-restore" onClick={restoreRows}><Undo2 /> Restore {removedCount} removed {removedCount === 1 ? "row" : "rows"}</button>}
+    </section>
+  );
+}
