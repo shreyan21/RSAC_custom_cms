@@ -20,6 +20,7 @@ server/uploads/
 backups/
 *.dump
 *.sql
+!server/schema.sql
 *.tar.gz
 *handoff*.zip
 *handoff*.sql

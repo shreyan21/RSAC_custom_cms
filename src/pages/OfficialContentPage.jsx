@@ -1599,7 +1599,7 @@ const stripLayoutBreakingPresentation = (document) => {
 
 const sanitizeOfficialHtml = (
   html,
-  { pageTitle = "", stripProfiles = false, stripMediaHeadings = true } = {}
+  { pageTitle = "", baseTitle = "", stripProfiles = false, stripMediaHeadings = true } = {}
 ) => {
   if (typeof DOMParser === "undefined" || !html) {
     return html;
@@ -1613,8 +1613,8 @@ const sanitizeOfficialHtml = (
     }
   });
 
-  if (pageTitle) {
-    removeDuplicatePageTitle(document, pageTitle);
+  if (pageTitle || baseTitle) {
+    removeDuplicatePageTitle(document, [pageTitle, baseTitle].filter(Boolean));
   }
 
   if (stripProfiles) {
@@ -3550,6 +3550,7 @@ const enhanceRichContentHtml = (html, sectionKey) => {
 const OfficialHtmlContent = ({
   html,
   pageTitle,
+  baseTitle,
   sectionKey,
   stripProfiles = false,
   stripMediaHeadings = true,
@@ -3561,13 +3562,14 @@ const OfficialHtmlContent = ({
     const built = enhanceRichContentHtml(
       sanitizeOfficialHtml(html, {
         pageTitle,
+        baseTitle,
         stripProfiles,
         stripMediaHeadings,
       }),
       sectionKey
     );
     return language === "hi" ? translateRichTextHtml(built) : built;
-  }, [html, pageTitle, sectionKey, stripProfiles, stripMediaHeadings, language]);
+  }, [html, pageTitle, baseTitle, sectionKey, stripProfiles, stripMediaHeadings, language]);
 
   // Open Map/Photos (and any body image) in the shared Lightbox with prev/next
   // instead of leaving the site for the raw file. Links that lead to a
@@ -3706,6 +3708,13 @@ const FlexibleLink = ({ item, language, className = "" }) => {
   );
 };
 
+const flexibleBlockDisplayProps = (block, className) => ({
+  className: `${className} cms-flexible-block`,
+  "data-cms-text-size": block.textSize || "normal",
+  "data-cms-media-size": block.mediaSize || "normal",
+  "data-cms-spacing": block.spacing || "normal",
+});
+
 const FlexibleCmsBlocks = ({ blocks, page }) => {
   const { language } = useLanguage();
   const visibleBlocks = flexibleItems(blocks).filter(
@@ -3717,7 +3726,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
   }
 
   return (
-    <div className="space-y-6" data-cms-layout="flexible">
+    <div className="cms-flexible-layout" data-cms-layout="flexible">
       {visibleBlocks.map((block, blockIndex) => {
         const type = flexibleBlockType(block);
         const key = block.id || block.key || `${type}-${blockIndex}`;
@@ -3725,12 +3734,13 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
         const shellClass = block.variant === "plain"
           ? "min-w-0"
           : "min-w-0 rounded-lg border border-slate-200 bg-white p-4 sm:p-5";
+        const shellProps = flexibleBlockDisplayProps(block, shellClass);
 
         if (["rich_text", "text", "html", "body"].includes(type)) {
           const html = block.html || block.body || block.text || "";
           if (!html) return null;
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <OfficialHtmlContent
                 html={html}
@@ -3744,7 +3754,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
 
         if (type === "heading") {
           return (
-            <section key={key} className="min-w-0">
+            <section key={key} {...flexibleBlockDisplayProps(block, "min-w-0")}>
               <FlexibleHeading block={block} language={language} />
             </section>
           );
@@ -3754,9 +3764,58 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
           return <hr key={key} className="border-0 border-t border-slate-200" />;
         }
 
+        if (type === "hero") {
+          const image = block.image || block.src;
+          return (
+            <section key={key} {...flexibleBlockDisplayProps(block, "cms-flexible-hero relative min-h-64 overflow-hidden rounded-lg bg-[#102f46]")}>
+              {image && <img src={image} alt={flexibleText(block.alt, language)} className="cms-flexible-media absolute inset-0 h-full w-full object-cover" loading="lazy" />}
+              <div className={`relative z-[1] flex min-h-64 max-w-3xl flex-col justify-end p-5 sm:p-7 ${image ? "bg-[linear-gradient(90deg,rgba(8,32,50,0.92)_0%,rgba(8,32,50,0.62)_72%,transparent_100%)] text-white" : "text-white"}`}>
+                {block.eyebrow && <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-orange-200">{flexibleText(block.eyebrow, language)}</p>}
+                {(block.heading || block.title) && <h2 className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">{flexibleText(block.heading || block.title, language)}</h2>}
+                {(block.text || block.intro) && <p className="mt-3 leading-relaxed text-white/90">{flexibleText(block.text || block.intro, language)}</p>}
+              </div>
+            </section>
+          );
+        }
+
+        if (type === "image") {
+          const image = block.image || block.src || block.url;
+          if (!image) return null;
+          return (
+            <section key={key} {...shellProps}>
+              <FlexibleHeading block={block} language={language} />
+              <figure className="cms-flexible-figure">
+                <img src={image} alt={flexibleText(block.alt || block.heading, language)} className="cms-flexible-media" loading="lazy" />
+                {block.caption && <figcaption>{flexibleText(block.caption, language)}</figcaption>}
+              </figure>
+            </section>
+          );
+        }
+
+        if (type === "gallery") {
+          return (
+            <section key={key} {...shellProps}>
+              <FlexibleHeading block={block} language={language} />
+              <div className={`cms-flexible-gallery grid gap-4 ${flexibleColumns(block.columns, 3)}`}>
+                {items.map((item, itemIndex) => {
+                  const value = typeof item === "string" ? { url: item } : item;
+                  const image = value.image || value.src || value.url;
+                  if (!image) return null;
+                  return (
+                    <figure key={value.id || `${key}-image-${itemIndex}`} className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-[#f8fbfd]">
+                      <img src={image} alt={flexibleText(value.alt || value.title, language)} className="cms-flexible-media w-full object-contain" loading="lazy" />
+                      {(value.caption || value.title) && <figcaption className="p-3 text-sm font-semibold leading-relaxed text-slate-700">{flexibleText(value.caption || value.title, language)}</figcaption>}
+                    </figure>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        }
+
         if (type === "cards") {
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <div className={`grid items-stretch gap-4 ${flexibleColumns(block.columns)}`}>
                 {items.map((item, itemIndex) => (
@@ -3768,7 +3827,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
                       <img
                         src={item.image || item.src}
                         alt={flexibleText(item.alt || item.title, language)}
-                        className="aspect-[16/9] w-full object-cover"
+                        className="cms-flexible-media aspect-[16/9] w-full object-cover"
                         loading="lazy"
                       />
                     )}
@@ -3803,7 +3862,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
           const ordered = type === "ordered_list" || block.ordered === true;
           const ListTag = ordered ? "ol" : "ul";
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <ListTag className={`${ordered ? "list-decimal" : "list-disc"} space-y-2 pl-6 text-sm leading-relaxed text-slate-700 marker:font-bold marker:text-orange-500`}>
                 {items.map((item, itemIndex) => {
@@ -3826,7 +3885,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
 
         if (type === "stats") {
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <div className={`grid gap-3 ${flexibleColumns(block.columns, 4)}`}>
                 {items.map((item, itemIndex) => (
@@ -3851,7 +3910,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
           const headers = flexibleItems(block.headers || block.columns);
           const rows = flexibleItems(block.rows);
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <div className="max-w-full overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
@@ -3885,7 +3944,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
 
         if (["links", "buttons"].includes(type)) {
           return (
-            <section key={key} className={shellClass}>
+            <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <div className="flex flex-wrap gap-3">
                 {items.map((item, itemIndex) => (
@@ -3902,7 +3961,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
 
         if (["callout", "note"].includes(type)) {
           return (
-            <aside key={key} className="rounded-lg border-l-4 border-[#0b6fa4] bg-sky-50 p-4 text-sm leading-relaxed text-slate-700">
+            <aside key={key} {...flexibleBlockDisplayProps(block, "rounded-lg border-l-4 border-[#0b6fa4] bg-sky-50 p-4 text-sm leading-relaxed text-slate-700")}>
               <FlexibleHeading block={block} language={language} />
               {flexibleText(block.text || block.body, language)}
             </aside>
@@ -4379,7 +4438,11 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   );
   const peopleAnchor = `${page.slug}-people`;
   const contentAnchor = `${page.slug}-details`;
-  const structuredBlocks = flexibleItems(page.sections);
+  const pageBlocks = flexibleItems(page.blocks);
+  const structuredBlocks = [
+    ...flexibleItems(page.sections),
+    ...pageBlocks.filter((block) => !flexibleItems(block?.children).length),
+  ];
   const pageLinks = flexibleItems(page.links);
   const pageWithCmsRows = useMemo(() => ({
     ...page,
@@ -4443,6 +4506,7 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
             <OfficialHtmlContent
               html={pageWithCmsRows.html}
               pageTitle={page.title}
+              baseTitle={page.baseTitle}
               stripProfiles={profiles.length > 0}
             />
             {linkBlock.length > 0 && (
@@ -4562,6 +4626,10 @@ const appendManagedItemsToSection = (html, items, language) => {
 };
 
 const importedBlockSourceLabel = (block) => {
+  const ownLabel = [block?.heading, block?.value, block?.label]
+    .map((value) => String(value || "").replace(/^section\s*:\s*/i, "").trim())
+    .find((value) => value && value.length <= 80);
+  if (ownLabel) return ownLabel;
   const childLabel = (block?.children || []).find((child) => child?.label)?.label || "";
   return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "";
 };
@@ -4569,17 +4637,23 @@ const importedBlockSourceLabel = (block) => {
 const applyImportedNumberedItems = (html, children) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  const createItemFromChild = (child) => {
+    const value = String(child?.value || "").trim();
+    if (child?.hidden || !value) return null;
+    const item = parsed.createElement("li");
+    item.textContent = value;
+    item.dataset.cmsChildKey = child.key || "";
+    if (child.isNew || String(child.key || "").startsWith("cms-")) {
+      item.dataset.rsacAddedItem = "true";
+    }
+    return item;
+  };
   const buildListFromChildren = () => {
     const list = parsed.createElement("ol");
     list.classList.add("rsac-numbered-list");
     children.forEach((child) => {
-      const value = String(child.value || "").trim();
-      if (child.hidden || !value) return;
-      const item = parsed.createElement("li");
-      item.textContent = value;
-      item.dataset.cmsChildKey = child.key || "";
-      if (child.isNew || String(child.key || "").startsWith("cms-")) item.dataset.rsacAddedItem = "true";
-      list.appendChild(item);
+      const item = createItemFromChild(child);
+      if (item) list.appendChild(item);
     });
     return list.outerHTML;
   };
@@ -4598,18 +4672,18 @@ const applyImportedNumberedItems = (html, children) => {
     const isNew = child.isNew || String(child.key || "").startsWith("cms-");
     const value = String(child.value || "").trim();
     if (isNew) {
-      if (!child.hidden && value) {
-        const item = parsed.createElement("li");
-        item.textContent = value;
-        item.dataset.rsacAddedItem = "true";
-        item.dataset.cmsChildKey = child.key;
-        nextItems.push(item);
-      }
+      const item = createItemFromChild(child);
+      if (item) nextItems.push(item);
       return;
     }
 
     const original = target.items[sourceIndex++];
-    if (!original || child.hidden || !value) return;
+    if (child.hidden || !value) return;
+    if (!original) {
+      const item = createItemFromChild(child);
+      if (item) nextItems.push(item);
+      return;
+    }
     const item = original.cloneNode(true);
     if (compactText(item.textContent) !== compactText(value)) item.textContent = value;
     item.dataset.cmsChildKey = child.key || "";
@@ -4680,11 +4754,28 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
   return parsed.body.innerHTML;
 };
 
+const applyImportedBlockHeading = (html, block) => {
+  const value = String(block?.value || "").trim();
+  if (typeof DOMParser === "undefined" || !html || !value) return html || "";
+
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  const source = compactText(String(block.label || "").replace(/^section\s*:\s*/i, "")).toLowerCase();
+  const headings = Array.from(parsed.body.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+  const target = headings.find((heading) => compactText(heading.textContent).toLowerCase() === source)
+    || headings.find((heading) => {
+      const text = compactText(heading.textContent).toLowerCase();
+      return source && (text.startsWith(source) || source.startsWith(text));
+    });
+  if (target && compactText(target.textContent) !== compactText(value)) target.textContent = value;
+  return parsed.body.innerHTML;
+};
+
 const applyImportedPageBlocks = (html, blocks) => {
   const editableBlocks = flexibleItems(blocks).filter((block) => block?.children?.length && !block.hidden);
   if (!editableBlocks.length) return html || "";
   let nextHtml = html || "";
   editableBlocks.forEach((block) => {
+    nextHtml = applyImportedBlockHeading(nextHtml, block);
     nextHtml = applyImportedContentFields(nextHtml, block.children, { insertNew: false });
   });
   if (typeof DOMParser === "undefined") return nextHtml;
@@ -5302,6 +5393,11 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
       intro={isDivision ? undefined : localizeOfficialText(page.summary || page.preview, language)}
       largeEyebrow={false}
       density="compact"
+      headingSize={page.headingSize}
+      contentSize={page.contentSize}
+      contentWidth={page.contentWidth}
+      mediaSize={page.mediaSize}
+      contentSpacing={page.contentSpacing}
       actions={
         <BackButton
           fallback={`/${section.route}`}

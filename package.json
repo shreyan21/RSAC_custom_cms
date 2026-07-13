@@ -17,6 +17,7 @@
     "cms:sync-homepage": "node scripts/ensure-homepage-content.mjs",
     "cms:validate": "node scripts/custom-cms-check.mjs",
     "cms:audit": "node scripts/cms-content-audit.mjs",
+    "cms:repair-pages": "node scripts/repair-cms-page-parity.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

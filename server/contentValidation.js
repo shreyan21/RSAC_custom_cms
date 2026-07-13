@@ -78,7 +78,6 @@ export const validateEntryPayload = (collectionId, payload) => {
     }
   }
   const status = ["draft", "published", "archived"].includes(payload.status) ? payload.status : "draft";
-  if (definition.id === "page_display_settings" && !dataEn.title) dataEn.hideTitle = true;
   if (status === "published" && definition.requireHindiWhenPublished) {
     const missingHindi = definition.fields.find((field) => field.required && field.localized !== false && !dataHi[field.name]);
     if (missingHindi) throw Object.assign(new Error(`${missingHindi.label} is required in Hindi before publishing`), { status: 400 });

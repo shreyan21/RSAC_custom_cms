@@ -100,7 +100,11 @@ app.get("/api/content/:collection", async (req, res, next) => {
       "SELECT id, entry_key, sort_order, data_en, data_hi, version, updated_at FROM cms_entries WHERE collection=$1 AND status='published' ORDER BY sort_order, entry_key",
       [req.params.collection]
     );
-    const localized = rows.map((row) => ({ id: row.id, key: row.entry_key, ...localize(row, language) }));
+    const localized = rows.map((row) => ({
+      id: row.id,
+      key: row.entry_key,
+      ...localize({ ...row, collection: req.params.collection }, language),
+    }));
     res.set("Cache-Control", "no-cache, must-revalidate");
     res.json({ data: localized });
   } catch (error) { next(error); }

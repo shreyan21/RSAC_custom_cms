@@ -1,19 +1,65 @@
-import { useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, Copy, Plus, Search, Trash2, Undo2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, Copy, Plus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { blockTypes } from "../../shared/cmsCollections";
+import { api, mediaPreviewUrl } from "./api";
 
-const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [] });
+const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", mediaSize: "normal", spacing: "normal" });
 const itemFields = {
-  cards: [["title", "Card title"], ["text", "Description"], ["url", "Link URL"]],
+  cards: [["title", "Card title"], ["text", "Description"], ["image", "Image URL"], ["alt", "Image alt text"], ["url", "Link URL"]],
   stats: [["value", "Value"], ["label", "Label"]],
   links: [["title", "Link label"], ["url", "Link URL"]],
-  gallery: [["url", "Image URL"], ["alt", "Image alt text"]],
+  gallery: [["url", "Image URL"], ["alt", "Image alt text"], ["caption", "Caption"]],
 };
 
+const cleanSourceLabel = (value) => String(value || "").replace(/^Section:\s*/i, "").trim();
+
 const importedSourceLabel = (block) => {
+  const ownLabel = [block?.heading, block?.value, block?.label].map(cleanSourceLabel).find((label) => label && label.length <= 80);
+  if (ownLabel) return ownLabel;
   const childLabel = (block.children || []).find((child) => child?.label)?.label || "";
   return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block.heading || block.label || "Imported section";
 };
+
+const displayOptions = {
+  textSize: [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]],
+  mediaSize: [["compact", "Small"], ["normal", "Normal"], ["large", "Large"], ["full", "Full width"]],
+  spacing: [["compact", "Compact"], ["normal", "Normal"], ["relaxed", "Relaxed"]],
+};
+
+function BlockDisplayControls({ block, onChange }) {
+  const supportsColumns = ["cards", "gallery", "stats"].includes(block.type);
+  return (
+    <fieldset className="block-display-controls">
+      <legend>Section layout</legend>
+      <label>Text size<select value={block.textSize || "normal"} onChange={(event) => onChange({ textSize: event.target.value })}>{displayOptions.textSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label>Image size<select value={block.mediaSize || "normal"} onChange={(event) => onChange({ mediaSize: event.target.value })}>{displayOptions.mediaSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label>Spacing<select value={block.spacing || "normal"} onChange={(event) => onChange({ spacing: event.target.value })}>{displayOptions.spacing.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      {supportsColumns && <label>Columns<select value={String(block.columns || "")} onChange={(event) => onChange({ columns: event.target.value ? Number(event.target.value) : "" })}><option value="">Automatic</option>{[1, 2, 3, 4].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>}
+      <label>Frame<select value={block.variant || "framed"} onChange={(event) => onChange({ variant: event.target.value })}><option value="framed">Framed</option><option value="plain">Plain</option></select></label>
+    </fieldset>
+  );
+}
+
+function BlockMediaField({ label, value, onChange, onBusy, onError }) {
+  const fileRef = useRef(null);
+  const upload = async (file) => {
+    if (!file) return;
+    onBusy(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const result = await api("/api/admin/media", { method: "POST", body });
+      onChange(result.data.public_url);
+    } catch (error) {
+      onError(error.message);
+    } finally {
+      onBusy(false);
+    }
+  };
+  return (
+    <label>{label}<div className="block-media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" title={`Upload ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{value && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div></label>
+  );
+}
 
 function RichBlockEditor({ value, onChange }) {
   return (
@@ -119,7 +165,7 @@ function ImportedContentFields({ block, onChange }) {
   );
 }
 
-function StructuredItems({ block, onChange }) {
+function StructuredItems({ block, onChange, onBusy, onError }) {
   if (block.type === "list") {
     const items = Array.isArray(block.items) ? block.items : [];
     return <div className="structured-items"><strong>List items</strong><button type="button" className="add-item" onClick={() => onChange({ items: ["", ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item" key={`${index}-${String(item).slice(0, 20)}`}><span className="item-number">{index + 1}</span><textarea rows="2" aria-label={`List item ${index + 1}`} value={typeof item === "string" ? item : item.title || ""} onChange={(event) => onChange({ items: items.map((current, position) => position === index ? event.target.value : current) })} /><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
@@ -138,10 +184,10 @@ function StructuredItems({ block, onChange }) {
   if (!fields) return null;
   const items = Array.isArray(block.items) ? block.items : [];
   const updateItem = (index, name, value) => onChange({ items: items.map((item, position) => position === index ? { ...(typeof item === "object" ? item : {}), [name]: value } : item) });
-  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
+  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ["image", "url"].includes(name) && ((block.type === "cards" && name === "image") || block.type === "gallery") ? <BlockMediaField key={name} label={label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
-export default function BlockEditor({ value, onChange }) {
+export default function BlockEditor({ value, onChange, onBusy = () => {}, onError = () => {} }) {
   const blocks = Array.isArray(value) ? value : [];
   const [focusedIndex, setFocusedIndex] = useState(null);
   const update = (index, patch) => onChange(blocks.map((block, position) => position === index ? { ...block, ...patch } : block));
@@ -165,6 +211,7 @@ export default function BlockEditor({ value, onChange }) {
         const isOpen = focusedIndex === index;
         const sourceLabel = importedSourceLabel(block);
         const isPeopleReference = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(sourceLabel);
+        const isImported = Array.isArray(block.children) && block.children.length > 0;
         const importedCount = (block.children || []).filter((child) => !child.hidden).length;
         const itemCount = block.editorMode === "numbered_list" || importedCount ? importedCount : (block.items || []).length;
         return (
@@ -174,19 +221,20 @@ export default function BlockEditor({ value, onChange }) {
               <div className="icon-actions"><button type="button" title="Move up" onClick={() => move(index, -1)}><ArrowUp /></button><button type="button" title="Move down" onClick={() => move(index, 1)}><ArrowDown /></button><button type="button" title="Duplicate" onClick={() => onChange([...blocks.slice(0, index + 1), { ...structuredClone(block), id: crypto.randomUUID() }, ...blocks.slice(index + 1)])}><Copy /></button><button type="button" className="danger-icon" title="Remove block" onClick={() => { onChange(blocks.filter((_item, position) => position !== index)); setFocusedIndex(null); }}><Trash2 /></button></div>
             </div>
             {isOpen && <div className="block-row__body">
+              {!isImported && !isPeopleReference && <BlockDisplayControls block={block} onChange={(patch) => update(index, patch)} />}
               {isPeopleReference ? (
                 <div className="collection-reference"><strong>Use the dedicated people collection</strong><p>Open <b>Scientists / Officials / Staff</b> to add, edit, remove, reorder, or replace profile photographs. This prevents names, roles, and photos from becoming disconnected.</p></div>
               ) : block.editorMode === "numbered_list" ? (
                 <><div className="locked-section-name"><strong>Website section</strong><span>{sourceLabel}</span><small>Kept fixed so content cannot move into the wrong division tab.</small></div><ImportedNumberedItems block={block} onChange={(patch) => update(index, patch)} /></>
-              ) : importedCount ? (
+              ) : isImported ? (
                 <><div className="locked-section-name"><strong>Website section</strong><span>{sourceLabel}</span><small>Open one field, edit it, then save the page.</small></div><ImportedContentFields block={block} onChange={(patch) => update(index, patch)} /></>
               ) : (
                 <>
                   {block.type !== "divider" && <label>Section heading<input value={block.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>}
                   {["hero", "callout"].includes(block.type) && <label>Text<textarea rows="3" value={block.text || ""} onChange={(event) => update(index, { text: event.target.value })} /></label>}
                   {block.type === "rich_text" && <label>Formatted paragraph<RichBlockEditor value={block.html} onChange={(html) => update(index, { html })} /></label>}
-                  {["hero", "image"].includes(block.type) && <><label>Image URL<input value={block.image || ""} onChange={(event) => update(index, { image: event.target.value })} /></label><label>Image alt text<input value={block.alt || ""} onChange={(event) => update(index, { alt: event.target.value })} /></label></>}
-                  <StructuredItems block={block} onChange={(patch) => update(index, patch)} />
+                  {["hero", "image"].includes(block.type) && <><BlockMediaField label="Image" value={block.image} onChange={(image) => update(index, { image })} onBusy={onBusy} onError={onError} /><label>Image alt text<input value={block.alt || ""} onChange={(event) => update(index, { alt: event.target.value })} /></label>{block.type === "image" && <label>Image caption<input value={block.caption || ""} onChange={(event) => update(index, { caption: event.target.value })} /></label>}</>}
+                  <StructuredItems block={block} onChange={(patch) => update(index, patch)} onBusy={onBusy} onError={onError} />
                 </>
               )}
               <label className="inline-check"><input type="checkbox" checked={Boolean(block.hidden)} onChange={(event) => update(index, { hidden: event.target.checked })} /> Hide this block</label>

@@ -48,7 +48,7 @@ Open **About Pages**, **Division Content**, **Facilities**, **Training and Acade
 - **Notice / callout:** highlighted important information.
 - **Divider line:** visual separation. Remove the block to remove the line.
 
-Each block can be moved up/down, duplicated, hidden, or removed. Cards, lists, links, gallery items, statistics, and tables use separate fields with **Add item** or **Add table row** buttons. Always provide meaningful alt text for informative images. Do not put important text only inside an image.
+Each block can be moved up/down, duplicated, hidden, or removed. **Section layout** controls its text size, image size, spacing, frame, and columns where applicable. Cards, lists, links, gallery items, statistics, and tables use separate fields with **Add item** or **Add table row** buttons. Always provide meaningful alt text for informative images. Do not put important text only inside an image.
 
 ## What Each Collection Controls
 
@@ -78,7 +78,7 @@ Each block can be moved up/down, duplicated, hidden, or removed. Cards, lists, l
 | Header / Footer Menu | Main navigation and child links |
 | Contact | Address, phone, email and officers |
 | Homepage and Global Text | Homepage visibility/order, Hero, About, Services, Statistics, Location, optional sections, Gallery and Footer text |
-| Page Headings | Rename, resize, or hide the small heading, main heading, and introduction for any page path |
+| Page Headings | Rename, resize, or hide headings and adjust body text, image size, width, and spacing for any page path |
 | Design Settings | Change bundled English/Hindi font families and responsive base font size |
 | Hero Banners / Videos | Homepage hero media |
 | Header / Footer Logos | RSAC and government logos |
@@ -152,7 +152,7 @@ English and Hindi have separate tabs inside **Homepage and Global Text**. Sectio
 
 ### Remove a Heading
 
-For the Gallery heading, open **Site Settings**, then **Photo gallery**, and clear **Main heading**. For another route, open **Page Headings** and choose its path. Clearing **Main page heading** automatically hides it; **Hide main heading** also hides it explicitly.
+For the Gallery heading, open **Site Settings**, then **Photo gallery**, and clear **Main heading**. For another route, open **Page Headings** and choose its path. Use **Hide main heading** to hide it. A blank heading override keeps the page's existing heading, which allows layout-only settings without renaming the page.
 
 ### Add a Notice, Tender, Project, or Publication
 
@@ -202,6 +202,8 @@ Long sections use their own short scroll area and search box. For scientist name
 
 Use **Upload** in an image/media field. Use JPEG/WebP for photographs and PNG/SVG only where appropriate. Compress large images before upload. Add English and Hindi captions/alt text.
 
+Uploaded files are stored in `server/uploads` and must be backed up or deployed together with the PostgreSQL database whenever saved content contains a `/uploads/...` URL. Bundled website assets and external image URLs do not require this folder. The server creates the folder automatically when it is missing.
+
 Profile and CMS previews use one fixed frame, so portrait and landscape source photos remain visually consistent. For a face that needs repositioning, open **Scientists / Officials / Staff** and set **Photo position**, for example `center 22%`.
 
 ### Change Navigation
@@ -224,7 +226,7 @@ Open **Site Settings**. Normal editors see grouped text fields; technical JSON r
 
 ### Hide or Rename a Page Heading
 
-Open **Page Headings** and edit the row matching the page path, such as `/contact`. Check **Hide main heading** to remove only the large repeated heading. Keep the small flag heading visible, then choose Compact, Normal, or Large. Add a new row for another exact route; `/divisions/*` can control every division detail page.
+Open **Page Headings** and edit the row matching the page path, such as `/contact`. Check **Hide main heading** to remove only the large repeated heading. Keep the small flag heading visible, then choose Small, Normal, or Large. The same row can set body text size, content width, content image size, and spacing. Add a new row for another exact route; `/divisions/*` can control every division detail page.
 
 ### Change Website Fonts
 

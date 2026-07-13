@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
+import { repairCmsPageParity } from "./pageParityRepairs.js";
 
 const envPath = resolve(".env.local");
 loadEnv({ path: envPath, quiet: true });
@@ -78,6 +79,8 @@ if (existingCount === 0 || current.CMS_FORCE_SEED === "true") {
 } else {
   console.log(`Kept ${existingCount} existing CMS entries; seed skipped.`);
 }
+const repairedPages = await repairCmsPageParity(appDb);
+if (repairedPages) console.log(`Repaired ${repairedPages} imported CMS ${repairedPages === 1 ? "entry" : "entries"}.`);
 await appDb.end();
 
 const output = [
@@ -86,9 +89,13 @@ const output = [
   "VITE_CMS_ADMIN_URL=http://localhost:5174",
   "CMS_PORT=3000",
   "CMS_PUBLIC_URL=http://localhost:3000",
-  "CMS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174",
+  "CMS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174",
   "CMS_COOKIE_SECURE=false",
   "CMS_SESSION_HOURS=8",
+  `POSTGRES_HOST=${dbHost}`,
+  `POSTGRES_PORT=${dbPort}`,
+  `POSTGRES_ADMIN_USER=${current.POSTGRES_ADMIN_USER || "postgres"}`,
+  `POSTGRES_ADMIN_PASSWORD=${adminPassword}`,
   `CMS_DATABASE_NAME=${dbName}`,
   `CMS_DATABASE_USER=${dbUser}`,
   `CMS_DATABASE_URL=${databaseUrl}`,

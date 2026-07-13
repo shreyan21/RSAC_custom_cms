@@ -1,7 +1,24 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Images, Languages, Plus, Save, Search, Trash2, Undo2, UserRound } from "lucide-react";
+import FieldInput from "./FieldInput";
+
+const pageFields = [
+  { name: "title", label: "Main page heading", type: "text", localized: true, required: true },
+  { name: "eyebrow", label: "Small heading", type: "text", localized: true },
+  { name: "summary", label: "Page introduction", type: "textarea", localized: true },
+  { name: "featuredImage", label: "Featured image", type: "media", localized: false },
+  { name: "headingSize", label: "Page heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
+  { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
+  { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
+  { name: "mediaSize", label: "Content image size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }, { value: "full", label: "Full width" }] },
+  { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
+];
+
+const cleanSourceLabel = (value) => String(value || "").replace(/^Section:\s*/i, "").trim();
 
 const sourceLabel = (block) => {
+  const ownLabel = [block?.heading, block?.value, block?.label].map(cleanSourceLabel).find((label) => label && label.length <= 80);
+  if (ownLabel) return ownLabel;
   const childLabel = (block?.children || []).find((child) => child?.label)?.label || "";
   return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "Section";
 };
@@ -41,8 +58,9 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   const filteredPages = useMemo(() => pages.filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase())), [pages, search]);
   const englishBlocks = draft?.dataEn?.blocks || [];
   const currentData = language === "hi" ? draft?.dataHi : draft?.dataEn;
-  const englishBlock = englishBlocks[sectionIndex];
-  const currentBlockIndex = language === "hi" ? matchingBlockIndex(currentData, englishBlock, sectionIndex) : sectionIndex;
+  const blockSectionIndex = Number.isInteger(sectionIndex) ? sectionIndex : -1;
+  const englishBlock = englishBlocks[blockSectionIndex];
+  const currentBlockIndex = language === "hi" ? matchingBlockIndex(currentData, englishBlock, blockSectionIndex) : blockSectionIndex;
   const currentBlock = currentData?.blocks?.[currentBlockIndex];
   const label = sourceLabel(currentBlock || englishBlock);
   const rows = visibleRows(currentBlock);
@@ -115,6 +133,13 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     children: (block.children || []).map((child) => ({ ...child, hidden: false })),
   }));
 
+  const updatePageField = (field, value) => setDraft((current) => {
+    const target = field.localized === false || language === "en" ? "dataEn" : "dataHi";
+    return { ...current, [target]: { ...(current[target] || {}), [field.name]: value } };
+  });
+
+  const updateSectionHeading = (value) => updateLanguageBlocks((block) => ({ ...block, value }));
+
   const save = async () => {
     setBusy(true);
     try {
@@ -142,11 +167,27 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     return (
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose only the section you need. Other sections stay closed.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
-        <div className="workspace-card-grid workspace-section-grid">{englishBlocks.map((block, index) => {
+        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, image, text size, width, and spacing</span></button>{englishBlocks.map((block, index) => {
           const sectionLabel = sourceLabel(block);
           const count = visibleRows(block).length;
           return <button type="button" className="workspace-card" key={block.id || `${sectionLabel}-${index}`} onClick={() => { setSectionIndex(index); setRowSearch(""); }}><strong>{sectionLabel}</strong><span>{isPeopleSection(sectionLabel) ? "Open people controls" : isPhotoSection(sectionLabel) ? "Open photo section" : `${count} editable ${count === 1 ? "row" : "rows"}`}</span></button>;
         })}</div>
+      </section>
+    );
+  }
+
+  if (sectionIndex === "page-details") {
+    return (
+      <section className="division-workspace division-workspace-editor">
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit the visible heading, introduction, image, text size, width, and spacing.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
+        <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
+        <div className="editor-fields">
+          {pageFields.map((field) => {
+            const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
+            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><FieldInput field={field} value={target?.[field.name]} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+          })}
+        </div>
       </section>
     );
   }
@@ -166,6 +207,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label>{isPhotoSection(label) && <button className="secondary" onClick={onOpenGallery}><Images /> Open Gallery uploads</button>}</div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
+      {typeof currentBlock?.value === "string" && currentBlock.value.trim() && <label className="field-row"><span>Section heading</span><input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
       <div className="workspace-row-list">
         {filteredRows.map((child) => {
           const number = rows.findIndex((row) => row.key === child.key) + 1;

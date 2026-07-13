@@ -9,6 +9,13 @@ const headingClasses = {
   large: "mt-3 text-[2.25rem] md:text-[3rem]",
 };
 
+const contentWidthClasses = {
+  compact: "max-w-5xl",
+  normal: "max-w-7xl",
+  wide: "max-w-[96rem]",
+  full: "max-w-none",
+};
+
 const normalizeHeading = (value) => String(value || "")
   .toLowerCase()
   .replace(/rsac(?:\s*[-–—]\s*|\s*)up/g, "")
@@ -31,6 +38,11 @@ const PageShell = ({
   density = "standard",
   className = "",
   largeEyebrow = false,
+  headingSize: pageHeadingSize = "normal",
+  contentSize = "normal",
+  contentWidth = "normal",
+  mediaSize = "normal",
+  contentSpacing = "normal",
 }) => {
   const isCompact = density === "compact";
   const { pathname } = useLocation();
@@ -46,7 +58,11 @@ const PageShell = ({
   const resolvedTitle = display?.hideTitle || redundantTitle ? undefined : configuredTitle;
   const resolvedIntro = display?.hideIntro ? undefined : configuredIntro;
   const effectiveLargeEyebrow = largeEyebrow || (!resolvedTitle && Boolean(resolvedEyebrow));
-  const headingSize = display?.headingSize || "normal";
+  const headingSize = display?.headingSize || pageHeadingSize || "normal";
+  const resolvedContentSize = display?.contentSize || contentSize || "normal";
+  const resolvedContentWidth = display?.contentWidth || contentWidth || "normal";
+  const resolvedMediaSize = display?.mediaSize || mediaSize || "normal";
+  const resolvedContentSpacing = display?.contentSpacing || contentSpacing || "normal";
 
   return (
     <main
@@ -58,7 +74,7 @@ const PageShell = ({
           : "pt-36 sm:pt-40 lg:pt-40"
       } ${className}`}
     >
-      <section className="mx-auto max-w-7xl">
+      <section className={`mx-auto w-full ${contentWidthClasses[resolvedContentWidth] || contentWidthClasses.normal}`}>
         <PageTrail items={breadcrumbs} />
 
         <Reveal
@@ -128,7 +144,14 @@ const PageShell = ({
         </Reveal>
 
         <Reveal className={isCompact ? "mt-6" : "mt-8"} delay={0.08} amount={0.08} pop>
-          {children}
+          <div
+            className="rsac-page-content"
+            data-rsac-content-size={resolvedContentSize}
+            data-rsac-media-size={resolvedMediaSize}
+            data-rsac-content-spacing={resolvedContentSpacing}
+          >
+            {children}
+          </div>
         </Reveal>
       </section>
     </main>

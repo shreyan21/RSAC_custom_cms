@@ -44,7 +44,7 @@ const BackToTopButton = () => {
   return (
     <button
       type="button"
-      onClick={() => scrollToTop({ immediate: true })}
+      onClick={() => scrollToTop()}
       aria-label={ui?.backToTop || "Back to top"}
       title={ui?.backToTop || "Back to top"}
       className={`fixed bottom-5 right-5 z-[110] grid h-11 w-11 place-items-center rounded-xl border border-emerald-900/15 bg-white/94 text-[#0f6f42] shadow-[0_14px_36px_rgba(18,50,74,0.16)] backdrop-blur-md transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#0f6f42] ${

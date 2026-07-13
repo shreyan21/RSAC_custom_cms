@@ -15,8 +15,26 @@ const editorGuideAsset = {
   },
 }
 
+const reactRefreshPreamble = {
+  name: 'rsac-react-refresh-preamble',
+  apply: 'serve',
+  transformIndexHtml() {
+    return [{
+      tag: 'script',
+      attrs: { type: 'module' },
+      injectTo: 'head-prepend',
+      children: [
+        'import { injectIntoGlobalHook } from "/@react-refresh";',
+        'injectIntoGlobalHook(window);',
+        'window.$RefreshReg$ = () => {};',
+        'window.$RefreshSig$ = () => (type) => type;',
+      ].join('\n'),
+    }]
+  },
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), editorGuideAsset],
+  plugins: [reactRefreshPreamble, react(), tailwindcss(), editorGuideAsset],
   define: {
     __APP_BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     "import.meta.env.CMS_PROVIDER": JSON.stringify(process.env.CMS_PROVIDER || ""),

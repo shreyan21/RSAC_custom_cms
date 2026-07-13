@@ -31,8 +31,8 @@ try {
   rejectedMissingHindi = /required in Hindi/.test(error.message);
 }
 if (!rejectedMissingHindi) throw new Error("Published division items allowed a missing Hindi title.");
-const blankHeading = validateEntryPayload("page_display_settings", { status: "published", dataEn: { path: "/verify-blank-heading", title: "", hideTitle: false }, dataHi: {} });
-if (!blankHeading.dataEn.hideTitle) throw new Error("Blank CMS page heading did not become hidden.");
+const layoutOnlyHeading = validateEntryPayload("page_display_settings", { status: "published", dataEn: { path: "/verify-layout-only", title: "", hideTitle: false, contentWidth: "wide" }, dataHi: {} });
+if (layoutOnlyHeading.dataEn.hideTitle || layoutOnlyHeading.dataEn.contentWidth !== "wide") throw new Error("Layout-only page settings changed heading visibility.");
 const validatedDivisionItem = validateEntryPayload("division_section_items", divisionItemPayload);
 if (validatedDivisionItem.dataEn.divisionSlug !== "training-division" || validatedDivisionItem.dataHi.title !== divisionItemPayload.dataHi.title) {
   throw new Error("Structured division item validation changed bilingual or shared fields.");
@@ -114,6 +114,13 @@ try {
   facilityEnglishBlock.children[0].value = `${facilityEnglishBlock.children[0].value} [ROW VERIFY]`;
   const facilityHindiRow = facilityHindiBlock.children.find((child) => child.key === facilityRowKey);
   facilityHindiRow.value = `${facilityHindiRow.value} पंक्ति-परीक्षण`;
+  facilityDraft.dataEn.headingSize = "large";
+  facilityDraft.dataEn.contentSize = "large";
+  facilityDraft.dataEn.contentWidth = "wide";
+  facilityDraft.dataEn.mediaSize = "compact";
+  facilityDraft.dataEn.contentSpacing = "relaxed";
+  facilityDraft.dataEn.blocks.push({ id: "cms-smoke-flexible-block", type: "rich_text", heading: "Flexible block verification", html: "<p>Flexible English block</p>", textSize: "large", mediaSize: "compact", spacing: "relaxed", variant: "plain" });
+  facilityDraft.dataHi.blocks.push({ id: "cms-smoke-flexible-block", type: "rich_text", heading: "\u0932\u091a\u0940\u0932\u093e \u092c\u094d\u0932\u0949\u0915 \u0938\u0924\u094d\u092f\u093e\u092a\u0928", html: "<p>\u0932\u091a\u0940\u0932\u093e \u0939\u093f\u0928\u094d\u0926\u0940 \u092c\u094d\u0932\u0949\u0915</p>", textSize: "large", mediaSize: "compact", spacing: "relaxed", variant: "plain" });
   facilityUpdated = (await request(`/api/admin/content/pages/${facilityDraft.id}`, { method: "PUT", body: JSON.stringify(facilityDraft) })).payload.data;
   const facilityEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections.find((section) => section.key === "facilities")?.pages;
   const facilityHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections.find((section) => section.key === "facilities")?.pages;
@@ -124,6 +131,14 @@ try {
   const facilityHindiSaved = facilityHindi.find((item) => item.slug === facilityDraft.dataEn.slug);
   if (!facilityEnglishSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("[ROW VERIFY]"))) || !facilityHindiSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("पंक्ति-परीक्षण")))) {
     throw new Error("Focused facility section row did not persist separately in English and Hindi.");
+  }
+  if (facilityEnglishSaved.contentWidth !== "wide" || facilityHindiSaved.contentWidth !== "wide" || facilityEnglishSaved.contentSize !== "large" || facilityHindiSaved.mediaSize !== "compact") {
+    throw new Error(`Shared page sizing controls did not reach both website languages: ${JSON.stringify({ en: { contentWidth: facilityEnglishSaved.contentWidth, contentSize: facilityEnglishSaved.contentSize, mediaSize: facilityEnglishSaved.mediaSize }, hi: { contentWidth: facilityHindiSaved.contentWidth, contentSize: facilityHindiSaved.contentSize, mediaSize: facilityHindiSaved.mediaSize } })}`);
+  }
+  const flexibleEnglish = facilityEnglishSaved.blocks.find((block) => block.id === "cms-smoke-flexible-block");
+  const flexibleHindi = facilityHindiSaved.blocks.find((block) => block.id === "cms-smoke-flexible-block");
+  if (flexibleEnglish?.textSize !== "large" || !flexibleEnglish?.html?.includes("Flexible English block") || flexibleHindi?.spacing !== "relaxed" || !flexibleHindi?.html?.includes("\u0932\u091a\u0940\u0932\u093e")) {
+    throw new Error("Flexible page block content or display controls did not persist bilingually.");
   }
   divisionPageOriginal = structuredClone(pages.find((item) => item.entryKey === "computer-image-processing-division"));
   const divisionDraft = structuredClone(divisionPageOriginal);
@@ -191,6 +206,23 @@ const hindiTraining = hindiBootstrap.rsacOfficialSections
 if (!hindiTraining?.structureHtml?.includes("List of Research Papers")) {
   throw new Error("Live Hindi Training Division lacks structural tab parity.");
 }
+const hindiHostel = hindiBootstrap.rsacOfficialSections
+  .find((section) => section.key === "facilities")?.pages
+  .find((page) => page.slug === "training-hostels");
+if ((hindiHostel?.html?.match(/<img\b/gi) || []).length !== 5) {
+  throw new Error("Hindi Training Hostels does not share all five English photographs.");
+}
+const forestRemovedKeys = new Set(["text-0067", "text-0068", "text-0069", "text-0070", "text-0071", "text-0072"]);
+for (const bootstrap of [englishBootstrap, hindiBootstrap]) {
+  const forest = bootstrap.rsacOfficialSections
+    .find((section) => section.key === "divisions")?.pages
+    .find((page) => page.slug === "forest-resources-ecology-division");
+  const removed = (forest?.blocks || []).flatMap((block) => block.children || [])
+    .filter((child) => forestRemovedKeys.has(child.key) && child.hidden);
+  if (removed.length !== forestRemovedKeys.size) {
+    throw new Error("Forest Completed Projects still contains cross-division rows.");
+  }
+}
 const findCipdmPage = (bootstrap) => bootstrap.rsacOfficialSections
   .flatMap((section) => section.pages || [])
   .find((page) => page.slug === "computer-image-processing-division");
@@ -211,4 +243,4 @@ const contactDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((
 if (!contactDisplay?.hideTitle || !englishBootstrap.siteSettings.designSettings?.bodyFont) {
   throw new Error("Live page-heading or typography controls are missing.");
 }
-console.log("CMS bilingual save, focused division/facility sections, facilities, instant versioning, blank headings, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");
+console.log("CMS bilingual save, page layout and flexible blocks, focused division/facility sections, instant versioning, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");

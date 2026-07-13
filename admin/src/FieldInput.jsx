@@ -324,7 +324,7 @@ export default function FieldInput({ field, value, onChange, onBusy, onError }) 
     } catch (error) { onError(error.message); }
     finally { onBusy(false); }
   };
-  if (field.type === "blocks") return <BlockEditor value={value} onChange={onChange} />;
+  if (field.type === "blocks") return <BlockEditor value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;
   if (field.type === "select") return <select value={value || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;

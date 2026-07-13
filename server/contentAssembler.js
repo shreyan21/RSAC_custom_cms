@@ -1,12 +1,48 @@
 import { pool } from "./db.js";
 import { getCollection } from "../shared/cmsCollections.js";
 
+const imageTags = (html) => String(html || "").match(/<img\b[^>]*\bsrc\s*=\s*["'][^"']+["'][^>]*>/gi) || [];
+
+const imageSource = (tag) => tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)?.[1] || "";
+
+const escapeAttribute = (value) => String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/"/g, "&quot;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;");
+
+const localizeImageTag = (tag, title) => {
+  const withoutLabels = tag.replace(/\s+(?:alt|title)\s*=\s*(?:"[^"]*"|'[^']*')/gi, "");
+  return withoutLabels.replace(/<img\b/i, `<img alt="${escapeAttribute(title)}"`);
+};
+
+export const backfillSharedPageImages = (localizedHtml, englishHtml, title) => {
+  const englishImages = imageTags(englishHtml);
+  if (!englishImages.length) return localizedHtml || "";
+
+  const localizedImages = imageTags(localizedHtml);
+  const localizedSources = new Set(localizedImages.map(imageSource));
+  const missingImages = englishImages.filter((tag) => !localizedSources.has(imageSource(tag)));
+  if (!missingImages.length) return localizedHtml || "";
+
+  const sharedMedia = missingImages.map((tag) => localizeImageTag(tag, title)).join("");
+  return `${localizedHtml || ""}<div data-rsac-shared-media="true">${sharedMedia}</div>`;
+};
+
 export const localize = (entry, language) => {
   if (language !== "hi") return entry.data_en;
   const localized = { ...(entry.data_hi || {}) };
   const definition = getCollection(entry.collection);
   for (const field of definition?.fields || []) {
     if (field.localized === false) localized[field.name] = entry.data_en?.[field.name];
+  }
+  if (entry.collection === "pages") {
+    localized.baseTitle = entry.data_en?.title || "";
+    localized.html = backfillSharedPageImages(
+      localized.html,
+      entry.data_en?.html,
+      localized.title || entry.data_en?.title
+    );
   }
   return localized;
 };
