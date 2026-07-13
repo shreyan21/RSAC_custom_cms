@@ -131,7 +131,7 @@ const settingsGroups = [
     fields: [
       ["pageContent.gallery.eyebrow", "Small heading"],
       ["pageContent.gallery.title", "Main heading"],
-      ["pageContent.gallery.intro", "Introduction", "textarea"],
+      ["pageContent.gallery.intro", "Gallery page subheading (clear or hide in Page Headings)", "textarea"],
       ["pageContent.gallery.actionLabel", "View-all button label"],
       ["pageContent.gallery.emptyText", "Empty gallery message", "textarea"],
       ["pageContent.gallery.imageAlt", "Default image alt text"],

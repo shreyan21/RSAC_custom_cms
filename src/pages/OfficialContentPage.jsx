@@ -5094,13 +5094,8 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
             id={`${page.slug}-${activeSection.key}-panel`}
             role="tabpanel"
             aria-labelledby={`${page.slug}-${activeSection.key}-tab`}
-            className="rsac-lively-panel scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
+            className="scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
           >
-            <div
-              className="h-1 bg-[linear-gradient(90deg,#ff9933_0%,#ffffff_48%,#138808_100%)]"
-              aria-hidden="true"
-            />
-
             <div className="p-4 sm:p-5 lg:p-6">
               <h2 className="mb-4 text-xl font-extrabold leading-snug text-[#102f46]">
                 {t(activeSection.label)}

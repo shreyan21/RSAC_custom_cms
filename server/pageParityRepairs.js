@@ -23,6 +23,34 @@ export const repairCmsPageParity = async (db) => {
   );
   let repaired = 0;
 
+  const galleryDisplaySettings = await db.query(
+    `INSERT INTO cms_entries (collection, entry_key, status, sort_order, data_en, data_hi)
+     VALUES ('page_display_settings', 'photo-gallery', 'published', 2, $1, $2)
+     ON CONFLICT (collection, entry_key) DO NOTHING`,
+    [
+      {
+        path: "/gallery",
+        eyebrow: "Photo Gallery",
+        title: "Photo Gallery",
+        intro: "",
+        hideEyebrow: false,
+        hideTitle: false,
+        hideIntro: true,
+        headingSize: "normal",
+        contentSize: "normal",
+        contentWidth: "normal",
+        mediaSize: "normal",
+        contentSpacing: "normal",
+      },
+      {
+        eyebrow: "फोटो गैलरी",
+        title: "फोटो गैलरी",
+        intro: "",
+      },
+    ]
+  );
+  repaired += galleryDisplaySettings.rowCount;
+
   for (const row of rows) {
     const repair = pageRepairs.get(row.entry_key);
     const dataEn = structuredClone(row.data_en || {});

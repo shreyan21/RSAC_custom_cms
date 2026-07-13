@@ -146,7 +146,7 @@ export const collections = [
   {
     id: "gallery",
     label: "Gallery",
-    description: "Public photographs, captions and accessible alt text.",
+    description: "Public photographs, captions and accessible alt text. Edit the gallery page title and subheading in Page Headings and Subheadings.",
     fields: [text("title", "Caption", { required: true }), text("altText", "Alt text", { required: true }), { name: "image", label: "Image", type: "media", localized: false }],
   },
   {
@@ -224,16 +224,16 @@ export const collections = [
   },
   {
     id: "page_display_settings",
-    label: "Page Headings",
-    description: "Rename, resize, hide, or adjust the content layout for any website route.",
+    label: "Page Headings and Subheadings",
+    description: "Rename, resize, hide, or adjust the heading, subheading and content layout for any website route.",
     fields: [
       plain("path", "Page path", { required: true }),
       text("eyebrow", "Small heading / flag text"),
       text("title", "Main page heading override (blank keeps current heading)"),
-      textarea("intro", "Page introduction"),
+      textarea("intro", "Subheading / page introduction"),
       { name: "hideEyebrow", label: "Hide small heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "hideTitle", label: "Hide main heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
-      { name: "hideIntro", label: "Hide introduction", type: "boolean", localized: false, booleanLabel: "Hidden" },
+      { name: "hideIntro", label: "Hide subheading / introduction", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "headingSize", label: "Heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
       { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
       { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },

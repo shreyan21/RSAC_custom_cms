@@ -59,9 +59,9 @@ const GalleryPage = () => {
                 <button
                   type="button"
                   onClick={() => setActiveIndex(i)}
-                  className="group block w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_52px_rgba(18,50,74,0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b6fa4]"
+                  className="rsac-gallery-frame group block w-full bg-white text-left transition duration-300 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b6fa4]"
                 >
-                  <span className="block aspect-[4/3] overflow-hidden bg-slate-100">
+                  <span className="rsac-gallery-frame__media block aspect-[4/3] overflow-hidden bg-slate-100">
                     <img
                       src={image.src}
                       alt={image.alt || caption || g.imageAlt}
@@ -70,7 +70,7 @@ const GalleryPage = () => {
                     />
                   </span>
                   {caption && (
-                    <span className="block px-4 py-3 text-left text-sm font-semibold leading-relaxed text-[#102f46]">
+                    <span className="rsac-gallery-frame__caption block px-2 pb-1 pt-3 text-sm font-semibold leading-relaxed text-[#102f46]">
                       {caption}
                     </span>
                   )}

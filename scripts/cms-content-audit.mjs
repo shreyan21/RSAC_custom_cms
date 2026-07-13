@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
 import { collections } from "../shared/cmsCollections.js";
+import { findOfficialMediaUrls } from "../src/data/officialMedia.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 const client = new pg.Client({ connectionString: process.env.CMS_DATABASE_URL });
@@ -19,6 +20,7 @@ const missingPageBodies = [];
 const englishLanguageLeaks = [];
 const identicalLocalizedFields = [];
 const mediaPaths = new Set();
+const externalMediaUrls = [];
 
 const collectStrings = (value, path = "", output = []) => {
   if (typeof value === "string") output.push([path, value]);
@@ -45,8 +47,13 @@ for (const row of rows) {
       englishLanguageLeaks.push(`${row.collection}/${row.entry_key}:${field.name}`);
     }
   }
-  for (const [, value] of [...collectStrings(row.data_en), ...collectStrings(row.data_hi)]) {
-    for (const match of value.matchAll(/\/cms-media\/[A-Za-z0-9_./-]+/g)) mediaPaths.add(match[0]);
+  for (const [path, value] of [...collectStrings(row.data_en, "en"), ...collectStrings(row.data_hi, "hi")]) {
+    for (const match of value.matchAll(/\/(?:cms-media|official-media|documents)\/[^\s"'<>\\)]+/g)) {
+      mediaPaths.add(match[0].replace(/[.,;:]+$/u, "").split(/[?#]/u)[0]);
+    }
+    for (const url of findOfficialMediaUrls(value)) {
+      externalMediaUrls.push(`${row.collection}/${row.entry_key}.${path}: ${url}`);
+    }
   }
 }
 
@@ -66,7 +73,8 @@ const report = {
   missingPageBodies,
   englishLanguageLeaks,
   identicalLocalizedFields,
+  externalMediaUrls,
   missingMedia,
 };
 console.log(JSON.stringify(report, null, 2));
-if (missingRequiredHindi.length || missingPageBodies.length || englishLanguageLeaks.length || missingMedia.length) process.exitCode = 1;
+if (missingRequiredHindi.length || missingPageBodies.length || englishLanguageLeaks.length || externalMediaUrls.length || missingMedia.length) process.exitCode = 1;
