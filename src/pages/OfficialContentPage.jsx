@@ -497,6 +497,8 @@ const divisionCategoryDefinitions = [
       "brief details of ongoing projects",
       "चालू परियोजनाएं",
       "चालू परियोजनाएँ",
+      "चल रही परियोजना",
+      "चल रही परियोजनाएँ",
     ],
   },
   {
@@ -509,6 +511,8 @@ const divisionCategoryDefinitions = [
       "completed/involved projects",
       "पूर्ण परियोजनाएं",
       "पूर्ण परियोजनाएँ",
+      "पूर्ण/संलग्न परियोजनाएँ",
+      "पूर्ण/संलग्न परियोजनाएं",
     ],
   },
   {
@@ -555,6 +559,7 @@ const divisionCategoryDefinitions = [
       "research paper/articles",
       "research paper articals",
       "research paper/articals",
+      "शोध पत्र",
       "शोध पत्र / लेख",
       "शोध पत्र/लेख",
       "शोध पत्र / आलेख",
@@ -960,13 +965,71 @@ const scientistProfilesMatch = (leftProfile, rightProfile) => {
   );
 };
 
+const isPlaceholderProfileImage = (value) =>
+  /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(
+    String(value || "").split(/[?#]/)[0]
+  );
+
+const getProfileIdentityKeys = (profile) => {
+  const keys = new Set();
+  const employeeId = getProfileEmployeeId(profile);
+  const email = compactText(profile.email || profile.acf?.email).toLowerCase();
+
+  if (employeeId && employeeId !== "notlisted") {
+    keys.add(`employee:${employeeId}`);
+  }
+  if (email) {
+    keys.add(`email:${email}`);
+  }
+
+  for (const name of [getProfileName(profile), compactText(profile.baseName)]) {
+    if (!name || name === "Profile") continue;
+    const normalized = normalizeEquivalentHonorifics(name);
+    if (normalized) keys.add(`name:${normalized}`);
+    const translated = normalizeEquivalentHonorifics(hiTranslations[name]);
+    if (translated) keys.add(`name:${translated}`);
+  }
+
+  const image = getProfileImage(profile);
+  if (image && !isPlaceholderProfileImage(image)) {
+    keys.add(`photo:${image.split(/[?#]/)[0].toLowerCase()}`);
+  }
+
+  return keys;
+};
+
+const profileKeysOverlap = (leftKeys, rightKeys) => {
+  for (const key of leftKeys) {
+    if (rightKeys.has(key)) return true;
+  }
+  return false;
+};
+
+const dedupeProfileCards = (profiles, seenKeys = new Set()) =>
+  (profiles || []).filter((profile) => {
+    const keys = getProfileIdentityKeys(profile);
+    if (profileKeysOverlap(keys, seenKeys)) return false;
+    keys.forEach((key) => seenKeys.add(key));
+    return true;
+  });
+
+const filterHiddenPageProfiles = (page, profiles) => {
+  const hiddenKeys = new Set();
+  for (const name of page.hiddenProfileNames || []) {
+    getProfileIdentityKeys({ name }).forEach((key) => hiddenKeys.add(key));
+  }
+  return profiles.filter(
+    (profile) => !profileKeysOverlap(getProfileIdentityKeys(profile), hiddenKeys)
+  );
+};
+
 const getPageProfiles = (page, scientistProfiles) => {
-  const profiles = Array.isArray(page.profiles)
+  const profiles = filterHiddenPageProfiles(page, Array.isArray(page.profiles)
     ? page.profiles
-    : extractProfileCards(page.html);
+    : extractProfileCards(page.html));
 
   if (page.slug !== "scientific-manpower") {
-    return profiles;
+    return dedupeProfileCards(profiles);
   }
 
   const activeNames = getActiveScientistNames(scientistProfiles);
@@ -998,7 +1061,7 @@ const getPageProfiles = (page, scientistProfiles) => {
     }
   }
 
-  return orderedProfiles;
+  return dedupeProfileCards(orderedProfiles);
 };
 
 // Language-independent identity keys for a former-scientist profile. The
@@ -1196,6 +1259,14 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
   });
 
   return mergedProfiles;
+};
+
+const dedupeFormerSections = (sections) => {
+  const seenKeys = new Set();
+  return sections.map((section) => ({
+    ...section,
+    profiles: dedupeProfileCards(section.profiles, seenKeys),
+  }));
 };
 
 const looksLikePersonName = (value) =>
@@ -4199,6 +4270,44 @@ const buildDivisionSectionsFromHtml = (page) => {
   return normalizeDivisionSections(page, sections);
 };
 
+const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
+  if (typeof DOMParser === "undefined" || !structuralHtml) {
+    return localizedHtml || structuralHtml || "";
+  }
+
+  const localizedDocument = new DOMParser().parseFromString(localizedHtml || "", "text/html");
+  const structuralDocument = new DOMParser().parseFromString(structuralHtml, "text/html");
+  const mediaIdentity = (element) => {
+    const sources = [
+      element.getAttribute?.("src"),
+      ...Array.from(element.querySelectorAll?.("source[src]") || []).map((source) => source.getAttribute("src")),
+    ].filter(Boolean);
+    return sources.join("|");
+  };
+  const localizedSources = new Set(
+    Array.from(localizedDocument.body.querySelectorAll("img[src], video, audio, iframe[src]"))
+      .map(mediaIdentity)
+      .filter(Boolean)
+  );
+  const missing = Array.from(
+    structuralDocument.body.querySelectorAll("img[src], video, audio, iframe[src]")
+  ).filter((element) => {
+    const identity = mediaIdentity(element);
+    return identity && !localizedSources.has(identity);
+  });
+
+  if (!missing.length) return localizedHtml || structuralHtml;
+
+  const sharedMedia = localizedDocument.createElement("div");
+  sharedMedia.setAttribute("data-rsac-shared-media", "true");
+  missing.forEach((element) => {
+    const figure = element.closest("figure");
+    sharedMedia.append((figure || element).cloneNode(true));
+  });
+  localizedDocument.body.append(sharedMedia);
+  return localizedDocument.body.innerHTML;
+};
+
 const buildDivisionSections = (page) => {
   const localizedSections = buildDivisionSectionsFromHtml(page);
 
@@ -4213,18 +4322,27 @@ const buildDivisionSections = (page) => {
   const localizedByKey = new Map(
     localizedSections.map((section) => [section.key, section])
   );
+  const usedLocalizedKeys = new Set();
+  const researchKeys = new Set(["research-paper-published", "research-papers"]);
 
   return structuralSections.map((section) => {
-    const localized = localizedByKey.get(section.key);
+    let localized = localizedByKey.get(section.key);
+    if (!localized && researchKeys.has(section.key)) {
+      localized = localizedSections.find(
+        (candidate) => researchKeys.has(candidate.key) && !usedLocalizedKeys.has(candidate.key)
+      );
+    }
 
     if (!localized) {
       return section;
     }
+    usedLocalizedKeys.add(localized.key);
 
     return {
       ...section,
       ...localized,
       key: section.key,
+      html: mergeMissingSectionMedia(localized.html, section.html),
       structureHtml: section.html,
     };
   });
@@ -5052,14 +5170,14 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
     <div
       className={
         sections.length > 1
-          ? "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]"
-          : "min-w-0 space-y-5"
+          ? "rsac-detail-layout grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]"
+          : "rsac-detail-layout min-w-0 space-y-5"
       }
     >
       {sections.length > 1 && (
         <nav
           aria-label={`${page.title} sections`}
-          className="h-fit min-w-0 max-w-full rounded-lg border border-slate-200 bg-white p-2 shadow-[0_14px_38px_rgba(18,50,74,0.055)] lg:sticky lg:top-36"
+          className="rsac-section-tabs h-fit min-w-0 max-w-full rounded-lg border border-slate-200 bg-white p-2 shadow-[0_14px_38px_rgba(18,50,74,0.055)] lg:sticky lg:top-36"
         >
           <div
             className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0"
@@ -5094,7 +5212,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
             id={`${page.slug}-${activeSection.key}-panel`}
             role="tabpanel"
             aria-labelledby={`${page.slug}-${activeSection.key}-tab`}
-            className="scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
+            className="rsac-detail-panel scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(18,50,74,0.055)]"
           >
             <div className="p-4 sm:p-5 lg:p-6">
               <h2 className="mb-4 text-xl font-extrabold leading-snug text-[#102f46]">
@@ -5272,7 +5390,11 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 to={getPagePath(section, page)}
                 style={getOfficialCardStyle(theme)}
                 className={`official-index-card rsac-effect-card group relative flex h-full touch-manipulation cursor-pointer flex-col overflow-hidden rounded-lg border border-slate-200 bg-[#fbfdfc] text-left no-underline shadow-[0_14px_38px_rgba(18,50,74,0.07)] transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0f6f42] ${
-                  section.key === "divisions" ? "official-index-card--division" : "p-4"
+                  section.key === "facilities"
+                      ? "official-index-card--facility official-index-card--warm p-4"
+                      : section.key === "divisions"
+                        ? "official-index-card--warm p-4"
+                        : "p-4"
                 }`}
                 aria-label={`${t("Open")} ${localizeOfficialText(page.title, language)}`}
               >
@@ -5280,7 +5402,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 <div
                   className="official-index-card__visual"
                   data-card-theme={getOfficialCardThemeKey(theme)}
-                  aria-hidden={section.key === "divisions" ? undefined : true}
+                  aria-hidden="true"
                 >
                   {page.featuredImage && (
                     <img
@@ -5295,24 +5417,9 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                   <span className="official-index-card__watermark" aria-hidden="true">
                     <CardIcon />
                   </span>
-                  {section.key !== "divisions" && (
-                    <span className="official-index-card__icon">
-                      <CardIcon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  )}
-                  {section.key === "divisions" && (
-                    <div className="official-index-card__visual-title">
-                      <span
-                        className="official-index-card__visual-title-icon"
-                        aria-hidden="true"
-                      >
-                        <CardIcon />
-                      </span>
-                      <h2 className="official-index-card__visual-title-text">
-                        {localizeOfficialText(page.title, language)}
-                      </h2>
-                    </div>
-                  )}
+                  <span className="official-index-card__icon">
+                    <CardIcon className="h-5 w-5" aria-hidden="true" />
+                  </span>
                   <div className="official-index-card__leaf-particles" aria-hidden="true">
                     <span className="absolute top-1 right-1 h-1 w-1" style={{ background: theme.accent }} />
                     <span className="absolute top-2 left-1 h-1.5 w-1.5" style={{ background: theme.accent2 }} />
@@ -5322,11 +5429,9 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 </div>
 
                 <div className="official-index-card__body">
-                  {section.key !== "divisions" && (
-                    <h2 className="official-index-card__title mt-4 text-xl font-extrabold leading-snug text-[#102f46]">
-                      {localizeOfficialText(page.title, language)}
-                    </h2>
-                  )}
+                  <h2 className="official-index-card__title mt-4 text-xl font-extrabold leading-snug text-[#102f46]">
+                    {localizeOfficialText(page.title, language)}
+                  </h2>
 
                   <p className="official-index-card__summary mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
                     {localizeOfficialText(page.summary || page.preview, language)}
@@ -5368,7 +5473,7 @@ export const OurFormersPage = () => {
     return <Navigate to="/sitemap" replace />;
   }
 
-  const sections = formerSectionDefinitions
+  const sections = dedupeFormerSections(formerSectionDefinitions
     .map((definition) => {
       const page = section.pages.find((item) => item.slug === definition.slug);
       const configuredSection = configuredSections.get(definition.slug);
@@ -5390,7 +5495,7 @@ export const OurFormersPage = () => {
             : getPageProfiles(page, scientistProfiles),
       };
     })
-    .filter(Boolean);
+    .filter(Boolean));
 
   return (
     <PageShell
@@ -5538,8 +5643,8 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
         <article
           className={
             usesCategorizedContent
-              ? "relative min-w-0"
-              : "relative overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-[0_16px_48px_rgba(18,50,74,0.07)] sm:p-5 lg:p-6"
+              ? "rsac-content-frame relative min-w-0"
+              : "rsac-content-frame relative overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-[0_16px_48px_rgba(18,50,74,0.07)] sm:p-5 lg:p-6"
           }
         >
           {!usesCategorizedContent && (
@@ -5574,7 +5679,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
 
         {!usesCategorizedContent && (
           <aside
-            className={`h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-[0_14px_38px_rgba(18,50,74,0.055)] xl:sticky xl:top-36 ${
+            className={`rsac-section-menu h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-[0_14px_38px_rgba(18,50,74,0.055)] xl:sticky xl:top-36 ${
               section.key === "facilities" ? "order-first xl:order-none" : ""
             }`}
           >

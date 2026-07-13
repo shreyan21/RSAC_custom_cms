@@ -20,6 +20,7 @@
     "cms:repair-pages": "node scripts/repair-cms-page-parity.mjs",
     "cms:normalize-publications": "node scripts/normalize-numbered-publications.mjs",
     "cms:localize-media": "node scripts/localize-cms-media.mjs --apply",
+    "cms:sync-hindi": "node scripts/sync-approved-hindi-content.mjs --apply",
     "cms:ensure-text-fields": "node scripts/ensure-page-text-fields.mjs",
     "cms:text-coverage": "node scripts/cms-text-coverage.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",

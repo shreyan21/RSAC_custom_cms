@@ -138,7 +138,7 @@ const Navbar = () => {
       <header
         className={`rsac-navbar fixed top-10 left-0 z-[120] w-full transition-[background-color,border-color,box-shadow] duration-200 ${headerTone}`}
       >
-        <div className="flex items-start justify-between gap-4 px-4 py-3 sm:px-6 md:px-12 lg:px-20">
+        <div className="rsac-navbar__inner flex items-start justify-between gap-4 px-4 py-3 sm:px-6 md:px-12 lg:px-20">
           {/* LOGO AREA */}
           <HeaderLogoLink
             logo={primaryLogo}

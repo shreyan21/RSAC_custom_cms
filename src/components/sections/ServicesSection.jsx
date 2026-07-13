@@ -96,7 +96,7 @@ const ServicesSection = () => {
     <section
       id="services"
       aria-labelledby="services-title"
-      className="relative overflow-hidden bg-gradient-to-b from-[#fdf6ee] via-[#f7fbf8] to-[#eef6fb] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
+      className="rsac-home-section relative overflow-hidden bg-gradient-to-b from-[#fdf6ee] via-[#f7fbf8] to-[#eef6fb] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
     >
       <div
         aria-hidden="true"

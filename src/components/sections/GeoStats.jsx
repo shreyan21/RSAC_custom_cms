@@ -23,7 +23,7 @@ const GeoStats = () => {
       aria-label={
         impactStatsSection.title ? undefined : "Institution statistics"
       }
-      className="geo-dark-band relative overflow-hidden border-y border-white/10 px-5 py-24 sm:px-8 sm:py-28 md:px-12 lg:px-20"
+      className="rsac-home-section rsac-impact-stats geo-dark-band relative overflow-hidden border-y border-white/10 px-5 py-24 sm:px-8 sm:py-28 md:px-12 lg:px-20"
     >
       <div
         aria-hidden="true"

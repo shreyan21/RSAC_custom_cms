@@ -38,7 +38,7 @@ const AboutSection = () => {
   return (
     <section
       id="about-rsac"
-      className="relative overflow-hidden bg-gradient-to-b from-[#f0f9f4] via-[#f6fbf8] to-[#edf5fc] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
+      className="rsac-home-section relative overflow-hidden bg-gradient-to-b from-[#f0f9f4] via-[#f6fbf8] to-[#edf5fc] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
     >
       <div
         aria-hidden="true"

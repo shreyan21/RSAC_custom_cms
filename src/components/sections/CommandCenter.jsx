@@ -31,7 +31,7 @@ const CommandCenter = () => {
   const [noticesPaused, setNoticesPaused] = useState(false);
   const marqueePaused = shouldReduceMotion || noticesPaused;
   return (
-    <section id="leadership-updates" className="relative scroll-mt-36 overflow-hidden bg-[linear-gradient(145deg,#fff7ed_0%,#f8fbf7_48%,#edf7ff_100%)] px-5 py-20 sm:px-8 md:px-12 lg:px-20">
+    <section id="leadership-updates" className="rsac-home-section relative scroll-mt-36 overflow-hidden bg-[linear-gradient(145deg,#fff7ed_0%,#f8fbf7_48%,#edf7ff_100%)] px-5 py-20 sm:px-8 md:px-12 lg:px-20">
       <div className="rsac-geo-mesh" aria-hidden="true" />
       <div aria-hidden="true" className="absolute -left-24 top-16 h-64 w-64 rounded-full bg-orange-300/15 blur-3xl" />
       <div aria-hidden="true" className="absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-sky-300/15 blur-3xl" />

@@ -26,7 +26,7 @@ const HomeGalleryPreview = () => {
   return (
     <section
       aria-labelledby="home-gallery-title"
-      className="relative overflow-hidden bg-[#071b2e] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20"
+      className="rsac-home-section relative overflow-hidden bg-[#071b2e] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20"
     >
       <div className="rsac-geo-mesh rsac-geo-mesh--dark" aria-hidden="true" />
       <div

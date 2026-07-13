@@ -72,10 +72,10 @@ export function DataProvider({ children }) {
     const checkVersion = async () => {
       try {
         const version = await getCmsVersion();
-        if (version && contentVersionRef.current && version !== contentVersionRef.current) refresh();
+        if (version && version !== contentVersionRef.current) refresh();
       } catch { /* regular page requests still report API failures */ }
     };
-    const interval = window.setInterval(checkVersion, 3000);
+    const interval = window.setInterval(checkVersion, 1500);
     return () => {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
@@ -95,6 +95,17 @@ export function DataProvider({ children }) {
     root.style.setProperty("--rsac-font-hindi", fontStacks[design.hindiFont] || fontStacks["Noto Sans Devanagari"]);
     const size = Math.min(20, Math.max(14, Number(design.baseFontSize) || 16));
     root.style.setProperty("--rsac-base-font-size", `${size}px`);
+    root.dataset.rsacSurface = ["atlas", "clean", "bands"].includes(design.surfaceStyle)
+      ? design.surfaceStyle
+      : "atlas";
+    root.dataset.rsacDensity = ["compact", "comfortable", "spacious"].includes(design.contentDensity)
+      ? design.contentDensity
+      : "comfortable";
+    root.dataset.rsacCorners = design.cornerStyle === "soft" ? "soft" : "precise";
+    root.dataset.rsacElevation = design.cardElevation === "lifted" ? "lifted" : "quiet";
+    root.dataset.rsacMotion = ["none", "reduced", "standard"].includes(design.motionLevel)
+      ? design.motionLevel
+      : "standard";
   }, [data?.siteSettings?.designSettings]);
 
   const value = useMemo(() => data ? { ...data, isLoading, cmsError: error } : null, [data, error, isLoading]);

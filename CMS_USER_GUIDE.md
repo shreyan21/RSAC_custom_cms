@@ -22,7 +22,7 @@ This guide is for website editors. No coding is required.
 
 Hindi fields override English fields in Hindi mode. A shared field, such as a URL or image, is used by both languages. The CMS does not auto-translate.
 
-Saved published content normally appears within about 3 seconds. A hard refresh is not normally required.
+Saved published content normally appears within 2 seconds. A hard refresh is not normally required.
 
 ## Add, Hide, Reorder, Restore
 
@@ -96,7 +96,7 @@ Each block can be moved up/down, duplicated, hidden, or removed. **Section layou
 
 ### Edit Existing Text
 
-Open the matching collection, search by title, edit English and Hindi, save, then refresh the website.
+Open the matching collection, search by title, edit English and Hindi, then save. Keep the website tab open; it refreshes automatically within 2 seconds.
 
 ### Edit or Add a Facility
 
@@ -106,7 +106,7 @@ To edit an existing facility:
 2. Choose the laboratory, library, hostel, technical cell, or service block.
 3. Choose only the section to edit, such as Overview, Hardware, Instruments, or Major Activities.
 4. Edit, search, remove, restore, or add a line. Switch to **हिन्दी** and enter Hindi separately.
-5. Click **Save** and verify the facility page.
+5. Click **Save** and verify the facility page. The directory-card summary and the detail-page section text are separate fields; edit **Page heading and layout** for the card summary, or choose the exact content section for body text.
 
 Use **Add new** on the Facilities card only when creating a completely new facility page. Existing facility editing never shows raw HTML.
 
@@ -209,6 +209,12 @@ Use **Upload** in an image/media field. Use JPEG/WebP for photographs and PNG/SV
 Uploaded files are stored in `server/uploads` and must be backed up or deployed together with the PostgreSQL database whenever saved content contains a `/uploads/...` URL. Bundled website assets and external image URLs do not require this folder. The server creates the folder automatically when it is missing.
 
 Profile and CMS previews use one fixed frame, so portrait and landscape source photos remain visually consistent. For a face that needs repositioning, open **Scientists / Officials / Staff** and set **Photo position**, for example `center 22%`.
+
+### Fix a Repeated Person or Photo Card
+
+For a CMS person record, open **Scientists / Officials / Staff**, search the name, open both matching records, keep the complete one, and archive the extra. The CMS warns about existing possible duplicates and blocks a new same-type profile when its name, employee ID, email, or real profile photo matches another active record. Shared placeholder photos are allowed.
+
+For an imported historical card on **Our Formers**, open **About Pages**, choose the source page, open **Page heading and layout**, and enter the exact unwanted visible name under **Hide profile cards**. Save once; this shared visibility control applies to English and Hindi. The website also removes repeated people automatically across Former Chairmen, Former Directors, and Former Scientists.
 
 ### Change Navigation
 

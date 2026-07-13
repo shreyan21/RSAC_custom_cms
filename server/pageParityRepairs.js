@@ -16,6 +16,42 @@ const pageRepairs = new Map([
   }],
 ]);
 
+const isSupplementalEditorBlock = (block) =>
+  block?.controlsSectionLabel === false || String(block?.id || "").startsWith("cms-text-");
+
+const mergeTrainingBlocks = (canonicalBlocks = [], academicBlocks = []) => {
+  const canonical = structuredClone(canonicalBlocks);
+  const supplemental = structuredClone(academicBlocks.filter(isSupplementalEditorBlock));
+  const representedKeys = new Set();
+
+  [...canonical, ...supplemental].forEach((block) => {
+    if (block?.key) representedKeys.add(block.key);
+    (block?.children || []).forEach((child) => {
+      if (child?.key) representedKeys.add(child.key);
+    });
+  });
+
+  academicBlocks.filter((block) => !isSupplementalEditorBlock(block)).forEach((block, index) => {
+    const children = (block.children || []).filter((child) => {
+      if (!child?.key || representedKeys.has(child.key)) return false;
+      representedKeys.add(child.key);
+      return true;
+    });
+    if (!children.length) return;
+
+    supplemental.push({
+      id: `parity-preserved-${block.id || index}`,
+      label: `${block.label || block.value || "Section"} additional text`,
+      value: `${block.value || block.label || "Section"} additional text`,
+      sourceLabel: block.sourceLabel || block.label || block.value || "Page content",
+      controlsSectionLabel: false,
+      children: structuredClone(children),
+    });
+  });
+
+  return [...canonical, ...supplemental];
+};
+
 export const repairCmsPageParity = async (db) => {
   const { rows } = await db.query(
     "SELECT id, entry_key, data_en, data_hi FROM cms_entries WHERE collection='pages' AND entry_key = ANY($1::text[])",
@@ -78,6 +114,41 @@ export const repairCmsPageParity = async (db) => {
       [dataEn, dataHi, row.id]
     );
     repaired += 1;
+  }
+
+  const trainingRows = await db.query(
+    `SELECT id,entry_key,data_en,data_hi
+       FROM cms_entries
+      WHERE collection='pages'
+        AND entry_key = ANY($1::text[])`,
+    [["training-division", "training-division-"]]
+  );
+  const canonicalTraining = trainingRows.rows.find((row) => row.entry_key === "training-division");
+  const academicTraining = trainingRows.rows.find((row) => row.entry_key === "training-division-");
+  if (canonicalTraining && academicTraining) {
+    const dataEn = {
+      ...(academicTraining.data_en || {}),
+      blocks: mergeTrainingBlocks(
+        canonicalTraining.data_en?.blocks,
+        academicTraining.data_en?.blocks
+      ),
+    };
+    const dataHi = {
+      ...(academicTraining.data_hi || {}),
+      blocks: mergeTrainingBlocks(
+        canonicalTraining.data_hi?.blocks,
+        academicTraining.data_hi?.blocks
+      ),
+    };
+    const changed = JSON.stringify(dataEn.blocks) !== JSON.stringify(academicTraining.data_en?.blocks || [])
+      || JSON.stringify(dataHi.blocks) !== JSON.stringify(academicTraining.data_hi?.blocks || []);
+    if (changed) {
+      await db.query(
+        "UPDATE cms_entries SET data_en=$1,data_hi=$2,version=version+1,updated_at=now() WHERE id=$3",
+        [dataEn, dataHi, academicTraining.id]
+      );
+      repaired += 1;
+    }
   }
 
   const staleHero = await db.query(

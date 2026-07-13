@@ -69,7 +69,7 @@ const GalleryPage = () => {
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   </span>
-                  {caption && (
+                  {caption && !isHindi && (
                     <span className="rsac-gallery-frame__caption block px-2 pb-1 pt-3 text-sm font-semibold leading-relaxed text-[#102f46]">
                       {caption}
                     </span>

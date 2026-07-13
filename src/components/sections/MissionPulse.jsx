@@ -207,7 +207,7 @@ const MissionPulse = () => {
     <section
       id="mission-pulse"
       aria-labelledby="mission-pulse-title"
-      className="relative bg-[#03111e] text-white"
+      className="rsac-home-section relative bg-[#03111e] text-white"
     >
       <div className="relative flex min-h-[100svh] items-center overflow-hidden px-5 py-24 sm:px-8 md:px-12 lg:px-20">
         <div

@@ -585,7 +585,7 @@ const TopBar = () => {
           aria-hidden="true"
           className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,#ff9933_0%,transparent_25%,transparent_75%,#138808_100%)] opacity-60"
         />
-        <div className="flex h-10 items-center justify-between gap-2 overflow-hidden px-2 text-[11px] text-[#12324a]/72 sm:gap-3 sm:px-6 sm:text-xs md:px-12 lg:px-20">
+        <div className="rsac-topbar__inner flex h-10 items-center justify-between gap-2 overflow-hidden px-2 text-[11px] text-[#12324a]/72 sm:gap-3 sm:px-6 sm:text-xs md:px-12 lg:px-20">
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-3 lg:gap-5">
             <button
               type="button"

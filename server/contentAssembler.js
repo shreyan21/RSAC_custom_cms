@@ -11,6 +11,39 @@ const escapeAttribute = (value) => String(value || "")
   .replace(/</g, "&lt;")
   .replace(/>/g, "&gt;");
 
+const normalizeProfileText = (value) => String(value || "")
+  .normalize("NFKC")
+  .toLowerCase()
+  .replace(/^(?:dr|prof|mr|mrs|ms|shri|sri|smt)\.?\s+/iu, "")
+  .replace(/[^\p{Letter}\p{Number}]+/gu, "");
+
+const isPlaceholderProfileImage = (value) =>
+  /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(
+    String(value || "").split(/[?#]/)[0]
+  );
+
+const publicProfileKeys = (profile) => {
+  const type = String(profile.profileType || "profile").toLowerCase();
+  const pairs = [
+    ["employee", normalizeProfileText(profile.employeeId)],
+    ["email", String(profile.email || "").trim().toLowerCase()],
+    ["name", normalizeProfileText(profile.name)],
+  ];
+  const photo = String(profile.photo || profile.image || "").split(/[?#]/)[0].toLowerCase();
+  if (photo && !isPlaceholderProfileImage(photo)) pairs.push(["photo", photo]);
+  return pairs.filter(([, value]) => value && value !== "notlisted").map(([kind, value]) => `${type}:${kind}:${value}`);
+};
+
+const dedupePublicProfiles = (profiles) => {
+  const seen = new Set();
+  return profiles.filter((profile) => {
+    const keys = publicProfileKeys(profile);
+    if (keys.some((key) => seen.has(key))) return false;
+    keys.forEach((key) => seen.add(key));
+    return true;
+  });
+};
+
 const localizeImageTag = (tag, title) => {
   const withoutLabels = tag.replace(/\s+(?:alt|title)\s*=\s*(?:"[^"]*"|'[^']*')/gi, "");
   return withoutLabels.replace(/<img\b/i, `<img alt="${escapeAttribute(title)}"`);
@@ -29,6 +62,66 @@ export const backfillSharedPageImages = (localizedHtml, englishHtml, title) => {
   return `${localizedHtml || ""}<div data-rsac-shared-media="true">${sharedMedia}</div>`;
 };
 
+const alignLocalizedBlockOwners = (localizedBlocks, englishBlocks) => {
+  if (!Array.isArray(localizedBlocks) || !Array.isArray(englishBlocks)) return localizedBlocks;
+
+  const ownerByChildKey = new Map();
+  for (const block of englishBlocks) {
+    const owner = block.sourceLabel || block.label || block.value || "";
+    for (const child of block.children || []) {
+      if (child?.key && owner) ownerByChildKey.set(child.key, owner);
+    }
+  }
+
+  return localizedBlocks.flatMap((block, blockIndex) => {
+    if (!Array.isArray(block?.children) || !block.children.length) return [block];
+
+    const groups = new Map();
+    for (const child of block.children) {
+      const owner = ownerByChildKey.get(child?.key) || block.sourceLabel || block.label || block.value || "";
+      if (!groups.has(owner)) groups.set(owner, []);
+      groups.get(owner).push(child);
+    }
+
+    return [...groups.entries()].map(([owner, children], groupIndex) => ({
+      ...block,
+      ...(groups.size > 1
+        ? { id: `${block.id || `cms-block-${blockIndex}`}-${groupIndex + 1}` }
+        : {}),
+      sourceLabel: owner,
+      children,
+    }));
+  });
+};
+
+const sharedSiteSettingPaths = [
+  ["appearance", "homeHeadingSize"],
+  ["appearance", "homeBodySize"],
+  ["location", "eyebrowSize"],
+  ["location", "cardEyebrowSize"],
+  ["hiddenHomeSections"],
+  ["homeSectionOrder"],
+];
+
+const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
+  const merged = { ...(localizedSettings || {}) };
+
+  for (const path of sharedSiteSettingPaths) {
+    let source = englishSettings;
+    for (const key of path) source = source?.[key];
+    if (source === undefined) continue;
+
+    let target = merged;
+    for (const key of path.slice(0, -1)) {
+      target[key] = { ...(target[key] || {}) };
+      target = target[key];
+    }
+    target[path.at(-1)] = source;
+  }
+
+  return merged;
+};
+
 export const localize = (entry, language) => {
   if (language !== "hi") return entry.data_en;
   const localized = { ...(entry.data_hi || {}) };
@@ -38,10 +131,23 @@ export const localize = (entry, language) => {
   }
   if (entry.collection === "pages") {
     localized.baseTitle = entry.data_en?.title || "";
-    localized.html = backfillSharedPageImages(
-      localized.html,
-      entry.data_en?.html,
-      localized.title || entry.data_en?.title
+    localized.blocks = alignLocalizedBlockOwners(localized.blocks, entry.data_en?.blocks);
+    const categorizedPage = entry.data_en?.sectionKey === "divisions" ||
+      /^training-division-?$/u.test(entry.data_en?.slug || entry.entry_key || "");
+    // Division media is merged per tab in the frontend. Appending every missing
+    // image here would move it into the final Hindi tab.
+    if (!categorizedPage) {
+      localized.html = backfillSharedPageImages(
+        localized.html,
+        entry.data_en?.html,
+        localized.title || entry.data_en?.title
+      );
+    }
+  }
+  if (entry.collection === "site_settings") {
+    localized.settings = mergeSharedSiteSettingControls(
+      localized.settings,
+      entry.data_en?.settings
     );
   }
   return localized;
@@ -101,7 +207,7 @@ export const assembleBootstrap = (rows, language = "en") => {
     };
   });
   const first = (collection) => list(collection)[0] || null;
-  const profiles = list("profiles");
+  const profiles = dedupePublicProfiles(list("profiles"));
   const managedDivisionItems = list("division_section_items");
   const itemsByDivision = new Map();
   for (const item of managedDivisionItems) {

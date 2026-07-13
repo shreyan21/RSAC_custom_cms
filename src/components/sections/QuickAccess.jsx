@@ -37,7 +37,7 @@ const QuickAccess = () => {
   return (
     <section
       aria-labelledby="quick-access-title"
-      className="relative overflow-hidden bg-gradient-to-b from-[#eef6fb] via-[#f4f9fb] to-[#f0f7f4] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20"
+      className="rsac-home-section relative overflow-hidden bg-gradient-to-b from-[#eef6fb] via-[#f4f9fb] to-[#f0f7f4] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20"
     >
       <div aria-hidden="true" className="rsac-tricolor-sweep absolute inset-x-0 top-0 h-1" />
       <div className="rsac-geo-mesh" aria-hidden="true" />

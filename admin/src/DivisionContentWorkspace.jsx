@@ -12,6 +12,7 @@ const pageFields = [
   { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
   { name: "mediaSize", label: "Content image size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }, { value: "full", label: "Full width" }] },
   { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
+  { name: "hiddenProfileNames", label: "Hide profile cards (one exact name per line)", type: "list", localized: false },
 ];
 
 const cleanSourceLabel = (value) => String(value || "").replace(/^Section:\s*/i, "").trim();
@@ -145,7 +146,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     try {
       const saved = await onSave(draft);
       setDraft(structuredClone(saved));
-      notify("Division section saved. Website will refresh within a few seconds.", "success");
+      notify("Published content saved. Website refreshes automatically within 2 seconds.", "success");
     } catch (error) {
       notify(error.message, "error");
     } finally {
@@ -179,7 +180,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   if (sectionIndex === "page-details") {
     return (
       <section className="division-workspace division-workspace-editor">
-        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit the visible heading, introduction, image, text size, width, and spacing.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit heading, introduction, media, sizing, or hide an unwanted repeated profile card by its exact visible name.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
         <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
         <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
         <div className="editor-fields">

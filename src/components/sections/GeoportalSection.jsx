@@ -13,7 +13,7 @@ const GeoportalSection = () => {
     <section
       id="geoportals"
       aria-labelledby="geoportals-title"
-      className="relative overflow-hidden bg-gradient-to-b from-[#f2f8fc] via-[#edf6fa] to-[#f0f7f4] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
+      className="rsac-home-section relative overflow-hidden bg-gradient-to-b from-[#f2f8fc] via-[#edf6fa] to-[#f0f7f4] px-5 py-28 sm:px-8 sm:py-32 md:px-12 lg:px-20"
     >
       <div
         aria-hidden="true"

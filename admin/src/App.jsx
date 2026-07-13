@@ -21,6 +21,37 @@ const titleOf = (entry) => entry?.dataEn?.title || entry?.dataEn?.name || entry?
 const hasLanguage = (entry, key) => Object.values(entry?.[key] || {}).some((value) => value !== "" && value !== null && value !== undefined);
 const slugify = (value) => String(value || "page").normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase().replace(/\s+/g, "-").replace(/-+/g, "-") || `page-${Date.now()}`;
 
+const profileIdentityKeys = (entry) => {
+  const data = entry?.dataEn || {};
+  const normalize = (value) => String(value || "").normalize("NFKC").toLowerCase().replace(/^(?:dr|prof|mr|mrs|ms|shri|sri|smt)\.?\s+/iu, "").replace(/[^\p{Letter}\p{Number}]+/gu, "");
+  const keys = new Set();
+  const employeeId = normalize(data.employeeId);
+  const email = String(data.email || "").trim().toLowerCase();
+  const name = normalize(data.name);
+  const photo = String(data.photo || "").split(/[?#]/)[0].toLowerCase();
+  const placeholder = /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(photo);
+  if (employeeId && employeeId !== "notlisted") keys.add(`employee:${employeeId}`);
+  if (email) keys.add(`email:${email}`);
+  if (name) keys.add(`name:${name}`);
+  if (photo && !placeholder) keys.add(`photo:${photo}`);
+  return keys;
+};
+
+const findDuplicateProfilePairs = (entries) => {
+  const active = entries.filter((entry) => entry.status !== "archived");
+  const pairs = [];
+  for (let leftIndex = 0; leftIndex < active.length; leftIndex += 1) {
+    const left = active[leftIndex];
+    const leftKeys = profileIdentityKeys(left);
+    for (let rightIndex = leftIndex + 1; rightIndex < active.length; rightIndex += 1) {
+      const right = active[rightIndex];
+      if (left.dataEn?.profileType !== right.dataEn?.profileType) continue;
+      if ([...profileIdentityKeys(right)].some((key) => leftKeys.has(key))) pairs.push({ left, right });
+    }
+  }
+  return pairs;
+};
+
 const pageViewDefinitions = [
   ["about_pages", "About Pages", "about-us", "Chairman, vision, organisation and institutional pages."],
   ["division_pages", "Division Content", "divisions", "Choose a division, then open only Research Papers, Projects, Reports, Software, Hardware, Photos, or another section."],
@@ -158,6 +189,7 @@ function GuideView() {
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
     ["Change card order", "Open Advanced options and set Sort order: 0 first, 1 second, 2 third. Website refreshes within a few seconds."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
+    ["Fix a repeated person card", "Open Scientists / Officials / Staff, search the name, keep the correct record and archive the extra. For an imported Our Formers card, open About Pages, choose that page, open Page heading and layout, then enter the exact unwanted name under Hide profile cards."],
     ["Add page sections", "Open the matching page collection. Flexible page blocks provide Add item buttons for text, cards, images, galleries, tables, links, or dividers."],
     ["Change page headings", "Open Page Headings and Subheadings. Hide, rename or resize a heading or introduction for an exact route such as /gallery or a route group such as /divisions/*."],
     ["Change website fonts", "Open Design Settings. Choose bundled fonts and a base size from 14 to 20, then verify English, Hindi and mobile."],
@@ -246,6 +278,7 @@ export default function App() {
     return result.data;
   };
   const filteredEntries = useMemo(() => entries.filter((entry) => `${titleOf(entry)} ${entry.entryKey}`.toLowerCase().includes(search.toLowerCase())), [entries, search]);
+  const profileDuplicatePairs = useMemo(() => selected?.id === "profiles" ? findDuplicateProfilePairs(entries) : [], [entries, selected]);
   const visibleGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
 
   if (booting) return <div className="full-loader"><LoaderCircle className="spin" /><span>Opening secure CMS...</span></div>;
@@ -266,6 +299,7 @@ export default function App() {
       <main className="main-content">
         <header className="top-header"><button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><a className="website-link" href={websiteUrl} target="_blank" rel="noreferrer">Open website <ExternalLink /></a></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
+        {view === "collection" && selected?.id === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
         {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div><button className="secondary" onClick={loadCollections}><RefreshCw /> Refresh</button></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
         {view === "content_workspace" && selected && <DivisionContentWorkspace pages={entries} workspaceKind={selected.filterValue} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} onOpenGallery={() => { const definition = collections.find((item) => item.id === "gallery"); if (definition) openCollection(definition); }} notify={notify} />}

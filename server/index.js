@@ -49,6 +49,51 @@ const entryKeyFor = (body, dataEn) => {
   return existing || slugify(dataEn.slug || dataEn.roleKey || dataEn.title || dataEn.name || dataEn.label);
 };
 
+const normalizeProfileIdentity = (value) => String(value || "")
+  .normalize("NFKC")
+  .toLowerCase()
+  .replace(/^(?:dr|prof|mr|mrs|ms|shri|sri|smt)\.?\s+/iu, "")
+  .replace(/[^\p{Letter}\p{Number}]+/gu, "");
+
+const isPlaceholderProfilePhoto = (value) =>
+  /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(
+    String(value || "").split(/[?#]/)[0]
+  );
+
+const profileIdentityKeys = (profile) => {
+  const keys = new Set();
+  const employeeId = normalizeProfileIdentity(profile.employeeId);
+  const email = String(profile.email || "").trim().toLowerCase();
+  const name = normalizeProfileIdentity(profile.name);
+  const photo = String(profile.photo || "").split(/[?#]/)[0].toLowerCase();
+  if (employeeId && employeeId !== "notlisted") keys.add(`employee:${employeeId}`);
+  if (email) keys.add(`email:${email}`);
+  if (name) keys.add(`name:${name}`);
+  if (photo && !isPlaceholderProfilePhoto(photo)) keys.add(`photo:${photo}`);
+  return keys;
+};
+
+const assertUniqueProfile = async (client, dataEn, status, excludeId = null) => {
+  if (status === "archived") return;
+  const candidateType = String(dataEn.profileType || "");
+  const candidateKeys = profileIdentityKeys(dataEn);
+  const { rows } = await client.query(
+    "SELECT id, data_en FROM cms_entries WHERE collection='profiles' AND status <> 'archived' AND ($1::uuid IS NULL OR id <> $1::uuid)",
+    [excludeId]
+  );
+  const duplicate = rows.find((row) => {
+    if (String(row.data_en?.profileType || "") !== candidateType) return false;
+    const existingKeys = profileIdentityKeys(row.data_en || {});
+    return [...candidateKeys].some((key) => existingKeys.has(key));
+  });
+  if (duplicate) {
+    throw Object.assign(
+      new Error("Possible duplicate profile. Edit the existing record or archive it before saving another card."),
+      { status: 409 }
+    );
+  }
+};
+
 const publicEntry = (row) => ({
   id: row.id,
   entryKey: row.entry_key,
@@ -290,6 +335,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
         const existing = await client.query("SELECT id FROM cms_entries WHERE collection=$1 AND status <> 'archived' LIMIT 1", [definition.id]);
         if (existing.rows[0]) throw Object.assign(new Error("This collection allows one active record"), { status: 409 });
       }
+      if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status);
       let effectiveSortOrder = sortOrder;
       if (definition.autoNewestFirst) {
         const minimum = await client.query("SELECT COALESCE(min(sort_order),1)::int AS value FROM cms_entries WHERE collection=$1 AND status <> 'archived'", [definition.id]);
@@ -316,6 +362,7 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       const before = await client.query("SELECT * FROM cms_entries WHERE id=$1 AND collection=$2 FOR UPDATE", [req.params.id, definition.id]);
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
+      if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
       const updated = await client.query(
         `UPDATE cms_entries SET entry_key=$1, status=$2, sort_order=$3, data_en=$4, data_hi=$5,
                 version=version+1, updated_by=$6 WHERE id=$7 RETURNING *`,

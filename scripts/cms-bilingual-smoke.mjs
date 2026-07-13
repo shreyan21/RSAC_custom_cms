@@ -73,11 +73,35 @@ if (!Array.isArray(users) || !users.some((user) => user.role === "admin" && user
 }
 const collectionDefinitions = (await request("/api/admin/collections")).payload.data;
 const divisionListDefinition = collectionDefinitions.find((item) => item.id === "division_section_items");
+const pageDefinition = collectionDefinitions.find((item) => item.id === "pages");
 const divisionField = divisionListDefinition?.fields?.find((field) => field.name === "divisionSlug");
 const sectionField = divisionListDefinition?.fields?.find((field) => field.name === "sectionKey");
 if (!divisionListDefinition?.autoNewestFirst || divisionField?.type !== "select" || sectionField?.type !== "select") {
   throw new Error("CMS portal does not expose structured division and section form controls.");
 }
+const hiddenProfilesField = pageDefinition?.fields?.find((field) => field.name === "hiddenProfileNames");
+if (hiddenProfilesField?.type !== "list" || hiddenProfilesField.localized !== false) {
+  throw new Error("CMS portal does not expose shared per-page duplicate profile controls.");
+}
+
+const profileEntries = (await request("/api/admin/content/profiles")).payload.data;
+const existingProfile = profileEntries.find((item) => item.status !== "archived");
+if (!existingProfile) throw new Error("Profile collection is empty.");
+let duplicateProfileRejected = false;
+try {
+  await request("/api/admin/content/profiles", {
+    method: "POST",
+    body: JSON.stringify({
+      status: existingProfile.status,
+      sortOrder: existingProfile.sortOrder,
+      dataEn: existingProfile.dataEn,
+      dataHi: existingProfile.dataHi,
+    }),
+  });
+} catch (error) {
+  duplicateProfileRejected = /duplicate profile/i.test(error.message);
+}
+if (!duplicateProfileRejected) throw new Error("CMS allowed a duplicate active profile card.");
 
 const entries = (await request("/api/admin/content/impact_stats")).payload.data;
 const original = structuredClone(entries.find((item) => item.status === "published"));
