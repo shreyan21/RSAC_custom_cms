@@ -1668,6 +1668,22 @@ const stripLayoutBreakingPresentation = (document) => {
   });
 };
 
+const removeTrailingOrphanHeading = (document) => {
+  while (true) {
+    const meaningfulChildren = Array.from(document.body.children).filter(
+      (element) =>
+        compactText(element.textContent) ||
+        element.querySelector("img, video, iframe, table, ul, ol")
+    );
+    const last = meaningfulChildren[meaningfulChildren.length - 1];
+
+    if (!last?.matches("h1, h2, h3, h4, h5, h6")) {
+      break;
+    }
+    last.remove();
+  }
+};
+
 const sanitizeOfficialHtml = (
   html,
   { pageTitle = "", baseTitle = "", stripProfiles = false, stripMediaHeadings = true } = {}
@@ -1703,6 +1719,7 @@ const sanitizeOfficialHtml = (
   removeImportedArtifacts(document);
   stripLayoutBreakingPresentation(document);
   pruneEmptyImportedWrappers(document);
+  removeTrailingOrphanHeading(document);
 
   // The scraped html carries images with no alt text (WCAG/GIGW). Name them
   // from the page title — language-neutral, since the Hindi page object
@@ -3659,6 +3676,7 @@ const OfficialHtmlContent = ({
   html,
   pageTitle,
   baseTitle,
+  pageSlug,
   sectionKey,
   stripProfiles = false,
   stripMediaHeadings = true,
@@ -3722,7 +3740,7 @@ const OfficialHtmlContent = ({
       <div
         ref={contentRef}
         onClick={handleContentClick}
-        className="rsac-rich-content"
+        className={`rsac-rich-content${pageSlug === "library1" ? " rsac-library-content" : ""}`}
         dangerouslySetInnerHTML={{ __html: enhancedHtml }}
       />
       {lightbox && (
@@ -4664,6 +4682,7 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
               html={pageWithCmsRows.html}
               pageTitle={page.title}
               baseTitle={page.baseTitle}
+              pageSlug={page.slug}
               stripProfiles={profiles.length > 0}
             />
             {linkBlock.length > 0 && (
@@ -4912,7 +4931,12 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
     const matchedNode = exactNode || (previewKey
       ? nodes.find((node) => {
           const nodeKey = compactText(node.nodeValue).toLowerCase();
-          return nodeKey.startsWith(previewKey) || previewKey.startsWith(nodeKey);
+          if (nodeKey.startsWith(previewKey)) return true;
+
+          // A section title often prefixes its first paragraph (for example,
+          // "Library"). Do not let that short title capture the paragraph row.
+          return previewKey.startsWith(nodeKey) &&
+            nodeKey.length >= Math.ceil(previewKey.length * 0.8);
         })
       : null);
     if (!matchedNode) return;
@@ -5614,6 +5638,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
 
   return (
     <PageShell
+      className={`rsac-official-detail-page${isDivision ? " rsac-division-detail-page" : ""}`}
       eyebrow={isDivision ? undefined : section.eyebrow}
       title={localizeOfficialText(t(page.title), language)}
       intro={isDivision ? undefined : localizeOfficialText(page.summary || page.preview, language)}

@@ -18,6 +18,9 @@
   --civic-blue: #096f9f;
   --civic-saffron: #d85d0a;
   --civic-gold: #a77b19;
+  --civic-saffron-soft: #fff5e8;
+  --civic-green-soft: #edf8f1;
+  --civic-sky-soft: #eef7fb;
   --civic-radius: 8px;
   --civic-section-space: 6.5rem;
   --civic-card-padding: 1.25rem;
@@ -183,7 +186,13 @@ html:not(.rsac-high-contrast) .rsac-immersive-hero + section {
 /* Page headers and atlas canvas */
 
 html:not(.rsac-high-contrast) .page-shell-surface {
-  background: linear-gradient(180deg, #f4f8f6 0, #ffffff 18rem, #f5f8f6 100%);
+  background: linear-gradient(
+    180deg,
+    var(--civic-saffron-soft) 0,
+    #f8fbf8 10rem,
+    #ffffff 24rem,
+    var(--civic-sky-soft) 100%
+  );
 }
 
 html:not(.rsac-high-contrast) .page-shell-surface::before {
@@ -545,6 +554,42 @@ html:not(.rsac-high-contrast) .rsac-detail-panel {
   box-shadow: var(--civic-shadow);
 }
 
+html:not(.rsac-high-contrast) .rsac-official-detail-page .rsac-page-heading {
+  border-color: rgba(194, 92, 16, 0.2);
+}
+
+html:not(.rsac-high-contrast) .rsac-official-detail-page .rsac-content-frame[class*="bg-white"],
+html:not(.rsac-high-contrast) .rsac-official-detail-page .rsac-section-menu {
+  border-color: rgba(9, 111, 159, 0.18);
+  background-color: #ffffff !important;
+  background-image: linear-gradient(150deg, #ffffff 0%, #f8fbfd 100%) !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-division-detail-page .rsac-section-tabs {
+  border-color: rgba(194, 92, 16, 0.2);
+  background-color: #fffaf3 !important;
+  background-image: linear-gradient(155deg, #fffaf3 0%, #f4faf6 100%) !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-division-detail-page .rsac-detail-panel {
+  border-color: rgba(11, 107, 67, 0.2);
+  background-color: #ffffff !important;
+  background-image: linear-gradient(145deg, #ffffff 0%, #f8fcfa 62%, #fffaf3 100%) !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-division-detail-page .rsac-detail-panel > div > h2 {
+  border: 1px solid rgba(194, 92, 16, 0.16);
+  border-bottom-color: rgba(11, 107, 67, 0.18);
+  border-radius: 6px;
+  background: linear-gradient(100deg, #fff4e5 0%, #f1f8f4 72%, #eef7fb 100%);
+  padding: 0.85rem 1rem;
+  color: #123b50;
+}
+
+html:not(.rsac-high-contrast) .rsac-division-detail-page .rsac-detail-panel > div > h2::after {
+  display: none;
+}
+
 .rsac-detail-panel > div > h2 {
   position: relative;
   padding-bottom: 0.85rem;
@@ -583,6 +628,18 @@ html:not(.rsac-high-contrast) .rsac-detail-panel {
   color: #075f88;
   text-decoration-color: rgba(7, 95, 136, 0.38);
   text-underline-offset: 0.2em;
+}
+
+html:not(.rsac-high-contrast) .rsac-library-content :where(p, li, td, dd, span) {
+  color: #334b5c !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-library-content :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--civic-ink) !important;
+}
+
+html:not(.rsac-high-contrast) .rsac-library-content :where(a[href], a[href] *) {
+  color: #075f88 !important;
 }
 
 .rsac-rich-content :where(table) {

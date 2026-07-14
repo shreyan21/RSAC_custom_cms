@@ -1,4 +1,4 @@
-:root { font-family: Inter, "Noto Sans Devanagari", system-ui, sans-serif; color: #17324a; background: #f4f7f9; font-synthesis: none; }
+:root { font-family: Inter, "Noto Sans Devanagari", system-ui, sans-serif; color: #17324a; background: #f4f7f9; font-synthesis: none; --cms-up-emblem: url("../../src/assets/images/up-emblem.webp"); }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
 button, input, textarea, select { font: inherit; }
@@ -14,9 +14,9 @@ svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .primary:disabled { opacity: .6; cursor: wait; }
 .secondary, .back-button { background: white; color: #17324a; border-color: #cbd7df; }
 .secondary:hover, .back-button:hover { background: #f1f6f8; }
-.full-loader { min-height: 100vh; display: grid; place-content: center; gap: 12px; text-align: center; color: #0f6f42; font-weight: 750; }
+.full-loader { min-height: 100vh; display: grid; place-content: center; gap: 12px; text-align: center; color: #0f6f42; font-weight: 750; background-color: #f3f8f5; background-image: linear-gradient(rgba(243,248,245,.94), rgba(243,248,245,.94)), var(--cms-up-emblem); background-position: center; background-repeat: no-repeat; background-size: auto, min(32rem, 62vw); }
 .full-loader svg { width: 34px; height: 34px; margin: auto; }
-.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #edf4f1; }
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background-color: #edf4f1; background-image: linear-gradient(rgba(237,244,241,.92), rgba(255,248,238,.94)), var(--cms-up-emblem); background-position: center; background-repeat: no-repeat; background-size: auto, min(34rem, 74vw); }
 .login-panel { width: min(430px, 100%); background: white; border: 1px solid #cddbd5; border-top: 5px solid #0f6f42; border-radius: 8px; padding: 32px; box-shadow: 0 18px 55px rgba(19, 50, 74, .1); }
 .identity-mark, .brand { display: flex; align-items: center; gap: 12px; }
 .identity-mark > svg, .brand > svg { width: 36px; height: 36px; color: #0f6f42; }
@@ -48,7 +48,7 @@ textarea { resize: vertical; }
 .sidebar-user span { font-weight: 800; }
 .sidebar-user small { color: #bed4c9; text-transform: capitalize; margin-top: 3px; }
 .sidebar-user button { margin: 12px -8px 0; color: #ffd2c9; }
-.main-content { min-width: 0; }
+.main-content { min-width: 0; background-color: #f4f7f9; background-image: linear-gradient(rgba(244,247,249,.955), rgba(244,247,249,.955)), var(--cms-up-emblem); background-position: center, right 5vw top 9rem; background-repeat: no-repeat; background-size: auto, min(30rem, 38vw); background-attachment: fixed; }
 .top-header { min-height: 86px; background: white; border-bottom: 1px solid #d7e0e5; display: flex; align-items: center; gap: 18px; padding: 14px 28px; position: sticky; top: 0; z-index: 20; }
 .top-header > div { min-width: 0; }
 .top-header span { display: block; color: #708494; font-size: 12px; font-weight: 750; }
@@ -101,7 +101,7 @@ textarea { resize: vertical; }
 .page-notice button, .toast button { border: 0; background: transparent; color: inherit; padding: 3px; }
 .loading-bar { margin: 16px 28px 0; display: flex; align-items: center; gap: 8px; color: #0f6f42; font-weight: 750; }
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; max-width: min(480px, calc(100vw - 40px)); border-radius: 7px; box-shadow: 0 14px 45px rgba(0,0,0,.14); }
-.editor-shell { min-height: 100vh; background: #f4f7f9; }
+.editor-shell { min-height: 100vh; background-color: #f4f7f9; background-image: linear-gradient(rgba(244,247,249,.955), rgba(244,247,249,.955)), var(--cms-up-emblem); background-position: center, right 5vw top 8rem; background-repeat: no-repeat; background-size: auto, min(30rem, 38vw); background-attachment: fixed; }
 .editor-head { min-height: 86px; background: white; border-bottom: 1px solid #d5dfe5; display: flex; align-items: center; gap: 20px; padding: 14px 24px; position: sticky; top: 0; z-index: 30; }
 .editor-head > div:nth-child(2) { min-width: 0; }
 .editor-head span { font-size: 12px; color: #718494; }

@@ -151,7 +151,7 @@ const PageShell = ({
           )}
         </Reveal>
 
-        <Reveal className={isCompact ? "mt-6" : "mt-8"} delay={0.08} amount={0.08} pop>
+        <div className={isCompact ? "mt-6" : "mt-8"}>
           <div
             className="rsac-page-content"
             data-rsac-content-size={resolvedContentSize}
@@ -160,7 +160,7 @@ const PageShell = ({
           >
             {children}
           </div>
-        </Reveal>
+        </div>
       </section>
     </main>
   );
