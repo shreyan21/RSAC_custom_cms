@@ -2948,9 +2948,10 @@ a:focus-visible {
 }
 
 .cms-flexible-block :where(p) {
-  max-width: 74ch;
+  max-width: 100%;
   margin-top: 0;
   margin-bottom: var(--rsac-content-block-space);
+  width: 100%;
 }
 
 .cms-flexible-block :where(h2) {
@@ -2989,7 +2990,9 @@ a:focus-visible {
   font-size: var(--rsac-rich-font-size);
   font-weight: 500;
   line-height: 1.68;
+  min-width: 0;
   overflow-wrap: break-word;
+  width: 100%;
   word-break: normal;
 }
 
@@ -3013,6 +3016,10 @@ a:focus-visible {
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
   position: relative;
+}
+
+.rsac-rich-content h2:not(:first-child) {
+  margin-top: clamp(1.45rem, 2.5vw, 2rem);
 }
 
 .rsac-rich-content h2::after {
@@ -3064,9 +3071,21 @@ a:focus-visible {
 }
 
 .rsac-rich-content p {
-  max-width: 74ch;
+  max-width: 100%;
   font-weight: 500;
-  text-align: left;
+  orphans: 3;
+  text-align: start;
+  widows: 3;
+  width: 100%;
+}
+
+.rsac-rich-content .rsac-prose-chunk {
+  max-width: 100%;
+  width: 100%;
+}
+
+.rsac-rich-content .rsac-prose-chunk + .rsac-prose-chunk {
+  margin-top: 0.1rem;
 }
 
 .rsac-rich-content :where(p, li, dd) {
@@ -3083,7 +3102,9 @@ a:focus-visible {
 }
 
 .rsac-rich-content :where(ul, ol) {
-  padding-left: 1.4rem;
+  margin-inline: 0;
+  padding-inline-start: 1.55rem;
+  width: 100%;
 }
 
 /* Default markers for ANY list a CMS editor adds. Tailwind preflight strips
@@ -3132,9 +3153,24 @@ a:focus-visible {
 
 .rsac-rich-content li {
   margin-bottom: 0.55rem;
-  padding-left: 0.2rem;
+  padding-inline-start: 0.3rem;
   font-weight: 500;
   line-height: 1.68;
+  text-align: start;
+}
+
+.rsac-rich-content li > p {
+  margin-bottom: 0.45rem;
+  margin-top: 0.35rem;
+  max-width: 100%;
+}
+
+.rsac-rich-content li > p:first-child {
+  margin-top: 0;
+}
+
+.rsac-rich-content li > p:last-child {
+  margin-bottom: 0;
 }
 
 .rsac-rich-content :where(strong, b) {
@@ -3508,7 +3544,7 @@ html[lang="hi"] .rsac-rich-content li {
 
   /* Tighter bullet gutter keeps text width usable on small screens. */
   .rsac-rich-content :where(ul, ol) {
-    padding-left: 1.15rem;
+    padding-inline-start: 1.25rem;
   }
 
   .rsac-rich-content h2 {

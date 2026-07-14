@@ -607,6 +607,47 @@ html:not(.rsac-high-contrast) .rsac-section-menu {
   text-transform: none;
 }
 
+.rsac-section-menu__link {
+  align-items: center;
+  display: flex !important;
+  line-height: 1.35;
+  min-height: 2.7rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rsac-section-menu__links--facilities {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html:not(.rsac-high-contrast) .rsac-section-menu__link[aria-current="page"] {
+  box-shadow: inset 3px 0 0 var(--civic-green);
+}
+
+@media (min-width: 640px) {
+  .rsac-section-menu__links--facilities {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .rsac-section-menu__links--facilities {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .rsac-section-menu__links--facilities {
+    display: block;
+  }
+
+  .rsac-section-menu__links--facilities .rsac-section-menu__link + .rsac-section-menu__link {
+    margin-top: 0.5rem;
+  }
+}
+
 html:not(.rsac-high-contrast) .rsac-section-tabs button[aria-selected="true"] {
   border-color: rgba(11, 107, 67, 0.24) !important;
   background: #e9f4ee !important;
@@ -727,6 +768,44 @@ html:not(.rsac-high-contrast) .rsac-library-content :where(a[href], a[href] *) {
 
 .rsac-rich-content tbody tr:nth-child(even) td {
   background: rgba(238, 244, 243, 0.48);
+}
+
+.rsac-rich-content .rsac-table-scroll {
+  background: #ffffff;
+  border: 1px solid var(--civic-line);
+  border-radius: var(--civic-radius);
+  box-shadow: 0 12px 30px -28px rgba(8, 32, 50, 0.55);
+  margin: 0 0 var(--rsac-content-block-space);
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: rgba(11, 107, 67, 0.42) #edf3f5;
+}
+
+.rsac-rich-content .rsac-table-scroll:focus-visible {
+  outline: 3px solid rgba(9, 111, 159, 0.42);
+  outline-offset: 3px;
+}
+
+.rsac-rich-content .rsac-table-scroll > .rsac-data-table {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: table;
+  margin: 0;
+  max-width: none;
+  overflow: visible;
+  width: 100%;
+}
+
+.rsac-rich-content .rsac-table-scroll > .rsac-data-table--wide {
+  min-width: 42rem;
+}
+
+.rsac-high-contrast .rsac-table-scroll {
+  background: #071018;
+  border-color: rgba(139, 214, 255, 0.3);
+  scrollbar-color: rgba(139, 214, 255, 0.58) #071018;
 }
 
 .rsac-rich-content :where(img, .rsac-media-link),

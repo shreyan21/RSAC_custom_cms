@@ -17,15 +17,13 @@ const apply = process.argv.includes("--apply");
 const officialUrlPattern = /https?:\/\/(?:www\.)?(?:rsac\.up\.gov\.in|14\.139\.43\.115:8090)\/[^\s"'<>\\)]+/giu;
 const mediaExtensionPattern = /\.(?:avif|gif|jpe?g|png|svg|webp|tiff?|pdf|docx?|xlsx?|pptx?|csv|zip|mp4|webm|mov|m4v|mp3|wav|apk|kml|kmz|html?)(?:$|[?#])/iu;
 const existsCache = new Map();
-const unavailableVideoPosters = new Map([
+const legacyRemoteVideoPosters = new Map([
   ["http://14.139.43.115:8090/rsac_MODEL_vIDEOS/rsac_build_02.mp4", "/official-media/siteContent/2021121511494624503d.jpg"],
   ["http://14.139.43.115:8090/rsac_MODEL_vIDEOS/CHARBAGH2.mp4", "/official-media/siteContent/202311071735322233CHARBAGH.jpg"],
   ["http://14.139.43.115:8090/rsac_MODEL_vIDEOS/badshahnagar.mp4", "/official-media/siteContent/202311071735322233BADSHAHNAGAR.jpg"],
   ["http://14.139.43.115:8090/rsac_MODEL_vIDEOS/AISHBAGH2.mp4", "/official-media/siteContent/202311071734557743AISHBAGH.jpg"],
 ]);
-const unavailableLocalVideoPosters = new Map(
-  [...unavailableVideoPosters].map(([url, poster]) => [officialMediaManifest[url], poster])
-);
+const legacyRemoteVideoUrls = new Set(legacyRemoteVideoPosters.keys());
 
 const localFileExists = async (publicPath) => {
   if (!publicPath?.startsWith("/")) return false;
@@ -51,9 +49,6 @@ const localPathFor = async (value) => {
   const manifested = officialMediaManifest[normalized];
   if (manifested && await localFileExists(manifested)) return manifested;
 
-  const poster = unavailableVideoPosters.get(normalized);
-  if (poster && await localFileExists(poster)) return poster;
-
   const predicted = getOfficialMediaLocalPath(value);
   if (predicted && await localFileExists(predicted)) return predicted;
   return "";
@@ -64,12 +59,6 @@ const replacements = new Map();
 
 const rewriteString = async (value, context) => {
   let output = String(value);
-  for (const [videoPath, poster] of unavailableLocalVideoPosters) {
-    if (!videoPath || !output.includes(videoPath) || !await localFileExists(poster)) continue;
-    output = output.split(videoPath).join(poster);
-    replacements.set(videoPath, poster);
-  }
-
   const matches = [...output.matchAll(officialUrlPattern)];
   if (!matches.length) return output;
 
@@ -78,6 +67,10 @@ const rewriteString = async (value, context) => {
     if (!isMediaUrl(matched)) continue;
     const localPath = await localPathFor(matched);
     if (!localPath) {
+      // Keep known legacy video hrefs as videos. Their separate JPG poster
+      // remains local, and replacing the href with that poster makes the CMS
+      // render a photo card instead of a video player.
+      if (legacyRemoteVideoUrls.has(normalizeOfficialMediaUrl(matched))) continue;
       if (!unresolved.has(matched)) unresolved.set(matched, new Set());
       unresolved.get(matched).add(context);
       continue;

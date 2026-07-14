@@ -38,6 +38,16 @@ if (JSON.stringify(actualDivisionOrder) !== JSON.stringify(expectedDivisionOrder
 if (!divisionPages[0]?.slug?.startsWith("computer-image-processing")) {
   throw new Error("Division page list does not follow CMS division sort order.");
 }
+const cipdmPage = divisionPages.find((page) => page.slug === "computer-image-processing-division");
+const expectedCipdmVideos = [
+  "rsac_build_02.mp4",
+  "CHARBAGH2.mp4",
+  "badshahnagar.mp4",
+  "AISHBAGH2.mp4",
+];
+if (!cipdmPage || expectedCipdmVideos.some((fileName) => !cipdmPage.html?.includes(fileName))) {
+  throw new Error("CIPDM 3D-model links must remain MP4 videos instead of JPG poster links.");
+}
 const facilityPages = english.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
 if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-image-processing-lab1" || facilityPages.at(-1)?.slug !== "service-block1") {
   throw new Error("Facility pages are missing or incorrectly ordered.");

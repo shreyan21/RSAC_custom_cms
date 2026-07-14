@@ -16,6 +16,44 @@ const pageRepairs = new Map([
   }],
 ]);
 
+const cipdmPosterVideoLinks = new Map([
+  [
+    "/official-media/siteContent/2021121511494624503d.jpg",
+    "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/rsac_build_02.mp4",
+  ],
+  [
+    "/official-media/siteContent/202311071735322233CHARBAGH.jpg",
+    "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/CHARBAGH2.mp4",
+  ],
+  [
+    "/official-media/siteContent/202311071735322233BADSHAHNAGAR.jpg",
+    "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/badshahnagar.mp4",
+  ],
+  [
+    "/official-media/siteContent/202311071734557743AISHBAGH.jpg",
+    "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/AISHBAGH2.mp4",
+  ],
+]);
+
+const restoreCipdmVideoLinks = (value) => {
+  if (typeof value === "string") {
+    let restored = value;
+    for (const [poster, video] of cipdmPosterVideoLinks) {
+      restored = restored
+        .replaceAll(`href="${poster}"`, `href="${video}"`)
+        .replaceAll(`href='${poster}'`, `href='${video}'`);
+    }
+    return restored;
+  }
+  if (Array.isArray(value)) return value.map(restoreCipdmVideoLinks);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, restoreCipdmVideoLinks(child)])
+    );
+  }
+  return value;
+};
+
 const isSupplementalEditorBlock = (block) =>
   block?.controlsSectionLabel === false || String(block?.id || "").startsWith("cms-text-");
 
@@ -146,6 +184,28 @@ export const repairCmsPageParity = async (db) => {
       await db.query(
         "UPDATE cms_entries SET data_en=$1,data_hi=$2,version=version+1,updated_at=now() WHERE id=$3",
         [dataEn, dataHi, academicTraining.id]
+      );
+      repaired += 1;
+    }
+  }
+
+  const cipdmPage = await db.query(
+    `SELECT id,data_en,data_hi
+       FROM cms_entries
+      WHERE collection='pages'
+        AND entry_key='computer-image-processing-division'
+      LIMIT 1`
+  );
+  if (cipdmPage.rows[0]) {
+    const row = cipdmPage.rows[0];
+    const dataEn = restoreCipdmVideoLinks(row.data_en || {});
+    const dataHi = restoreCipdmVideoLinks(row.data_hi || {});
+    const changed = JSON.stringify(dataEn) !== JSON.stringify(row.data_en || {})
+      || JSON.stringify(dataHi) !== JSON.stringify(row.data_hi || {});
+    if (changed) {
+      await db.query(
+        "UPDATE cms_entries SET data_en=$1,data_hi=$2,version=version+1,updated_at=now() WHERE id=$3",
+        [dataEn, dataHi, row.id]
       );
       repaired += 1;
     }

@@ -3482,7 +3482,97 @@ const normalizeDivisionSections = (page, sections) => {
   return removeEmptySections(normalized);
 };
 
-const enhanceRichContentHtml = (html, sectionKey) => {
+const splitLongPlainParagraphs = (document) => {
+  document.body.querySelectorAll("p").forEach((paragraph) => {
+    if (paragraph.querySelector("*")) return;
+
+    const text = compactText(paragraph.textContent);
+    if (text.length < 1000) return;
+
+    const sentences = text.match(/[^.!?।;]+(?:[.!?।;]+(?=\s|$)|$)/gu)
+      ?.map(compactText)
+      .filter(Boolean) || [];
+    if (sentences.length < 2) return;
+
+    const chunks = [];
+    let current = "";
+    sentences.forEach((sentence) => {
+      const next = current ? `${current} ${sentence}` : sentence;
+      if (current.length >= 360 && next.length > 720) {
+        chunks.push(current);
+        current = sentence;
+      } else {
+        current = next;
+      }
+    });
+    if (current) chunks.push(current);
+    if (chunks.length < 2) return;
+
+    if (chunks.at(-1).length < 220 && chunks.length > 1) {
+      chunks.splice(-2, 2, `${chunks.at(-2)} ${chunks.at(-1)}`);
+    }
+
+    const fragment = document.createDocumentFragment();
+    chunks.forEach((chunk, index) => {
+      const nextParagraph = paragraph.cloneNode(false);
+      if (index > 0) nextParagraph.removeAttribute("id");
+      nextParagraph.classList.add("rsac-prose-chunk");
+      nextParagraph.textContent = chunk;
+      fragment.appendChild(nextParagraph);
+    });
+    paragraph.replaceWith(fragment);
+  });
+};
+
+const normalizeRichContentTables = (document) => {
+  document.body.querySelectorAll("table").forEach((table) => {
+    table.classList.add("rsac-data-table");
+    const columnCount = Math.max(
+      0,
+      ...Array.from(table.rows).map((row) => row.cells.length)
+    );
+    table.classList.add(
+      columnCount >= 3 ? "rsac-data-table--wide" : "rsac-data-table--compact"
+    );
+    table.querySelectorAll("th:not([scope])").forEach((heading) => {
+      heading.setAttribute("scope", "col");
+    });
+
+    if (table.parentElement?.classList.contains("rsac-table-scroll")) return;
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("class", "rsac-table-scroll");
+    wrapper.setAttribute("role", "region");
+    wrapper.setAttribute("aria-label", "Data table");
+    wrapper.setAttribute("tabindex", "0");
+    table.before(wrapper);
+    wrapper.appendChild(table);
+  });
+};
+
+const cipdmVideoTitlesByPoster = {
+  "/official-media/siteContent/2021121511494624503d.jpg": {
+    en: "RSAC-UP Virtual 3D Campus",
+    hi: "आरएसएसी-यूपी वर्चुअल 3डी परिसर",
+  },
+  "/official-media/siteContent/202311071735322233CHARBAGH.jpg": {
+    en: "Charbagh 3D Model",
+    hi: "चारबाग 3डी मॉडल",
+  },
+  "/official-media/siteContent/202311071735322233BADSHAHNAGAR.jpg": {
+    en: "Badshahnagar 3D Model",
+    hi: "बादशाहनगर 3डी मॉडल",
+  },
+  "/official-media/siteContent/202311071734557743AISHBAGH.jpg": {
+    en: "Aishbagh 3D Model",
+    hi: "ऐशबाग 3डी मॉडल",
+  },
+};
+
+const enhanceRichContentHtml = (
+  html,
+  sectionKey,
+  { pageTitle = "", language = "en" } = {}
+) => {
   if (typeof DOMParser === "undefined") {
     return html;
   }
@@ -3516,6 +3606,8 @@ const enhanceRichContentHtml = (html, sectionKey) => {
       element.remove();
     }
   });
+
+  splitLongPlainParagraphs(parsedDocument);
 
   parsedDocument.body.querySelectorAll("a[href]").forEach((link) => {
     const href = link.getAttribute("href")?.trim() || "";
@@ -3604,13 +3696,15 @@ const enhanceRichContentHtml = (html, sectionKey) => {
       if (imageSource && imageSource !== href) {
         video.setAttribute("poster", imageSource);
       }
-      if (title) {
-        video.setAttribute("title", title);
-        video.setAttribute("aria-label", title);
+      const localizedVideoTitle =
+        cipdmVideoTitlesByPoster[imageSource]?.[language] || title;
+      if (localizedVideoTitle) {
+        video.setAttribute("title", localizedVideoTitle);
+        video.setAttribute("aria-label", localizedVideoTitle);
 
         const figcaption = parsedDocument.createElement("figcaption");
         figcaption.setAttribute("class", "rsac-video-figcaption");
-        figcaption.textContent = title;
+        figcaption.textContent = localizedVideoTitle;
         figure.appendChild(figcaption);
       }
 
@@ -3631,6 +3725,22 @@ const enhanceRichContentHtml = (html, sectionKey) => {
       link.setAttribute("title", title);
     }
   });
+
+  if (language === "hi" && /[\u0900-\u097f]/u.test(pageTitle)) {
+    parsedDocument.body.querySelectorAll("a.rsac-media-link").forEach((link, index) => {
+      const caption = link.querySelector(".rsac-media-caption");
+      const currentLabel = compactText(
+        caption?.textContent || link.getAttribute("title") || ""
+      );
+      if (/[\u0900-\u097f]/u.test(currentLabel)) return;
+
+      const localizedLabel = `${pageTitle} - चित्र ${index + 1}`;
+      if (caption) caption.textContent = localizedLabel;
+      link.setAttribute("title", localizedLabel);
+      link.setAttribute("aria-label", `${localizedLabel} खोलें`);
+      link.querySelector("img")?.setAttribute("alt", localizedLabel);
+    });
+  }
 
   // Free inline players from single-child paragraph wrappers, then pack each
   // run of consecutive players into a responsive grid so several videos sit
@@ -3693,6 +3803,7 @@ const enhanceRichContentHtml = (html, sectionKey) => {
     });
 
   fillSerialNumbersInDocument(parsedDocument, sectionKey);
+  normalizeRichContentTables(parsedDocument);
 
   parsedDocument.body.querySelectorAll("ul, ol").forEach((list) => {
     const items = Array.from(list.children).filter((child) => child.tagName === "LI");
@@ -3810,7 +3921,8 @@ const OfficialHtmlContent = ({
         stripProfiles,
         stripMediaHeadings,
       }),
-      sectionKey
+      sectionKey,
+      { pageTitle, language }
     );
     return language === "hi" ? translateRichTextHtml(built) : built;
   }, [html, pageTitle, baseTitle, sectionKey, stripProfiles, stripMediaHeadings, language]);
@@ -5854,8 +5966,8 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
             <div
               className={
                 section.key === "facilities"
-                  ? "mt-5 flex gap-2 overflow-x-auto pb-1 xl:block xl:space-y-2 xl:overflow-visible xl:pb-0"
-                  : "mt-5 space-y-2"
+                  ? "rsac-section-menu__links rsac-section-menu__links--facilities mt-5"
+                  : "rsac-section-menu__links mt-5 space-y-2"
               }
             >
               {section.key === "about-us" && (
@@ -5871,11 +5983,8 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
                 <Link
                   key={item.slug}
                   to={getPagePath(section, item)}
-                  className={`block rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                    section.key === "facilities"
-                      ? "shrink-0 whitespace-nowrap xl:whitespace-normal "
-                      : ""
-                  }${
+                  aria-current={item.slug === page.slug ? "page" : undefined}
+                  className={`rsac-section-menu__link block rounded-lg px-3 py-2 text-sm font-semibold transition ${
                     item.slug === page.slug
                       ? "bg-emerald-50 text-[#0f6f42]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-[#102f46]"
