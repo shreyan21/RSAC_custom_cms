@@ -50,7 +50,7 @@ const QuickAccess = () => {
           transition={{ duration: shouldReduceMotion ? 0 : 0.65 }}
           className="max-w-3xl"
         >
-          <p className="rsac-kicker flex items-center gap-2.5 text-[#c2410c]">
+          <p className="rsac-kicker rsac-home-eyebrow flex items-center gap-2.5 text-[#c2410c]">
             <span
               className="geo-tricolor-bar"
               style={{ height: "1.05rem" }}

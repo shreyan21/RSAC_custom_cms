@@ -43,7 +43,7 @@ const HomeGalleryPreview = () => {
           className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
         >
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-orange-200/80">
+            <p className="rsac-home-eyebrow text-xs font-bold uppercase tracking-[0.24em] text-orange-200/80">
               {g.eyebrow}
             </p>
             <MaskReveal

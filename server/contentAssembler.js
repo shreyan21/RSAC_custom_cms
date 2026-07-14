@@ -44,6 +44,11 @@ const dedupePublicProfiles = (profiles) => {
   });
 };
 
+const normalizeProfileMedia = (profile) => {
+  const image = profile.photo || profile.image || "";
+  return image ? { ...profile, image } : profile;
+};
+
 const localizeImageTag = (tag, title) => {
   const withoutLabels = tag.replace(/\s+(?:alt|title)\s*=\s*(?:"[^"]*"|'[^']*')/gi, "");
   return withoutLabels.replace(/<img\b/i, `<img alt="${escapeAttribute(title)}"`);
@@ -97,6 +102,7 @@ const alignLocalizedBlockOwners = (localizedBlocks, englishBlocks) => {
 const sharedSiteSettingPaths = [
   ["appearance", "homeHeadingSize"],
   ["appearance", "homeBodySize"],
+  ["homeSectionTypography"],
   ["location", "eyebrowSize"],
   ["location", "cardEyebrowSize"],
   ["hiddenHomeSections"],
@@ -207,7 +213,7 @@ export const assembleBootstrap = (rows, language = "en") => {
     };
   });
   const first = (collection) => list(collection)[0] || null;
-  const profiles = dedupePublicProfiles(list("profiles"));
+  const profiles = dedupePublicProfiles(list("profiles").map(normalizeProfileMedia));
   const managedDivisionItems = list("division_section_items");
   const itemsByDivision = new Map();
   for (const item of managedDivisionItems) {

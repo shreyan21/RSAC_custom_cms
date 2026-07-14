@@ -38,7 +38,7 @@ const HeroContent = () => {
             style={{ height: "1.05rem" }}
             aria-hidden="true"
           />
-          <span className="rsac-kicker text-orange-200/95">
+          <span className="rsac-kicker rsac-home-eyebrow text-orange-200/95">
             {hero.eyebrow}
           </span>
         </motion.div>

@@ -40,7 +40,7 @@ function BlockDisplayControls({ block, onChange }) {
   );
 }
 
-function BlockMediaField({ label, value, onChange, onBusy, onError }) {
+function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "image/*", showPreview = true }) {
   const fileRef = useRef(null);
   const upload = async (file) => {
     if (!file) return;
@@ -57,7 +57,7 @@ function BlockMediaField({ label, value, onChange, onBusy, onError }) {
     }
   };
   return (
-    <label>{label}<div className="block-media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" title={`Upload ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{value && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div></label>
+    <label>{label}<div className="block-media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" title={`Upload ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{showPreview && value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div></label>
   );
 }
 
@@ -187,7 +187,7 @@ function StructuredItems({ block, onChange, onBusy, onError }) {
   if (!fields) return null;
   const items = Array.isArray(block.items) ? block.items : [];
   const updateItem = (index, name, value) => onChange({ items: items.map((item, position) => position === index ? { ...(typeof item === "object" ? item : {}), [name]: value } : item) });
-  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ["image", "url"].includes(name) && ((block.type === "cards" && name === "image") || block.type === "gallery") ? <BlockMediaField key={name} label={label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
+  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "File or link URL" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : "image/*"} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
 export default function BlockEditor({ value, onChange, onBusy = () => {}, onError = () => {} }) {

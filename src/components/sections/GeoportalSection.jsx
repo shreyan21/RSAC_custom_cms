@@ -36,7 +36,7 @@ const GeoportalSection = () => {
           viewport={{ once: true }}
           className="max-w-3xl"
         >
-          <p className="rsac-kicker text-[#0b6fa4]">
+          <p className="rsac-kicker rsac-home-eyebrow text-[#0b6fa4]">
             {sectionContent.eyebrow}
           </p>
 

@@ -219,7 +219,7 @@ const MissionPulse = () => {
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
           <div className="relative z-20 max-w-xl">
             {missionPulse.eyebrow && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/20 bg-orange-200/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-orange-100">
+              <div className="rsac-home-eyebrow inline-flex items-center gap-2 rounded-full border border-orange-200/20 bg-orange-200/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-orange-100">
                 <Orbit className="h-4 w-4" aria-hidden="true" />
                 {missionPulse.eyebrow}
               </div>

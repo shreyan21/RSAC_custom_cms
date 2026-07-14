@@ -823,6 +823,18 @@ const getProfileField = (profile, labels) => {
   );
 };
 
+const isScientistProfileCard = (profile) => {
+  const type = String(profile.profileType || "").toLowerCase();
+  if (["scientist", "former", "former-scientist", "former_scientist"].includes(type)) {
+    return true;
+  }
+
+  const designation = getProfileField(profile, ["Designation"])?.value || "";
+  return /\bscientist\b/i.test(
+    `${profile.designation || ""} ${profile.role || ""} ${profile.category || ""} ${designation}`
+  );
+};
+
 const normalizeEmployeeId = (value) =>
   compactText(value).replace(/[^a-z0-9]+/gi, "").toLowerCase();
 
@@ -903,7 +915,7 @@ const mergeKnownScientistDetails = (profile, scientistProfiles) => {
   return {
     ...knownProfile,
     ...profile,
-    image: knownProfile.image || getProfileImage(profile),
+    image: getProfileImage(knownProfile) || getProfileImage(profile),
     details: [...knownDetails, ...existingDetails],
   };
 };
@@ -928,8 +940,8 @@ const getImageUrl = (image) => {
 
 const getProfileImage = (profile) =>
   getImageUrl(
-    profile.image ||
-      profile.photo ||
+    profile.photo ||
+      profile.image ||
       profile.featured_image ||
       profile.acf?.image ||
       profile.acf?.photo ||
@@ -1013,6 +1025,13 @@ const dedupeProfileCards = (profiles, seenKeys = new Set()) =>
     return true;
   });
 
+const profileCardKey = (prefix, profile, index) => {
+  const identity = [...getProfileIdentityKeys(profile)].sort()[0] ||
+    normalizeName(getProfileName(profile)) ||
+    "profile";
+  return `${prefix}-${identity}-${index}`;
+};
+
 const filterHiddenPageProfiles = (page, profiles) => {
   const hiddenKeys = new Set();
   for (const name of page.hiddenProfileNames || []) {
@@ -1072,9 +1091,26 @@ const getPageProfiles = (page, scientistProfiles) => {
 // can never pair the two sides. Union every rendering we know: the localized
 // name, the raw English CMS name (baseName), and their official Hindi
 // translations. Two profiles are the same person when any key is shared.
+const formerProfileNameAliasGroups = [
+  [
+    "Dr. ANJANI KUMAR TANGRI",
+    "डॉ. अंजनी कुमार तांगरी",
+    "डॉ. अंजनी कुमार टांगरी",
+  ],
+  ["Shri Ram Chandra", "श्री राम चन्द्र", "श्री राम चंद्र"],
+];
+
+const formerProfileNameAliasLookup = new Map();
+formerProfileNameAliasGroups.forEach((group) => {
+  group.forEach((name) => {
+    formerProfileNameAliasLookup.set(normalizeName(name), group);
+    formerProfileNameAliasLookup.set(normalizeEquivalentHonorifics(name), group);
+  });
+});
+
 const getFormerProfileNameKeys = (profile) => {
   const keys = new Set();
-  const add = (value) => {
+  const addDirect = (value) => {
     const normalized = normalizeName(value);
     if (normalized) {
       keys.add(normalized);
@@ -1083,6 +1119,14 @@ const getFormerProfileNameKeys = (profile) => {
     if (honorificNormalized) {
       keys.add(honorificNormalized);
     }
+  };
+  const add = (value) => {
+    addDirect(value);
+    const aliases =
+      formerProfileNameAliasLookup.get(normalizeName(value)) ||
+      formerProfileNameAliasLookup.get(normalizeEquivalentHonorifics(value)) ||
+      [];
+    aliases.forEach(addDirect);
   };
 
   for (const name of [getProfileName(profile), compactText(profile.baseName)]) {
@@ -1261,11 +1305,17 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
   return mergedProfiles;
 };
 
-const dedupeFormerSectionProfiles = (profiles) => {
+const dedupeFormerSectionProfiles = (profiles, mode) => {
   const seenRecords = new Set();
+  const seenPeople = new Set();
 
   return profiles.filter((profile) => {
     const name = normalizeEquivalentHonorifics(getProfileName(profile));
+    const personKeys = getFormerProfileNameKeys(profile);
+    if (mode === "flip" && formerKeysOverlap(personKeys, seenPeople)) {
+      return false;
+    }
+
     const tenure = getProfileDurationValue(profile) ||
       getProfileField(profile, ["Duration", "Tenure", "Time Period"])?.value || "";
     const recordKey = `${name}|${normalizeName(tenure)}`;
@@ -1275,6 +1325,7 @@ const dedupeFormerSectionProfiles = (profiles) => {
     }
 
     seenRecords.add(recordKey);
+    personKeys.forEach((key) => seenPeople.add(key));
     return true;
   });
 };
@@ -1282,7 +1333,7 @@ const dedupeFormerSectionProfiles = (profiles) => {
 const dedupeFormerSections = (sections) =>
   sections.map((section) => ({
     ...section,
-    profiles: dedupeFormerSectionProfiles(section.profiles),
+    profiles: dedupeFormerSectionProfiles(section.profiles, section.mode),
   }));
 
 const looksLikePersonName = (value) =>
@@ -3659,6 +3710,25 @@ const enhanceRichContentHtml = (html, sectionKey) => {
     }
   });
 
+  // Imported division galleries use two shapes: some images are direct links,
+  // while others are wrapped in otherwise-empty paragraphs. Normalize those
+  // wrappers before identifying gallery runs so every image gets the same card.
+  parsedDocument.body.querySelectorAll("p").forEach((paragraph) => {
+    const onlyChild = paragraph.firstElementChild;
+    const ownText = Array.from(paragraph.childNodes)
+      .filter((node) => node.nodeType === 3)
+      .map((node) => node.textContent)
+      .join(" ");
+
+    if (
+      paragraph.children.length === 1 &&
+      onlyChild?.matches("a.rsac-media-link") &&
+      !compactText(ownText)
+    ) {
+      paragraph.replaceWith(onlyChild);
+    }
+  });
+
   Array.from(parsedDocument.body.querySelectorAll("div"))
     .reverse()
     .forEach((container) => {
@@ -3683,6 +3753,38 @@ const enhanceRichContentHtml = (html, sectionKey) => {
         container.classList.add("rsac-media-grid");
         children.forEach((child) => child.classList.add("rsac-media-item"));
       }
+    });
+
+  const isDirectMediaItem = (element) =>
+    element.matches("a.rsac-media-link, img[src]") ||
+    (element.matches("figure:not(.rsac-video-figure)") && Boolean(element.querySelector("img[src]")));
+
+  // A CMS editor may paste several image links without a surrounding div. Pack
+  // each uninterrupted run into a grid while keeping headings as group breaks.
+  [parsedDocument.body, ...parsedDocument.body.querySelectorAll("div:not(.rsac-media-grid)")]
+    .forEach((parent) => {
+      let run = [];
+      const flushRun = () => {
+        if (run.length >= 2) {
+          const grid = parsedDocument.createElement("div");
+          grid.setAttribute("class", "rsac-media-grid");
+          parent.insertBefore(grid, run[0]);
+          run.forEach((item) => {
+            item.classList.add("rsac-media-item");
+            grid.appendChild(item);
+          });
+        }
+        run = [];
+      };
+
+      Array.from(parent.children).forEach((child) => {
+        if (isDirectMediaItem(child)) {
+          run.push(child);
+        } else {
+          flushRun();
+        }
+      });
+      flushRun();
     });
 
   return parsedDocument.body.innerHTML;
@@ -4439,7 +4541,7 @@ const OfficialProfileCard = ({
       ? [duration, ...profileDetails]
       : profileDetails;
   const imageUrl = getProfileImage(mergedProfile);
-  const circularImage = mergedProfile.profileType !== "scientist";
+  const circularImage = !isScientistProfileCard(mergedProfile);
 
   return (
     <article
@@ -4595,9 +4697,9 @@ const OfficialProfileGrid = ({ page, scientistProfiles }) => {
 
   return (
     <div className="profile-card-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-      {profiles.map((profile) => (
+      {profiles.map((profile, index) => (
         <OfficialProfileCard
-          key={`${page.slug}-${getProfileName(profile)}`}
+          key={profileCardKey(page.slug, profile, index)}
           profile={profile}
           scientistProfiles={scientistProfiles}
         />
@@ -4623,9 +4725,9 @@ const OfficialStaticProfileGrid = ({ page, scientistProfiles }) => {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {profiles.map((profile) => (
+      {profiles.map((profile, index) => (
         <OfficialStaticProfileCard
-          key={`${page.slug}-static-${getProfileName(profile)}`}
+          key={profileCardKey(`${page.slug}-static`, profile, index)}
           profile={profile}
         />
       ))}
@@ -4691,9 +4793,9 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {profiles.map((profile) => (
+            {profiles.map((profile, index) => (
               <OfficialProfileCard
-                key={`${page.slug}-embedded-${getProfileName(profile)}`}
+                key={profileCardKey(`${page.slug}-embedded`, profile, index)}
                 profile={profile}
                 scientistProfiles={scientistProfiles}
               />
@@ -5277,9 +5379,9 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
 
               {activeSection.type === "profiles" ? (
                 <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-                  {activeSection.profiles.map((profile) => (
+                  {activeSection.profiles.map((profile, index) => (
                     <OfficialProfileCard
-                      key={`${page.slug}-${activeSection.key}-${getProfileName(profile)}`}
+                      key={profileCardKey(`${page.slug}-${activeSection.key}`, profile, index)}
                       profile={profile}
                       scientistProfiles={scientistProfiles}
                     />
@@ -5615,18 +5717,18 @@ export const OurFormersPage = () => {
 
             {formerSection.mode === "static" ? (
               <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {formerSection.profiles.map((profile) => (
+                {formerSection.profiles.map((profile, index) => (
                   <OfficialStaticProfileCard
-                    key={`${formerSection.id}-${getProfileName(profile)}`}
+                    key={profileCardKey(formerSection.id, profile, index)}
                     profile={profile}
                   />
                 ))}
               </div>
             ) : (
               <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {formerSection.profiles.map((profile) => (
+                {formerSection.profiles.map((profile, index) => (
                   <OfficialProfileCard
-                    key={`${formerSection.id}-${getProfileName(profile)}`}
+                    key={profileCardKey(formerSection.id, profile, index)}
                     profile={profile}
                     scientistProfiles={scientistProfiles}
                   />

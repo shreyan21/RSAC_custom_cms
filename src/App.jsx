@@ -107,12 +107,21 @@ const defaultHiddenHomeSections = [
 ];
 
 const HomePage = () => {
-  const { layout, appearance = {}, designSettings = {} } = useSiteSettings();
+  const {
+    layout,
+    appearance = {},
+    designSettings = {},
+    homeSectionTypography = {},
+  } = useSiteSettings();
   const allowedTypographySizes = new Set(["compact", "normal", "large"]);
   const typographyFor = (sectionKey) => {
-    const section = designSettings.homeSectionTypography?.[sectionKey] || {};
+    const section = {
+      ...(homeSectionTypography?.[sectionKey] || {}),
+      ...(designSettings.homeSectionTypography?.[sectionKey] || {}),
+    };
     return {
       "data-rsac-home-section": sectionKey,
+      "data-rsac-section-eyebrow-size": allowedTypographySizes.has(section.eyebrowSize || section.headingSize) ? (section.eyebrowSize || section.headingSize) : undefined,
       "data-rsac-section-heading-size": allowedTypographySizes.has(section.headingSize) ? section.headingSize : undefined,
       "data-rsac-section-body-size": allowedTypographySizes.has(section.bodySize) ? section.bodySize : undefined,
     };

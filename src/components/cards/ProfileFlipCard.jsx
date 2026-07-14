@@ -26,13 +26,24 @@ const getImageUrl = (image) => {
 
 const getProfileImage = (profile) =>
   getImageUrl(
-    profile.image ||
-      profile.photo ||
+    profile.photo ||
+      profile.image ||
       profile.featured_image ||
       profile.acf?.image ||
       profile.acf?.photo ||
       profile._embedded?.["wp:featuredmedia"]?.[0]
   );
+
+const isScientistCard = (profile) => {
+  const type = String(profile.profileType || "").toLowerCase();
+  if (["scientist", "former", "former-scientist", "former_scientist"].includes(type)) {
+    return true;
+  }
+
+  return /\bscientist\b/i.test(
+    `${profile.designation || ""} ${profile.role || ""} ${profile.category || ""}`
+  );
+};
 
 const localizeProfileValue = (value, t, isHindi) => {
   if (!isHindi || value === null || value === undefined) {
@@ -84,7 +95,7 @@ const ProfileFlipCard = ({
   const profileName = getProfileName(profile);
   const localizedProfileName = t(profileName);
   const imageUrl = getProfileImage(profile);
-  const circularImage = profile.profileType !== "scientist";
+  const circularImage = !isScientistCard(profile);
   const employeeId = profile.employeeId || profile.employee_id;
   const details = [
     profile.specialization

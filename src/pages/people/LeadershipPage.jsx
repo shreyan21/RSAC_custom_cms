@@ -34,9 +34,9 @@ const LeadershipPage = () => {
       }
     >
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {leadershipProfiles.map((profile) => (
+        {leadershipProfiles.map((profile, index) => (
           <ProfileFlipCard
-            key={`${profile.profileType || "leadership"}-${profile.id || profile.name}`}
+            key={`${profile.profileType || "leadership"}-${profile.id || profile.name}-${index}`}
             profile={profile}
             enableFlip={false}
           />

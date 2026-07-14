@@ -15,9 +15,13 @@ import { assembleBootstrap, localize, readPublishedEntries } from "./contentAsse
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
 import { validateEntryPayload } from "./contentValidation.js";
 
-mkdirSync(config.uploadDir, { recursive: true });
-
 const app = express();
+const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: true });
+
+// Create runtime storage before static serving or upload middleware can use it.
+// The folder is intentionally gitignored and may not exist on a fresh checkout.
+ensureUploadDirectory();
+
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({
@@ -388,14 +392,30 @@ app.delete("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, asyn
   } catch (error) { next(error); }
 });
 
-const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "application/pdf", "video/mp4", "video/webm", "text/csv", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]);
+const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif", "image/svg+xml", "application/pdf", "video/mp4", "video/webm", "text/csv", "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.presentationml.presentation"]);
 const upload = multer({
   storage: multer.diskStorage({
-    destination: config.uploadDir,
+    destination: (_req, _file, callback) => {
+      try {
+        ensureUploadDirectory();
+        callback(null, config.uploadDir);
+      } catch (error) {
+        callback(error);
+      }
+    },
     filename: (_req, file, callback) => callback(null, `${randomUUID()}${extname(file.originalname).toLowerCase().slice(0, 12)}`),
   }),
   limits: { fileSize: config.maxUploadBytes, files: 1 },
-  fileFilter: (_req, file, callback) => callback(acceptedTypes.has(file.mimetype) ? null : new Error("Unsupported file type"), acceptedTypes.has(file.mimetype)),
+  fileFilter: (_req, file, callback) => {
+    if (acceptedTypes.has(file.mimetype)) {
+      callback(null, true);
+      return;
+    }
+    callback(Object.assign(
+      new Error("Unsupported file type. Use JPG, PNG, WebP, AVIF, GIF, SVG, PDF, MP4, WebM, CSV, DOC, DOCX, XLS, XLSX, PPT or PPTX."),
+      { status: 415 }
+    ));
+  },
 });
 
 app.post("/api/admin/media", writeLimiter, requireCsrf, upload.single("file"), async (req, res, next) => {
@@ -437,9 +457,15 @@ app.get("/api/admin/feedback", async (_req, res, next) => {
 
 app.use((error, _req, res, _next) => {
   void _next;
-  const status = Number(error.status) || (error.code === "23505" ? 409 : 500);
+  const isUploadError = error instanceof multer.MulterError;
+  const status = isUploadError
+    ? error.code === "LIMIT_FILE_SIZE" ? 413 : 400
+    : Number(error.status) || (error.code === "23505" ? 409 : 500);
+  const message = isUploadError && error.code === "LIMIT_FILE_SIZE"
+    ? `File is too large. Maximum size is ${Math.round(config.maxUploadBytes / 1024 / 1024)} MB.`
+    : error.message;
   if (status >= 500) console.error(error);
-  res.status(status).json({ error: status >= 500 ? "Server error" : error.message });
+  res.status(status).json({ error: status >= 500 ? "Server error" : message });
 });
 
 const server = app.listen(config.port, "127.0.0.1", () => {

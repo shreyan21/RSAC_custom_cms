@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
-import { useSiteSettings } from "../../hooks/useData";
+import { useOfficials, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import chiefMinisterFallback from "../../assets/images/cm.webp";
 import primeMinisterFallback from "../../assets/images/pm.webp";
+
+const getProfileImage = (profile) =>
+  profile?.photo || profile?.image || profile?.portrait || "";
+
+const normalizePersonName = (value) =>
+  String(value || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/^(?:hon'?ble\s+|shri\s+|sri\s+|smt\.?\s+|dr\.?\s+|\u0936\u094d\u0930\u0940\s+|\u0936\u094d\u0930\u0940\u092e\u0924\u0940\s+|\u0921\u0949\.?\s+)/iu, "")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, "");
+
+const isChiefMinister = (value) =>
+  /chief\s*minister|\u092e\u0941\u0916\u094d\u092f\u092e\u0902\u0924\u094d\u0930\u0940/iu.test(String(value || ""));
 
 // Show the bundled portrait immediately, then swap to the CMS image only after
 // it has fully decoded off-DOM. This stops the visible "old photo → new photo"
@@ -47,8 +60,28 @@ const LeaderPortrait = ({ leader, fallback }) => {
 
 const HeroLeaderPortraits = ({ className = "" }) => {
   const { hero } = useSiteSettings();
+  const officials = useOfficials();
   const { t } = useLanguage();
   const portraitFallbacks = [primeMinisterFallback, chiefMinisterFallback];
+  const leaders = (hero.leaders || []).map((leader) => {
+    const leaderName = normalizePersonName(leader.name);
+    const official = officials.find((profile) =>
+      normalizePersonName(profile.name) === leaderName ||
+      (
+        isChiefMinister(`${leader.role || ""} ${leader.alt || ""}`) &&
+        isChiefMinister(`${profile.role || ""} ${profile.designation || ""}`)
+      )
+    );
+    const image = getProfileImage(official);
+
+    return image
+      ? {
+          ...leader,
+          image,
+          objectPosition: official.objectPosition || leader.objectPosition,
+        }
+      : leader;
+  });
 
   return (
     <div
@@ -57,7 +90,7 @@ const HeroLeaderPortraits = ({ className = "" }) => {
         "Prime Minister Narendra Modi and Chief Minister Yogi Adityanath"
       )}
     >
-      {hero.leaders.map((leader, index) => (
+      {leaders.map((leader, index) => (
         <figure
           key={leader.name}
           className="hero-leader-figure relative z-10 m-0 flex items-center"

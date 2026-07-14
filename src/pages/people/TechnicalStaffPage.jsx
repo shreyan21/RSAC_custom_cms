@@ -33,8 +33,11 @@ const TechnicalStaffPage = () => {
       }
     >
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {technicalProfiles.map((profile) => (
-          <ProfileFlipCard key={profile.name} profile={profile} />
+        {technicalProfiles.map((profile, index) => (
+          <ProfileFlipCard
+            key={`${profile.profileType || "technical"}-${profile.id || profile.employeeId || profile.name}-${index}`}
+            profile={profile}
+          />
         ))}
       </div>
     </PageShell>

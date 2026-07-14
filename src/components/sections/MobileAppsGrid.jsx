@@ -105,8 +105,11 @@ const defaultMobileAppTheme = {
 };
 
 const getMobileAppTheme = (app) => {
-  const searchable = `${app.key || ""} ${app.title || ""} ${app.description || ""}`;
-  return mobileAppThemes.find((theme) => theme.matcher.test(searchable)) || defaultMobileAppTheme;
+  const identity = `${app.key || ""} ${app.title || ""}`;
+  const description = app.description || "";
+  return mobileAppThemes.find((theme) => theme.matcher.test(identity)) ||
+    mobileAppThemes.find((theme) => theme.matcher.test(description)) ||
+    defaultMobileAppTheme;
 };
 
 const MobileAppsGrid = ({ showHeading = true }) => {

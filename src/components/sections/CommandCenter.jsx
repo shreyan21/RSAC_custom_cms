@@ -22,6 +22,9 @@ const getInitials = (name) =>
     .map((word) => word[0])
     .join("");
 
+const getProfileImage = (profile) =>
+  profile?.photo || profile?.image || profile?.portrait || "";
+
 const CommandCenter = () => {
   const notices = useNotices();
   const officials = useOfficials();
@@ -44,7 +47,7 @@ const CommandCenter = () => {
         <div>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-[#c2410c]">
+              <p className="rsac-home-eyebrow text-xs font-extrabold uppercase tracking-[0.24em] text-[#c2410c]">
                 {t(leadershipUpdates.leadershipEyebrow)}
               </p>
 
@@ -66,9 +69,9 @@ const CommandCenter = () => {
                   </div>
 
                   <div className="rsac-circular-portrait grid h-16 w-16 shrink-0 place-items-center border border-slate-200 bg-white text-sm font-extrabold text-[#12324a] shadow-sm">
-                    {official.image ? (
+                    {getProfileImage(official) ? (
                       <img
-                        src={official.image}
+                        src={getProfileImage(official)}
                         alt={official.name}
                         className="rsac-circular-portrait__image"
                         style={{
@@ -104,7 +107,7 @@ const CommandCenter = () => {
         <div className="rounded-xl border border-sky-200/70 bg-white/92 p-5 shadow-[0_22px_58px_rgba(18,50,74,0.1)] sm:p-6 md:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-[#0b6fa4]">
+              <p className="rsac-home-eyebrow text-xs font-extrabold uppercase tracking-[0.24em] text-[#0b6fa4]">
                 {t(leadershipUpdates.updatesEyebrow)}
               </p>
 

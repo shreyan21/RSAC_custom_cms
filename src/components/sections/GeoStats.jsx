@@ -47,7 +47,7 @@ const GeoStats = () => {
             className="mb-14 max-w-3xl"
           >
             {impactStatsSection.eyebrow && (
-              <p className="rsac-kicker flex items-center gap-2.5 text-orange-300">
+              <p className="rsac-kicker rsac-home-eyebrow flex items-center gap-2.5 text-orange-300">
                 <span
                   className="geo-tricolor-bar"
                   style={{ height: "1.05rem" }}

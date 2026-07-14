@@ -48,7 +48,7 @@ const LocationSection = () => {
           {eyebrow && (
             <EyebrowTag
               id={title ? undefined : "visit-rsac-title"}
-              className={`rsac-kicker flex items-center gap-2.5 text-[#c2410c] ${
+              className={`rsac-kicker rsac-home-eyebrow flex items-center gap-2.5 text-[#c2410c] ${
               eyebrowSizeClasses[location.eyebrowSize] || eyebrowSizeClasses.normal
             }`}
             >

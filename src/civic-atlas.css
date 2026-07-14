@@ -139,6 +139,11 @@ html:not(.rsac-high-contrast) .rsac-people-directory .rsac-page-heading__copy {
   padding-left: clamp(0.85rem, 1.8vw, 1.35rem);
 }
 
+html:not(.rsac-high-contrast) .rsac-people-directory--formers .rsac-page-heading__copy {
+  border-left: 0;
+  padding-left: 0;
+}
+
 html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-front,
 html:not(.rsac-high-contrast) .rsac-people-directory .rsac-cv-row {
   border-color: rgba(15, 111, 66, 0.18);

@@ -33,9 +33,9 @@ const ScientistsPage = () => {
       }
     >
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {scientistProfiles.map((profile) => (
+        {scientistProfiles.map((profile, index) => (
           <ProfileFlipCard
-            key={`${profile.profileType || "scientist"}-${profile.id || profile.employeeId || profile.name}`}
+            key={`${profile.profileType || "scientist"}-${profile.id || profile.employeeId || profile.name}-${index}`}
             profile={profile}
           />
         ))}

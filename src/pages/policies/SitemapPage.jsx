@@ -99,10 +99,6 @@ const SitemapPage = () => {
           label: policy.title,
           path: `/${policy.slug}`,
         })),
-        {
-          label: c.sitemapLabel,
-          path: "/sitemap",
-        },
       ],
     },
   ];
