@@ -166,6 +166,18 @@ const homepageSections = [
   ["location", "Location and map"],
 ];
 
+const homepageTypographySections = [
+  ["hero", "Hero"],
+  ...homepageSections,
+];
+
+const typographySizeOptions = [
+  ["inherit", "Use homepage default"],
+  ["compact", "Small"],
+  ["normal", "Normal"],
+  ["large", "Large"],
+];
+
 const homepageChrome = [
   ["announcementTicker", "What's New ticker"],
   ["homeSectionNav", "Five homepage navigation tabs"],
@@ -258,6 +270,44 @@ function HomepageLayoutEditor({ value, onChange }) {
   );
 }
 
+function HomepageTypographyEditor({ value, onChange }) {
+  const settings = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const update = (sectionKey, property, nextValue) => {
+    const nextSettings = structuredClone(settings);
+    const section = { ...(nextSettings[sectionKey] || {}) };
+    if (nextValue === "inherit") delete section[property];
+    else section[property] = nextValue;
+    if (Object.keys(section).length) nextSettings[sectionKey] = section;
+    else delete nextSettings[sectionKey];
+    onChange(nextSettings);
+  };
+
+  return (
+    <div className="homepage-typography-list">
+      {homepageTypographySections.map(([sectionKey, label]) => {
+        const section = settings[sectionKey] || {};
+        return (
+          <div key={sectionKey}>
+            <strong>{label}</strong>
+            <label>
+              <span>Heading size</span>
+              <select value={section.headingSize || "inherit"} onChange={(event) => update(sectionKey, "headingSize", event.target.value)}>
+                {typographySizeOptions.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Paragraph size</span>
+              <select value={section.bodySize || "inherit"} onChange={(event) => update(sectionKey, "bodySize", event.target.value)}>
+                {typographySizeOptions.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}
+              </select>
+            </label>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SettingsEditor({ field, value, onChange, onBusy, onError }) {
   return (
     <div className="settings-editor">
@@ -343,6 +393,7 @@ export default function FieldInput({ field, value, onChange, onBusy, onError }) 
   if (field.type === "select") return <select value={value || field.defaultValue || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
   if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
+  if (field.type === "json" && field.name === "homeSectionTypography") return <HomepageTypographyEditor value={value} onChange={onChange} />;
   if (field.type === "json" && field.name === "sections") return <SectionListEditor value={value} onChange={onChange} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
   if (field.type === "json") return <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />;

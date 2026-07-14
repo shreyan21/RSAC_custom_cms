@@ -12,6 +12,7 @@ const TechnicalStaffPage = () => {
   const c = pageContent.technicalStaff;
   return (
     <PageShell
+      className="rsac-people-directory rsac-people-directory--technical"
       eyebrow={c.eyebrow}
       title={c.title}
       breadcrumbs={[

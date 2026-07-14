@@ -11,14 +11,18 @@ The original project at `D:\rsac_website` and the old `rsac_cms` database are no
 
 ## First Setup
 
+For a simple first-time walkthrough, database backup instructions, and moving the project to another computer, read [FIRST_TIME_SETUP.md](FIRST_TIME_SETUP.md).
+
 Requirements: Node.js 20+, npm, and PostgreSQL 14+.
 
 ```powershell
-npm.cmd install
+npm.cmd ci --include=dev
 $env:POSTGRES_ADMIN_PASSWORD="your-local-postgres-password"
 npm.cmd run cms:setup
 Remove-Item Env:\POSTGRES_ADMIN_PASSWORD
 ```
+
+Use `--include=dev` on local editor machines because the website and CMS launch through Vite. This also works when the machine has `NODE_ENV=production` configured globally.
 
 Setup creates the separate database, seeds the bilingual content, and stores generated local credentials only in ignored `.env.local`.
 

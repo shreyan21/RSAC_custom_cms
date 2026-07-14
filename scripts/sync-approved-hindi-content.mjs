@@ -4,6 +4,7 @@ import pg from "pg";
 import { getCollection } from "../shared/cmsCollections.js";
 import { divisionHindiPhrases } from "../src/data/divisionHindiPhrases.js";
 import { hiTranslations } from "../src/data/translations.js";
+import { decodeHtmlEntities } from "../src/utils/htmlEntities.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) throw new Error("CMS_DATABASE_URL missing.");
@@ -92,7 +93,9 @@ const curatedHindi = {
   "Find the Centre": "केंद्र का स्थान",
 };
 
-const normalize = (value) => String(value || "")
+const normalize = (value) => decodeHtmlEntities(String(value || ""))
+  .replace(/\u00ad/gu, "")
+  .replace(/[\u200b-\u200d\ufeff]/gu, "")
   .normalize("NFKC")
   .replace(/[‘’]/gu, "'")
   .replace(/[“”]/gu, '"')
@@ -120,8 +123,7 @@ const shouldReplace = (english, hindi) => {
 };
 
 const translateHtml = (english, hindi, stats) => {
-  if (hindi && devanagari.test(hindi)) return hindi;
-  const fragment = JSDOM.fragment(english || "");
+  const fragment = JSDOM.fragment(hindi || english || "");
   const walker = fragment.ownerDocument.createTreeWalker(
     fragment,
     4

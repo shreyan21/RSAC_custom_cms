@@ -105,8 +105,9 @@ html:not(.rsac-high-contrast) .rsac-topbar {
 .rsac-topbar__inner,
 .rsac-navbar__inner {
   width: 100%;
-  max-width: 1536px;
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: clamp(0.75rem, 3vw, 3rem);
 }
 
 html:not(.rsac-high-contrast) .rsac-navbar[class*="bg-white"] {
@@ -125,6 +126,72 @@ html:not(.rsac-high-contrast) #main-menu-toggle[aria-expanded="false"] {
   border-color: rgba(9, 42, 62, 0.15);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 10px 24px -16px rgba(8, 32, 50, 0.55);
+}
+
+/* People directories: varied institutional color without sacrificing scanability. */
+html:not(.rsac-high-contrast) .rsac-people-directory {
+  background:
+    linear-gradient(180deg, #f7fbff 0%, #eef8f2 42%, #fff8ee 72%, #f8fbf5 100%);
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .rsac-page-heading__copy {
+  border-left: 4px solid #0b6fa4;
+  padding-left: clamp(0.85rem, 1.8vw, 1.35rem);
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-front,
+html:not(.rsac-high-contrast) .rsac-people-directory .rsac-cv-row {
+  border-color: rgba(15, 111, 66, 0.18);
+  box-shadow: 0 16px 38px -28px rgba(8, 32, 50, 0.52);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-card:hover .profile-flip-front,
+html:not(.rsac-high-contrast) .rsac-people-directory .rsac-cv-row:hover {
+  border-color: rgba(11, 111, 164, 0.34);
+  box-shadow: 0 22px 48px -30px rgba(8, 32, 50, 0.62);
+  transform: translateY(-2px);
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-card:nth-child(4n + 1) .profile-flip-front > :first-child {
+  background: #e8f6ee;
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-card:nth-child(4n + 2) .profile-flip-front > :first-child {
+  background: #eaf5fb;
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-card:nth-child(4n + 3) .profile-flip-front > :first-child {
+  background: #fff1e5;
+}
+
+html:not(.rsac-high-contrast) .rsac-people-directory .profile-flip-card:nth-child(4n + 4) .profile-flip-front > :first-child {
+  background: #fff8d9;
+}
+
+html:not(.rsac-high-contrast) .rsac-former-section {
+  border-left: 4px solid rgba(15, 111, 66, 0.55);
+  background: rgba(240, 249, 244, 0.72);
+}
+
+html:not(.rsac-high-contrast) .rsac-former-section:nth-child(3n + 2) {
+  border-left-color: rgba(11, 111, 164, 0.58);
+  background: rgba(237, 247, 253, 0.76);
+}
+
+html:not(.rsac-high-contrast) .rsac-former-section:nth-child(3n + 3) {
+  border-left-color: rgba(234, 88, 12, 0.54);
+  background: rgba(255, 247, 237, 0.8);
+}
+
+@media (max-width: 639px) {
+  html:not(.rsac-high-contrast) .rsac-people-directory .rsac-page-heading__copy {
+    border-left-width: 3px;
+  }
+
+  html:not(.rsac-high-contrast) .rsac-former-section {
+    margin-inline: -0.25rem;
+  }
 }
 
 /* Hero: large editorial hierarchy over real geospatial media */

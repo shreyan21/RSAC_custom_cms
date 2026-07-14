@@ -78,14 +78,13 @@ const renderDetail = (detail, t, isHindi) =>
 const ProfileFlipCard = ({
   profile,
   enableFlip = true,
-  imageShape = "rectangle",
 }) => {
   const { cards } = useSiteSettings();
   const { t, isHindi } = useLanguage();
   const profileName = getProfileName(profile);
   const localizedProfileName = t(profileName);
   const imageUrl = getProfileImage(profile);
-  const circularImage = imageShape === "circle";
+  const circularImage = profile.profileType !== "scientist";
   const employeeId = profile.employeeId || profile.employee_id;
   const details = [
     profile.specialization
@@ -104,10 +103,8 @@ const ProfileFlipCard = ({
   const front = (
     <div className="profile-flip-face profile-flip-front flex min-h-[348px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.075)]">
       <div
-        className={`relative shrink-0 bg-[linear-gradient(135deg,#e9f5ef_0%,#eef6fb_100%)] ${
-          circularImage
-            ? "grid h-48 place-items-center p-5"
-            : "h-44 overflow-hidden"
+        className={`relative shrink-0 overflow-hidden bg-[linear-gradient(135deg,#e9f5ef_0%,#eef6fb_100%)] ${
+          circularImage ? "grid h-48 place-items-center p-5" : "h-44"
         }`}
       >
         {imageUrl && circularImage ? (
@@ -133,6 +130,7 @@ const ProfileFlipCard = ({
             alt={localizedProfileName}
             className="h-full w-full object-contain object-center p-1.5"
             loading="lazy"
+            decoding="async"
             onError={(event) => {
               event.currentTarget.style.display = "none";
               event.currentTarget.nextElementSibling?.classList.remove("hidden");

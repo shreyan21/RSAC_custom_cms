@@ -12,6 +12,7 @@ const AdministrationPage = () => {
   const c = pageContent.administration;
   return (
     <PageShell
+      className="rsac-people-directory rsac-people-directory--administration"
       eyebrow={c.eyebrow}
       title={c.title}
       breadcrumbs={[

@@ -107,7 +107,16 @@ const defaultHiddenHomeSections = [
 ];
 
 const HomePage = () => {
-  const { layout, appearance = {} } = useSiteSettings();
+  const { layout, appearance = {}, designSettings = {} } = useSiteSettings();
+  const allowedTypographySizes = new Set(["compact", "normal", "large"]);
+  const typographyFor = (sectionKey) => {
+    const section = designSettings.homeSectionTypography?.[sectionKey] || {};
+    return {
+      "data-rsac-home-section": sectionKey,
+      "data-rsac-section-heading-size": allowedTypographySizes.has(section.headingSize) ? section.headingSize : undefined,
+      "data-rsac-section-body-size": allowedTypographySizes.has(section.bodySize) ? section.bodySize : undefined,
+    };
+  };
   const baseOrder =
     Array.isArray(layout?.homeSections) && layout.homeSections.length
       ? layout.homeSections
@@ -178,7 +187,9 @@ const HomePage = () => {
       data-rsac-home-body-size={appearance.homeBodySize || "normal"}
     >
 
-      <Hero />
+      <div className="rsac-home-section-frame" {...typographyFor("hero")}>
+        <Hero />
+      </div>
 
       {/* Ticker and section nav are chrome, not content sections, so they are
           gated on the same hiddenHomeSections list: add "announcementTicker" or
@@ -191,7 +202,8 @@ const HomePage = () => {
         sections[sectionKey] ? (
           <div
             key={sectionKey}
-            className={sectionKey === "mission" ? undefined : "rsac-deferred-section"}
+            className={`rsac-home-section-frame${sectionKey === "mission" ? "" : " rsac-deferred-section"}`}
+            {...typographyFor(sectionKey)}
           >
             {sections[sectionKey]}
           </div>

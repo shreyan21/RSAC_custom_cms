@@ -263,6 +263,11 @@ textarea { resize: vertical; }
 .homepage-layout-list > div > span { display: flex; gap: 6px; }
 .homepage-layout-list button { min-height: 32px; border: 1px solid #cbd8de; border-radius: 5px; background: white; padding: 5px 9px; color: #31566c; font-size: 12px; font-weight: 650; }
 .homepage-layout-list button:disabled { cursor: not-allowed; opacity: .45; }
+.homepage-typography-list { display: grid; gap: 8px; }
+.homepage-typography-list > div { display: grid; grid-template-columns: minmax(150px, 1fr) repeat(2, minmax(145px, .8fr)); align-items: end; gap: 12px; border: 1px solid #dbe5e9; border-radius: 6px; background: #fbfdfc; padding: 10px; }
+.homepage-typography-list > div > strong { align-self: center; color: #173a63; }
+.homepage-typography-list label { display: grid; gap: 5px; }
+.homepage-typography-list label span { color: #476273; font-size: .78rem; font-weight: 700; }
 .homepage-chrome-list { display: flex; flex-wrap: wrap; gap: 12px 22px; border-top: 1px solid #dbe5e9; padding-top: 12px; }
 .advanced-settings { border-top: 1px solid #d8e0e8; padding-top: 12px; }
 .advanced-settings summary { cursor: pointer; font-weight: 700; color: #173a63; }
@@ -356,6 +361,7 @@ textarea { resize: vertical; }
   .settings-grid { grid-template-columns: 1fr; }
   .settings-row-fields { grid-template-columns: 1fr; }
   .homepage-layout-list > div { align-items: flex-start; flex-direction: column; }
+  .homepage-typography-list > div { grid-template-columns: 1fr; }
   .object-list-editor section > div { grid-template-columns: 1fr; }
   .section-fields, .nested-rows > div { grid-template-columns: 1fr; }
   .section-fields label:nth-child(2) { grid-column: auto; }

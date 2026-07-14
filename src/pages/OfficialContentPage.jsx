@@ -1261,13 +1261,29 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
   return mergedProfiles;
 };
 
-const dedupeFormerSections = (sections) => {
-  const seenKeys = new Set();
-  return sections.map((section) => ({
-    ...section,
-    profiles: dedupeProfileCards(section.profiles, seenKeys),
-  }));
+const dedupeFormerSectionProfiles = (profiles) => {
+  const seenRecords = new Set();
+
+  return profiles.filter((profile) => {
+    const name = normalizeEquivalentHonorifics(getProfileName(profile));
+    const tenure = getProfileDurationValue(profile) ||
+      getProfileField(profile, ["Duration", "Tenure", "Time Period"])?.value || "";
+    const recordKey = `${name}|${normalizeName(tenure)}`;
+
+    if (seenRecords.has(recordKey)) {
+      return false;
+    }
+
+    seenRecords.add(recordKey);
+    return true;
+  });
 };
+
+const dedupeFormerSections = (sections) =>
+  sections.map((section) => ({
+    ...section,
+    profiles: dedupeFormerSectionProfiles(section.profiles),
+  }));
 
 const looksLikePersonName = (value) =>
   /^(hon'?ble\s+|late\s+|माननीय\s+|स्वर्गीय\s+)?(dr\.?|prof\.?|shri\.?|sri|smt\.?|sushri|mr\.?|ms\.?|mohd\.?|श्री\.?|श्रीमती|सुश्री|डॉ\.?|डॉ॰|प्रो\.?|कुमारी)/i.test(
@@ -4423,6 +4439,7 @@ const OfficialProfileCard = ({
       ? [duration, ...profileDetails]
       : profileDetails;
   const imageUrl = getProfileImage(mergedProfile);
+  const circularImage = mergedProfile.profileType !== "scientist";
 
   return (
     <article
@@ -4431,14 +4448,26 @@ const OfficialProfileCard = ({
     >
       <div className="profile-flip-inner h-full min-h-[328px] min-w-0 max-w-full">
         <div className="profile-flip-face profile-flip-front flex h-full min-h-[328px] min-w-0 max-w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.07)]">
-          <div className="relative h-40 shrink-0 overflow-hidden bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)]">
+          <div className={`relative shrink-0 overflow-hidden bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)] ${
+            circularImage ? "grid h-40 place-items-center p-4" : "h-40"
+          }`}>
             {employeeId && (
               <span className="absolute left-2 top-2 z-10 rounded-md bg-white/92 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0b6fa4] shadow-sm">
                 {language === "hi" ? "आईडी" : "ID"}: {employeeId.value}
               </span>
             )}
 
-            {imageUrl ? (
+            {imageUrl && circularImage ? (
+              <div className="rsac-circular-portrait h-32 w-32 border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.14)]">
+                <img
+                  src={imageUrl}
+                  alt={profileName}
+                  className="rsac-circular-portrait__image"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            ) : imageUrl ? (
               <img
                 src={imageUrl}
                 alt={profileName}
@@ -4447,7 +4476,10 @@ const OfficialProfileCard = ({
                 decoding="async"
               />
             ) : (
-              <div className="grid h-full place-items-center">
+              <div className={circularImage
+                ? "rsac-circular-portrait grid h-28 w-28 place-items-center border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.1)]"
+                : "grid h-full place-items-center"
+              }>
                 <UserRound className="h-12 w-12 text-[#0f6f42]" aria-hidden="true" />
               </div>
             )}
@@ -4515,12 +4547,12 @@ const OfficialStaticProfileCard = ({ profile }) => {
 
   return (
     <article className="rsac-profile-card rsac-cv-row flex h-full min-h-[118px] gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-[0_10px_28px_rgba(18,50,74,0.055)]">
-      <div className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)]">
+      <div className="rsac-circular-portrait h-20 w-20 shrink-0 border-4 border-white bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)] shadow-sm">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={profileName}
-            className="h-full w-full object-contain object-center p-1.5"
+            className="rsac-circular-portrait__image"
             loading="lazy"
             decoding="async"
           />
@@ -5523,6 +5555,7 @@ export const OurFormersPage = () => {
 
   return (
     <PageShell
+      className="rsac-people-directory rsac-people-directory--formers"
       eyebrow={formersContent.eyebrow}
       title={formersContent.title}
       intro={formersContent.intro}
@@ -5564,7 +5597,7 @@ export const OurFormersPage = () => {
           <section
             key={formerSection.id}
             id={formerSection.id}
-            className="scroll-mt-36 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_12px_34px_rgba(18,50,74,0.055)] sm:p-4"
+            className="rsac-former-section scroll-mt-36 p-3 sm:p-5"
           >
             <div className="mb-4 border-b border-slate-200 pb-3">
               <div>

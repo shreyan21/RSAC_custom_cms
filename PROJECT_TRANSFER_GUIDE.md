@@ -141,6 +141,14 @@ Create the application role/database using setup first, then restore the private
 pg_restore.exe -h 127.0.0.1 -U rsac_custom_app -d rsac_custom_cms --clean --if-exists rsac-custom-cms.dump
 ```
 
+For a plain-text `.sql` dump placed in this project's private `backups/` folder, use the guarded restore command:
+
+```powershell
+npm run cms:restore -- backups/rsac_custom_cms_YYYYMMDD_HHMMSS.sql
+```
+
+This command validates the target database, creates a timestamped safety dump, adapts PostgreSQL 18 dump directives when restoring to the supported local PostgreSQL 12 installation, restores in a single transaction, and returns CMS object ownership to the application role. The source SQL file is never modified.
+
 Restore matching uploads to `server/uploads/`. Restore flood documents to `public/documents/flood/` when needed.
 
 Do not restore into `rsac_cms`; that database belongs to the old source system.

@@ -2549,23 +2549,20 @@ footer :where(section, article, aside, nav, div) {
   position: relative;
   aspect-ratio: 1;
   box-sizing: border-box;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  -webkit-border-radius: 50% !important;
   border-radius: 50% !important;
   isolation: isolate;
   overflow: hidden !important;
-  transform: translate3d(0, 0, 0);
+  transform: translateZ(0);
   backface-visibility: hidden;
-  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   -webkit-clip-path: circle(50% at 50% 50%);
   clip-path: circle(50% at 50% 50%);
-  -webkit-mask-image: radial-gradient(circle, #000 99%, transparent 100%);
-  mask-image: radial-gradient(circle, #000 99%, transparent 100%);
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
   contain: paint;
 }
 
@@ -2577,18 +2574,17 @@ footer :where(section, article, aside, nav, div) {
   width: 100%;
   max-width: none;
   height: 100%;
+  max-height: 100%;
+  -webkit-border-radius: 50% !important;
   border-radius: 50% !important;
-  overflow: hidden;
+  overflow: hidden !important;
   object-fit: cover;
-  transform: translate3d(0, 0, 0);
-  -webkit-transform: translate3d(0, 0, 0);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   -webkit-clip-path: circle(50% at 50% 50%);
   clip-path: circle(50% at 50% 50%);
-  -webkit-mask-image: radial-gradient(circle, #000 99%, transparent 100%);
-  mask-image: radial-gradient(circle, #000 99%, transparent 100%);
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .rsac-circular-portrait__background {
@@ -2730,23 +2726,100 @@ a:focus-visible {
   color: #12324a;
 }
 
-/* CMS-selectable homepage reading sizes. The hero keeps its carefully fitted
-   typography; these presets apply to the editable content sections below it. */
-.rsac-home-flow[data-rsac-home-heading-size="compact"] > :not(:first-child) h2 {
-  font-size: clamp(1.55rem, 3vw, 2.2rem) !important;
+/* CMS-selectable homepage reading sizes. A section-specific setting wins over
+   the homepage default and uses fixed responsive steps to avoid text overflow. */
+.rsac-home-flow[data-rsac-home-heading-size="compact"]
+  .rsac-home-section-frame:not([data-rsac-section-heading-size]):not([data-rsac-home-section="hero"]) h2 {
+  font-size: 1.6rem !important;
 }
 
-.rsac-home-flow[data-rsac-home-heading-size="large"] > :not(:first-child) h2 {
-  font-size: clamp(2.1rem, 4vw, 3.2rem) !important;
+.rsac-home-flow[data-rsac-home-heading-size="large"]
+  .rsac-home-section-frame:not([data-rsac-section-heading-size]):not([data-rsac-home-section="hero"]) h2 {
+  font-size: 2.25rem !important;
 }
 
-.rsac-home-flow[data-rsac-home-body-size="compact"] > :not(:first-child) :is(p, li) {
+.rsac-home-flow[data-rsac-home-body-size="compact"]
+  .rsac-home-section-frame:not([data-rsac-section-body-size]):not([data-rsac-home-section="hero"]) :is(p, li) {
   font-size: 0.875rem !important;
 }
 
-.rsac-home-flow[data-rsac-home-body-size="large"] > :not(:first-child) :is(p, li) {
-  font-size: 1.18rem !important;
+.rsac-home-flow[data-rsac-home-body-size="large"]
+  .rsac-home-section-frame:not([data-rsac-section-body-size]):not([data-rsac-home-section="hero"]) :is(p, li) {
+  font-size: 1.125rem !important;
   line-height: 1.75;
+}
+
+.rsac-home-section-frame[data-rsac-section-heading-size="compact"] :is(h1, h2) {
+  font-size: 1.6rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-section-heading-size="normal"] :is(h1, h2) {
+  font-size: 1.9rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-section-heading-size="large"] :is(h1, h2) {
+  font-size: 2.25rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-section-body-size="compact"] :is(p, li) {
+  font-size: 0.875rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-section-body-size="normal"] :is(p, li) {
+  font-size: 1rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-section-body-size="large"] :is(p, li) {
+  font-size: 1.125rem !important;
+  line-height: 1.75;
+}
+
+.rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="compact"] h1 {
+  font-size: 1.15rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="normal"] h1 {
+  font-size: 1.35rem !important;
+}
+
+.rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="large"] h1 {
+  font-size: 1.6rem !important;
+}
+
+@media (min-width: 768px) {
+  .rsac-home-flow[data-rsac-home-heading-size="compact"]
+    .rsac-home-section-frame:not([data-rsac-section-heading-size]):not([data-rsac-home-section="hero"]) h2,
+  .rsac-home-section-frame[data-rsac-section-heading-size="compact"] :is(h1, h2) {
+    font-size: 2.1rem !important;
+  }
+
+  .rsac-home-flow[data-rsac-home-heading-size="large"]
+    .rsac-home-section-frame:not([data-rsac-section-heading-size]):not([data-rsac-home-section="hero"]) h2,
+  .rsac-home-section-frame[data-rsac-section-heading-size="large"] :is(h1, h2) {
+    font-size: 3.4rem !important;
+  }
+
+  .rsac-home-section-frame[data-rsac-section-heading-size="normal"] :is(h1, h2) {
+    font-size: 2.8rem !important;
+  }
+
+  .rsac-home-flow[data-rsac-home-body-size="large"]
+    .rsac-home-section-frame:not([data-rsac-section-body-size]):not([data-rsac-home-section="hero"]) :is(p, li),
+  .rsac-home-section-frame[data-rsac-section-body-size="large"] :is(p, li) {
+    font-size: 1.2rem !important;
+  }
+
+  .rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="compact"] h1 {
+    font-size: 1.55rem !important;
+  }
+
+  .rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="normal"] h1 {
+    font-size: 1.95rem !important;
+  }
+
+  .rsac-home-section-frame[data-rsac-home-section="hero"][data-rsac-section-heading-size="large"] h1 {
+    font-size: 2.35rem !important;
+  }
 }
 
 .rsac-page-content {

@@ -10,6 +10,8 @@ export const siteSettings = {
   interfaceLabels: { ...uiLabelDefaults },
   appearance: {
     fontFamily: "Inter, sans-serif",
+    homeHeadingSize: "normal",
+    homeBodySize: "normal",
     primary: "#0f6f42",
     primaryDark: "#0b5f38",
     secondary: "#0b6fa4",

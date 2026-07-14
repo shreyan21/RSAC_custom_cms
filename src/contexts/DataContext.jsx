@@ -6,10 +6,10 @@ import { DataContext } from "./DataContextCore";
 
 const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v1";
 const fontStacks = {
-  Inter: '"Inter Variable", Inter, sans-serif',
-  "Plus Jakarta Sans": '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", sans-serif',
-  "System Sans": 'system-ui, -apple-system, "Segoe UI", sans-serif',
-  "System Serif": 'Georgia, "Times New Roman", serif',
+  Inter: '"Inter Variable", Inter, "Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Nirmala UI", sans-serif',
+  "Plus Jakarta Sans": '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Nirmala UI", sans-serif',
+  "System Sans": 'system-ui, -apple-system, "Segoe UI", "Nirmala UI", Mangal, sans-serif',
+  "System Serif": 'Georgia, "Times New Roman", "Noto Sans Devanagari Variable", "Nirmala UI", serif',
   "Noto Sans Devanagari": '"Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Nirmala UI", Mangal, sans-serif',
   "System Devanagari": '"Nirmala UI", Mangal, sans-serif',
 };
@@ -90,9 +90,10 @@ export function DataProvider({ children }) {
   useEffect(() => {
     const design = data?.siteSettings?.designSettings || {};
     const root = document.documentElement;
-    root.style.setProperty("--rsac-font-family", fontStacks[design.bodyFont] || fontStacks.Inter);
-    root.style.setProperty("--rsac-font-display", fontStacks[design.headingFont] || fontStacks["Plus Jakarta Sans"]);
-    root.style.setProperty("--rsac-font-hindi", fontStacks[design.hindiFont] || fontStacks["Noto Sans Devanagari"]);
+    const completeWebsiteFont = fontStacks[design.siteFont];
+    root.style.setProperty("--rsac-font-family", completeWebsiteFont || fontStacks[design.bodyFont] || fontStacks.Inter);
+    root.style.setProperty("--rsac-font-display", completeWebsiteFont || fontStacks[design.headingFont] || fontStacks["Plus Jakarta Sans"]);
+    root.style.setProperty("--rsac-font-hindi", completeWebsiteFont || fontStacks[design.hindiFont] || fontStacks["Noto Sans Devanagari"]);
     const size = Math.min(20, Math.max(14, Number(design.baseFontSize) || 16));
     root.style.setProperty("--rsac-base-font-size", `${size}px`);
     root.dataset.rsacSurface = ["atlas", "clean", "bands"].includes(design.surfaceStyle)

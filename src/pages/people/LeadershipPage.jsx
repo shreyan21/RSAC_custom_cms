@@ -12,6 +12,7 @@ const LeadershipPage = () => {
   const c = pageContent.leadership;
   return (
     <PageShell
+      className="rsac-people-directory rsac-people-directory--leadership"
       eyebrow={c.eyebrow}
       title={c.title}
       intro={c.intro}
@@ -38,7 +39,6 @@ const LeadershipPage = () => {
             key={`${profile.profileType || "leadership"}-${profile.id || profile.name}`}
             profile={profile}
             enableFlip={false}
-            imageShape="circle"
           />
         ))}
       </div>

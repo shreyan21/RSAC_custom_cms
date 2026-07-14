@@ -74,6 +74,7 @@ if (!Array.isArray(users) || !users.some((user) => user.role === "admin" && user
 const collectionDefinitions = (await request("/api/admin/collections")).payload.data;
 const divisionListDefinition = collectionDefinitions.find((item) => item.id === "division_section_items");
 const pageDefinition = collectionDefinitions.find((item) => item.id === "pages");
+const designDefinition = collectionDefinitions.find((item) => item.id === "design_settings");
 const divisionField = divisionListDefinition?.fields?.find((field) => field.name === "divisionSlug");
 const sectionField = divisionListDefinition?.fields?.find((field) => field.name === "sectionKey");
 if (!divisionListDefinition?.autoNewestFirst || divisionField?.type !== "select" || sectionField?.type !== "select") {
@@ -82,6 +83,9 @@ if (!divisionListDefinition?.autoNewestFirst || divisionField?.type !== "select"
 const hiddenProfilesField = pageDefinition?.fields?.find((field) => field.name === "hiddenProfileNames");
 if (hiddenProfilesField?.type !== "list" || hiddenProfilesField.localized !== false) {
   throw new Error("CMS portal does not expose shared per-page duplicate profile controls.");
+}
+if (designDefinition?.fields?.find((field) => field.name === "siteFont")?.type !== "select" || designDefinition?.fields?.find((field) => field.name === "homeSectionTypography")?.type !== "json") {
+  throw new Error("CMS portal does not expose complete-site font and homepage section typography controls.");
 }
 
 const profileEntries = (await request("/api/admin/content/profiles")).payload.data;
@@ -106,6 +110,9 @@ if (!duplicateProfileRejected) throw new Error("CMS allowed a duplicate active p
 const entries = (await request("/api/admin/content/impact_stats")).payload.data;
 const original = structuredClone(entries.find((item) => item.status === "published"));
 if (!original?.entryKey) throw new Error("Admin entryKey contract is missing.");
+const designEntries = (await request("/api/admin/content/design_settings")).payload.data;
+const designOriginal = structuredClone(designEntries.find((item) => item.status === "published"));
+if (!designOriginal?.entryKey) throw new Error("Website Design and Fonts record is missing.");
 const testEn = `${original.dataEn.label} [CMS VERIFY]`;
 const testHi = `${original.dataHi.label} परीक्षण`;
 let updated = null;
@@ -113,9 +120,22 @@ let facilityOriginal = null;
 let facilityUpdated = null;
 let divisionPageOriginal = null;
 let divisionPageUpdated = null;
+let designUpdated = null;
 let verificationError = null;
 
 try {
+  const designDraft = structuredClone(designOriginal);
+  designDraft.dataEn.siteFont = "System Sans";
+  designDraft.dataEn.homeSectionTypography = {
+    ...(designDraft.dataEn.homeSectionTypography || {}),
+    about: { headingSize: "large", bodySize: "compact" },
+  };
+  designUpdated = (await request(`/api/admin/content/design_settings/${designDraft.id}`, { method: "PUT", body: JSON.stringify(designDraft) })).payload.data;
+  const designEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.siteSettings.designSettings;
+  const designHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.siteSettings.designSettings;
+  if (designEnglish.siteFont !== "System Sans" || designHindi.siteFont !== "System Sans" || designEnglish.homeSectionTypography?.about?.headingSize !== "large" || designHindi.homeSectionTypography?.about?.bodySize !== "compact") {
+    throw new Error("Shared website font or homepage section typography controls did not reach both languages.");
+  }
   const draft = structuredClone(original);
   draft.dataEn.label = testEn;
   draft.dataHi.label = testHi;
@@ -206,6 +226,10 @@ try {
   if (divisionPageUpdated && divisionPageOriginal) {
     const restoreDivisionPage = { ...divisionPageUpdated, entryKey: divisionPageOriginal.entryKey, dataEn: divisionPageOriginal.dataEn, dataHi: divisionPageOriginal.dataHi, status: divisionPageOriginal.status, sortOrder: divisionPageOriginal.sortOrder };
     await request(`/api/admin/content/pages/${divisionPageOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDivisionPage) });
+  }
+  if (designUpdated) {
+    const restoreDesign = { ...designUpdated, entryKey: designOriginal.entryKey, dataEn: designOriginal.dataEn, dataHi: designOriginal.dataHi, status: designOriginal.status, sortOrder: designOriginal.sortOrder };
+    await request(`/api/admin/content/design_settings/${designOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDesign) });
   }
   await request("/api/auth/logout", { method: "POST" });
 }

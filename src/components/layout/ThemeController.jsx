@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useSiteSettings } from "../../hooks/useData";
 
 const tokenMap = {
-  fontFamily: "--rsac-font-family",
   primary: "--rsac-primary",
   primaryDark: "--rsac-primary-dark",
   secondary: "--rsac-secondary",
