@@ -48,7 +48,7 @@ const matchingBlockIndex = (data, referenceBlock, fallbackIndex) => {
   return fallbackIndex < blocks.length ? fallbackIndex : -1;
 };
 
-export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", onSave, onClose, onOpenPeople, onOpenGallery, notify }) {
+export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, onOpenGallery, notify }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState(null);
   const [sectionIndex, setSectionIndex] = useState(null);
@@ -58,6 +58,9 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
 
   const filteredPages = useMemo(() => pages.filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase())), [pages, search]);
   const englishBlocks = draft?.dataEn?.blocks || [];
+  const visibleSectionBlocks = englishBlocks
+    .map((block, index) => ({ block, index }))
+    .filter(({ block }) => !sectionFilter || sectionFilter(block));
   const currentData = language === "hi" ? draft?.dataHi : draft?.dataEn;
   const blockSectionIndex = Number.isInteger(sectionIndex) ? sectionIndex : -1;
   const englishBlock = englishBlocks[blockSectionIndex];
@@ -168,7 +171,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     return (
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose only the section you need. Other sections stay closed.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
-        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, image, text size, width, and spacing</span></button>{englishBlocks.map((block, index) => {
+        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, image, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
           const count = visibleRows(block).length;
           return <button type="button" className="workspace-card" key={block.id || `${sectionLabel}-${index}`} onClick={() => { setSectionIndex(index); setRowSearch(""); }}><strong>{sectionLabel}</strong><span>{isPeopleSection(sectionLabel) ? "Open people controls" : isPhotoSection(sectionLabel) ? "Open photo section" : `${count} editable ${count === 1 ? "row" : "rows"}`}</span></button>;

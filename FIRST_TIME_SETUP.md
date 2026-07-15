@@ -176,7 +176,9 @@ local schema after an instructed project update.
 npm.cmd run cms:backup
 ```
 
-This creates a dated SQL file inside `backups/`.
+This creates a dated SQL file inside `backups/`. After the new SQL file is
+successfully checked, older `rsac_custom_cms_YYYYMMDD_HHMMSS.sql` files are
+removed automatically. Safety dumps and unrelated files are not removed.
 
 ### Uploaded Files
 

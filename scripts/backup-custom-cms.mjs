@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, open, readdir, stat, unlink } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 
@@ -61,4 +61,37 @@ await new Promise((resolveBackup, rejectBackup) => {
 });
 
 const details = await stat(backupPath);
+if (!details.isFile() || details.size < 1024) {
+  throw new Error("The new database backup is unexpectedly small. Older backups were kept.");
+}
+
+const handle = await open(backupPath, "r");
+const headerBuffer = Buffer.alloc(128);
+try {
+  await handle.read(headerBuffer, 0, headerBuffer.length, 0);
+} finally {
+  await handle.close();
+}
+if (!headerBuffer.toString("utf8").includes("PostgreSQL database dump")) {
+  throw new Error("The new file is not a valid PostgreSQL plain-text dump. Older backups were kept.");
+}
+
+const generatedBackupPattern = new RegExp(
+  `^${expectedDatabase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_\\d{8}_\\d{6}\\.sql$`,
+  "u"
+);
+const currentBackupName = basename(backupPath);
+const olderBackups = (await readdir(backupsDirectory, { withFileTypes: true }))
+  .filter((entry) => entry.isFile() && entry.name !== currentBackupName && generatedBackupPattern.test(entry.name))
+  .map((entry) => entry.name);
+
+for (const fileName of olderBackups) {
+  await unlink(resolve(backupsDirectory, fileName));
+}
+
 console.log(`Database backup created: backups/${basename(backupPath)} (${(details.size / 1024 / 1024).toFixed(1)} MB)`);
+console.log(
+  olderBackups.length
+    ? `Removed ${olderBackups.length} older generated database ${olderBackups.length === 1 ? "backup" : "backups"}.`
+    : "No older generated database backups needed removal."
+);

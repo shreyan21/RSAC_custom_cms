@@ -31,6 +31,10 @@ npm.cmd run build:admin
 npm.cmd run cms:backup
 ```
 
+This keeps the newly verified `rsac_custom_cms_YYYYMMDD_HHMMSS.sql` backup and
+removes older files with that exact generated name. It does not remove restore
+safety dumps, JSON snapshots, or unrelated files in `backups`.
+
 Keep the new `backups\*.sql` file privately. Also copy `server\uploads` when it
 contains files. Keep both together.
 

@@ -87,12 +87,115 @@ const buildPageViews = (definitions, pageEntries) => {
   return [...definitions, ...views];
 };
 
+const blockLabel = (block) => String(
+  block?.sourceLabel || block?.heading || block?.value || block?.label || ""
+).replace(/^Section:\s*/i, "").trim();
+
+const hasVisibleBlockRows = (block) =>
+  (block?.children || []).some((child) => !child.hidden && String(child.value || "").trim());
+
+const projectSection = (block) => /\bprojects?\b/i.test(blockLabel(block));
+const publicationSection = (block) =>
+  /research|paper|publication|technical reports?|atlas/i.test(blockLabel(block));
+
+const hasMatchingSection = (entry, sectionFilter) =>
+  (entry.dataEn?.blocks || []).some((block) => sectionFilter(block) && hasVisibleBlockRows(block));
+
+const countsFor = (entries) => {
+  const active = entries.filter((entry) => entry.status !== "archived");
+  return {
+    total: active.length,
+    published: active.filter((entry) => entry.status === "published").length,
+    drafts: active.filter((entry) => entry.status === "draft").length,
+    hindi: active.filter((entry) => hasLanguage(entry, "dataHi")).length,
+  };
+};
+
+const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
+  const pagesDefinition = definitions.find((item) => item.id === "pages");
+  const publicInfoDefinition = definitions.find((item) => item.id === "public_info");
+
+  const divisionWorkspace = (definition, options) => {
+    const entries = pageEntries.filter((entry) =>
+      entry.dataEn?.sectionKey === "divisions" && hasMatchingSection(entry, options.sectionFilter)
+    );
+    return {
+      ...definition,
+      ...pagesDefinition,
+      id: definition.id,
+      storageId: "pages",
+      label: options.label,
+      description: options.description,
+      workspace: true,
+      workspaceKind: "divisions",
+      filterField: "sectionKey",
+      filterValue: "divisions",
+      entryFilter: (entry) => hasMatchingSection(entry, options.sectionFilter),
+      sectionFilter: options.sectionFilter,
+      allowCreate: false,
+      counts: countsFor(entries),
+    };
+  };
+
+  const publicPageView = (definition, slug, label, contentName) => {
+    const entries = publicInfoEntries.filter((entry) => entry.dataEn?.slug === slug);
+    const sectionCount = entries[0]?.dataEn?.sections?.length || 0;
+    return {
+      ...definition,
+      ...publicInfoDefinition,
+      id: definition.id,
+      storageId: "public_info",
+      label,
+      description: `Edit the ${contentName} page and its ${sectionCount} current ${sectionCount === 1 ? "section" : "sections"}.`,
+      filterField: "slug",
+      filterValue: slug,
+      allowCreate: false,
+      singleton: false,
+      fields: (publicInfoDefinition?.fields || []).map((field) =>
+        field.name === "slug" ? { ...field, hidden: true } : field
+      ),
+      counts: countsFor(entries),
+    };
+  };
+
+  return definitions.map((definition) => {
+    if (definition.id === "projects") {
+      return divisionWorkspace(definition, {
+        label: "Division Projects",
+        description: "Edit the ongoing and completed project sections already shown on division pages.",
+        sectionFilter: projectSection,
+      });
+    }
+    if (definition.id === "publications") {
+      return divisionWorkspace(definition, {
+        label: "Publications, Research Papers and Reports",
+        description: "Edit the publication, research-paper and technical-report sections already shown on division pages.",
+        sectionFilter: publicationSection,
+      });
+    }
+    if (definition.id === "tenders") {
+      return publicPageView(definition, "tenders", "Tenders", "tenders");
+    }
+    if (definition.id === "faq") {
+      return publicPageView(definition, "faq", "Frequently Asked Questions", "FAQ");
+    }
+    if (definition.id === "division_section_items") {
+      return {
+        ...definition,
+        label: "Add New Division List Items",
+        description: "Add new project, research-paper, report or publication rows. Edit existing rows through Division Projects or Publications and Research Papers.",
+      };
+    }
+    return definition;
+  });
+};
+
 const groups = [
   { title: "Homepage", ids: ["site_settings", "hero_banners", "homepage_features", "services", "applications", "operational_domains", "impact_stats", "quick_links", "geoportals"] },
   { title: "Pages", ids: ["about_pages", "division_pages", "facility_pages", "academic_pages", "pages"] },
   { title: "Navigation and appearance", ids: ["page_sections", "page_display_settings", "design_settings", "menu_items", "contact", "logos"] },
   { title: "Divisions and people", ids: ["divisions", "facilities", "division_section_items", "projects", "publications", "profiles", "manpower", "organisation_roles"] },
-  { title: "Public information", ids: ["public_info", "policies", "notices", "tenders", "faq", "downloads", "flood_reports", "gallery", "mobile_apps"] },
+  { title: "Public information", ids: ["public_info", "policies", "notices", "tenders", "faq", "flood_reports", "gallery", "mobile_apps"] },
 ];
 
 function Login({ onLogin }) {
@@ -185,7 +288,7 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
 function GuideView() {
   const tasks = [
     ["Edit one division section", "Open Division Content, select a division, then open only Research Papers, Projects, Reports, Software, Hardware, Photos, or another section. Search, edit, remove, restore, or add a row at the top."],
-    ["Add division research or projects", "Open Division List Items, click Add new, choose the division and website section, complete English and Hindi, set Published, then Save. New items become number 1 automatically."],
+    ["Add division research or projects", "Open Add New Division List Items, click Add new, choose the division and website section, complete English and Hindi, set Published, then Save. New items become number 1 automatically."],
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
     ["Change card order", "Open Advanced options and set Sort order: 0 first, 1 second, 2 third. Website refreshes within a few seconds."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
@@ -201,7 +304,7 @@ function GuideView() {
       <div className="guide-hero"><BookOpen /><div><span>Editor handbook</span><h2>How to update the RSAC-UP website</h2><p>Simple workflows for authorised nontechnical editors.</p></div></div>
       <div className="guide-warning"><ShieldCheck /><p><strong>Golden rule:</strong> edit English and Hindi separately. Never paste passwords, personal files, or unapproved documents into public content.</p></div>
       <div className="guide-grid">{tasks.map(([title, text], index) => <article key={title}><span>{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
-      <div className="guide-detail"><h3>Which collection should I open?</h3><dl><div><dt>Homepage layout and text</dt><dd>Homepage and Global Text controls section visibility/order, Hero, About, Services, Statistics, Location, Gallery and Footer text.</dd></div><div><dt>Homepage cards</dt><dd>Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows.</dd></div><div><dt>Facilities</dt><dd>Facilities under Pages contains all ten facility detail pages. Use Add new for another facility.</dd></div><div><dt>Division cards</dt><dd>Divisions. Sort order also controls the division page cards.</dd></div><div><dt>Existing division sections</dt><dd>Division Content. Choose one division and open only the exact section you need.</dd></div><div><dt>New division list record</dt><dd>Division List Items. It provides a detailed form for research papers, completed projects, ongoing projects, technical reports, publications and training lists.</dd></div><div><dt>Full pages</dt><dd>About Pages, Division Content, Facilities, Training and Academics, or All Website Pages.</dd></div><div><dt>Gallery heading</dt><dd>Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading.</dd></div><div><dt>Heading visibility</dt><dd>Page Headings and Subheadings controls small heading, main title, introduction and heading size by route.</dd></div><div><dt>Fonts and text size</dt><dd>Design Settings controls safe bundled English/Hindi fonts and responsive base size.</dd></div><div><dt>People</dt><dd>Scientists / Officials / Staff, Manpower and Organisation Chart.</dd></div><div><dt>Public updates</dt><dd>Notices, Tenders, FAQ, Downloads, Flood Reports and Gallery.</dd></div><div><dt>Site-wide content</dt><dd>Header / Footer Menu, Contact, Logos and Homepage and Global Text.</dd></div><div><dt>More editors</dt><dd>Administrators use Users to create, reset, deactivate and assign Editor or Administrator roles.</dd></div></dl></div>
+      <div className="guide-detail"><h3>Which collection should I open?</h3><dl><div><dt>Homepage layout and text</dt><dd>Homepage and Global Text controls section visibility/order, Hero, About, Services, Statistics, Location, Gallery and Footer text.</dd></div><div><dt>Homepage cards</dt><dd>Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows.</dd></div><div><dt>Facilities</dt><dd>Facilities under Pages contains all ten facility detail pages. Use Add new for another facility.</dd></div><div><dt>Division cards</dt><dd>Divisions. Sort order also controls the division page cards.</dd></div><div><dt>Existing division sections</dt><dd>Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Content shows every section.</dd></div><div><dt>New division list record</dt><dd>Add New Division List Items provides a detailed form for new research papers, projects, reports, publications and training records.</dd></div><div><dt>Full pages</dt><dd>About Pages, Division Content, Facilities, Training and Academics, or All Website Pages.</dd></div><div><dt>Gallery heading</dt><dd>Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading.</dd></div><div><dt>Heading visibility</dt><dd>Page Headings and Subheadings controls small heading, main title, introduction and heading size by route.</dd></div><div><dt>Fonts and text size</dt><dd>Design Settings controls safe bundled English/Hindi fonts and responsive base size.</dd></div><div><dt>People</dt><dd>Scientists / Officials / Staff, Manpower and Organisation Chart.</dd></div><div><dt>Public updates</dt><dd>Tenders and FAQ open their live public-service pages. Notices, Flood Reports and Gallery manage their own records and files.</dd></div><div><dt>Site-wide content</dt><dd>Header / Footer Menu, Contact, Logos and Homepage and Global Text.</dd></div><div><dt>More editors</dt><dd>Administrators use Users to create, reset, deactivate and assign Editor or Administrator roles.</dd></div></dl></div>
       <div className="guide-checklist"><h3>Before clicking Save</h3><ul><li>English and Hindi are in the correct language tabs.</li><li>Sort order does not duplicate another important item unnecessarily.</li><li>Links and documents open.</li><li>Images have useful alt text.</li><li>Draft or Published status is intentional.</li><li>The website still works on phone and desktop.</li></ul></div>
     </section>
   );
@@ -257,16 +360,21 @@ export default function App() {
   const [audit, setAudit] = useState([]);
   const notify = useCallback((message, type = "info") => setNotice(message ? { message, type } : null), []);
   const loadCollections = useCallback(async () => {
-    const [collectionResult, pageResult] = await Promise.all([
+    const [collectionResult, pageResult, publicInfoResult] = await Promise.all([
       api("/api/admin/collections"),
       api("/api/admin/content/pages"),
+      api("/api/admin/content/public_info"),
     ]);
-    setCollections(buildPageViews(collectionResult.data, pageResult.data));
+    setCollections(buildCanonicalViews(
+      buildPageViews(collectionResult.data, pageResult.data),
+      pageResult.data,
+      publicInfoResult.data
+    ));
   }, []);
 
   useEffect(() => { api("/api/auth/me").then((result) => { setCsrfToken(result.csrfToken); setUser(result.user); return loadCollections(); }).catch(() => {}).finally(() => setBooting(false)); }, [loadCollections]);
   const openView = (next) => { setView(next); setSelected(null); setEditing(null); setMenuOpen(false); };
-  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setMenuOpen(false); try { const result = (await api(`/api/admin/content/${definition.storageId || definition.id}`)).data; setEntries(definition.filterField ? result.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
+  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setMenuOpen(false); try { const result = (await api(`/api/admin/content/${definition.storageId || definition.id}`)).data; const fieldFiltered = definition.filterField ? result.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
   const addNew = (definition) => { setSelected(definition); setView("collection"); setEditing("new"); setMenuOpen(false); };
   const refreshCollection = async () => { if (selected) await openCollection(selected); await loadCollections(); };
   const archive = async (entry) => { if (!window.confirm(`Archive "${titleOf(entry)}"? It will disappear from the public website.`)) return; try { await api(`/api/admin/content/${selected.storageId || selected.id}/${entry.id}`, { method: "DELETE" }); notify("Item archived.", "success"); await refreshCollection(); } catch (error) { notify(error.message, "error"); } };
@@ -301,8 +409,8 @@ export default function App() {
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.id === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
-        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div><button className="secondary" onClick={loadCollections}><RefreshCw /> Refresh</button></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
-        {view === "content_workspace" && selected && <DivisionContentWorkspace pages={entries} workspaceKind={selected.filterValue} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} onOpenGallery={() => { const definition = collections.find((item) => item.id === "gallery"); if (definition) openCollection(definition); }} notify={notify} />}
+        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div><button className="secondary" onClick={loadCollections}><RefreshCw /> Refresh</button></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
+        {view === "content_workspace" && selected && <DivisionContentWorkspace pages={entries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} onOpenGallery={() => { const definition = collections.find((item) => item.id === "gallery"); if (definition) openCollection(definition); }} notify={notify} />}
         {view === "collection" && selected && <section className="collection-view"><div className="collection-tools"><button className="back-button" onClick={() => openView("dashboard")}><ArrowLeft /> Collections</button><div className="search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title or key" /></div>{selected.allowCreate !== false && (!selected.singleton || !entries.some((entry) => entry.status !== "archived")) && <button className="primary" onClick={() => setEditing("new")}><Plus /> Add new</button>}</div><div className="sort-help"><RefreshCw /> {selected.id === "division_pages" ? "Choose a division, then open one section. English and Hindi remain separate." : selected.autoNewestFirst ? "New items appear first automatically and are numbered from 1." : "Lower Sort order appears first."} Published changes appear on website within a few seconds.</div><div className="content-table-wrap"><table className="content-table"><thead><tr><th>Content</th><th>English</th><th>Hindi</th><th>Status</th><th>Order</th><th /></tr></thead><tbody>{filteredEntries.map((entry) => <tr key={entry.id}><td data-label="Content"><strong>{titleOf(entry)}</strong><small>{entry.entryKey}</small></td><td data-label="English">{hasLanguage(entry, "dataEn") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Hindi">{hasLanguage(entry, "dataHi") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Status"><span className={`status ${entry.status}`}>{entry.status}</span></td><td data-label="Order">{selected.autoNewestFirst ? "Auto" : entry.sortOrder}</td><td className="content-actions"><div className="row-actions"><button onClick={() => setEditing(entry)}>{selected.id === "division_pages" ? <><ChevronRight /> Open sections</> : <><Pencil /> Edit</>}</button>{selected.id !== "division_pages" && entry.status !== "archived" && <button className="archive" aria-label={`Archive ${titleOf(entry)}`} title="Archive" onClick={() => archive(entry)}><Archive /></button>}</div></td></tr>)}{!filteredEntries.length && <tr><td colSpan="6" className="empty-row">No content found.</td></tr>}</tbody></table></div></section>}
         {view === "guide" && <GuideView />}
         {view === "feedback" && <FeedbackView notify={notify} />}
