@@ -135,7 +135,9 @@ DROP TABLE IF EXISTS
 CASCADE;
 DROP SEQUENCE IF EXISTS public.cms_audit_log_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS public.cms_feedback_id_seq CASCADE;
+DROP FUNCTION IF EXISTS public.cms_random_uuid() CASCADE;
 DROP FUNCTION IF EXISTS public.cms_touch_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS public.set_cms_updated_at() CASCADE;
 
 `;
 

@@ -79,7 +79,7 @@ const GalleryPage = lazy(() => import("./pages/public/GalleryPage"));
 const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage"));
 
 const RouteFallback = () => (
-  <div className="min-h-24" aria-busy="true">
+  <div className="min-h-screen" aria-busy="true">
     <span className="sr-only">Loading</span>
   </div>
 );

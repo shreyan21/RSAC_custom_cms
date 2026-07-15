@@ -1,155 +1,221 @@
-# RSAC Source-to-Target Quick Guide
+# RSAC Two-Computer Sync Guide (Windows CMD)
 
-Move three things:
+Use **Command Prompt (CMD)** for commands below.
 
-1. **Git repository**: code and included public media.
-2. **Database backup**: latest CMS text, users, order, English, and Hindi.
-3. **`server/uploads`**: files uploaded through the CMS.
+## Three Things That Must Be Synced
 
-Git alone does not move the latest database or CMS uploads.
+1. **Code**: GitHub repository.
+2. **CMS data**: latest `backups\rsac_custom_cms_YYYYMMDD_HHMMSS.sql` file.
+3. **CMS uploads**: complete `server\uploads` folder.
 
-## A. Source Computer
+Git does not transfer `.env.local`, database backups, or `server\uploads`.
+Never commit passwords or SQL backups.
 
-### 1. Open Project
+## Choose Your Case
 
-```powershell
-cd D:\RSAC_custom_cms
+| Case | Run `cms:setup`? | Pull Git? | Restore SQL? | Copy uploads? |
+|---|---:|---:|---:|---:|
+| Fresh target computer | Once | Clone | Yes | Yes |
+| Existing target, code changed only | No | Yes | No | No |
+| Existing target, CMS content changed only | No | No | Yes | Yes |
+| Existing target, code and CMS changed | No | Yes | Yes | Yes |
+| Target has newer accepted work | No | Reverse source/target roles | Yes | Yes |
+
+## A. Prepare Source Computer
+
+Open project:
+
+```cmd
+cd /d D:\RSAC_custom_cms
 ```
 
-### 2. Check Website
+### When Code Changed
 
-```powershell
-npm.cmd run cms:validate
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run build:admin
-```
+Check and push code:
 
-### 3. Back Up CMS Data
-
-```powershell
-npm.cmd run cms:backup
-```
-
-This keeps the newly verified `rsac_custom_cms_YYYYMMDD_HHMMSS.sql` backup and
-removes older files with that exact generated name. It does not remove restore
-safety dumps, JSON snapshots, or unrelated files in `backups`.
-
-Keep the new `backups\*.sql` file privately. Also copy `server\uploads` when it
-contains files. Keep both together.
-
-### 4. Confirm Secrets Are Ignored
-
-```powershell
-git check-ignore .env.local
-git check-ignore backups
-git check-ignore server/uploads
-```
-
-Never commit these three items.
-
-### 5. Commit and Push Code
-
-```powershell
+```cmd
+npm run lint
+npm run build
+npm run build:admin
 git status
 git diff --check
 git add .
 git status
-git commit -m "Update RSAC custom CMS website"
+git commit -m "Describe the RSAC update"
+git push origin master
+```
+
+For first GitHub push only:
+
+```cmd
 git branch -M master
+git remote add origin https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git
 git push -u origin master
 ```
 
-For a new GitHub repository, run this once before pushing:
+Skip `git remote add origin` when `git remote -v` already shows `origin`.
 
-```powershell
-git remote add origin https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git
+### When CMS Content or Uploaded Media Changed
+
+Create database backup:
+
+```cmd
+npm run cms:backup
 ```
 
-## B. Target Computer
+Command prints new SQL filename. Existing backups are kept.
 
-### 1. Install
+Copy SQL and uploads to USB/shared folder. Replace `X:` with its drive:
 
-Install Git, Node.js 20+, and PostgreSQL 14+.
-
-### 2. Download Code
-
-```powershell
-git clone https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git
-cd YOUR-REPOSITORY
-npm.cmd ci --include=dev
+```cmd
+if not exist X:\RSAC_TRANSFER mkdir X:\RSAC_TRANSFER
+copy /Y "backups\YOUR_NEW_BACKUP.sql" "X:\RSAC_TRANSFER\"
+xcopy "server\uploads" "X:\RSAC_TRANSFER\uploads" /E /I /Y
 ```
 
-### 3. Create Local CMS Database
+If `server\uploads` does not exist or is empty, skip `xcopy`.
 
-```powershell
-$env:POSTGRES_ADMIN_PASSWORD = Read-Host "Enter PostgreSQL password"
-$env:CMS_ADMIN_PASSWORD = Read-Host "Choose CMS admin password"
-npm.cmd run cms:setup
-Remove-Item Env:\POSTGRES_ADMIN_PASSWORD
-Remove-Item Env:\CMS_ADMIN_PASSWORD
+## B. Fresh Target Computer
+
+Install Git, Node.js 20+, and PostgreSQL 14+ first.
+
+Clone and install:
+
+```cmd
+git clone https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git D:\RSAC_custom_cms
+cd /d D:\RSAC_custom_cms
+npm ci --include=dev
 ```
 
-This creates database `rsac_custom_cms`. CMS username is `admin`. Local details
-are stored in ignored `.env.local`.
+Create local database and CMS login once:
 
-### 4. Restore Exact Source Content
-
-Copy the saved SQL file into target `backups` folder, then run:
-
-```powershell
-npm.cmd run cms:restore -- backups\YOUR_BACKUP_FILE.sql
+```cmd
+set /p "POSTGRES_ADMIN_PASSWORD=Enter PostgreSQL password: "
+set /p "CMS_ADMIN_PASSWORD=Choose CMS admin password: "
+npm run cms:setup
+set "POSTGRES_ADMIN_PASSWORD="
+set "CMS_ADMIN_PASSWORD="
 ```
 
-Copy the saved uploads folder back to:
+CMS username is `admin`. Setup creates ignored `.env.local`.
 
-```text
-server/uploads/
+Copy and restore source data:
+
+```cmd
+if not exist backups mkdir backups
+copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
+xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
 ```
 
-Skip uploads copy only when source folder was empty.
+Without source SQL, setup uses committed starter seed. It will not contain latest
+source CMS edits.
 
-### 5. Start Everything
+## C. Existing Target Computer
 
-```powershell
-npm.cmd run dev:all
+Do **not** run `cms:setup` again.
+
+Stop running stack with `Ctrl+C`, then open project:
+
+```cmd
+cd /d D:\RSAC_custom_cms
+```
+
+### Code Changed Only
+
+```cmd
+git pull origin master
+npm ci --include=dev
+npm run dev:all
+```
+
+Do not restore SQL. Existing target CMS data stays unchanged.
+
+### CMS Content Changed Only
+
+Create target safety backup first:
+
+```cmd
+npm run cms:backup
+```
+
+Then copy and restore source data:
+
+```cmd
+copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
+xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
+npm run dev:all
+```
+
+### Code and CMS Content Both Changed
+
+```cmd
+npm run cms:backup
+git pull origin master
+npm ci --include=dev
+copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
+xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
+npm run dev:all
+```
+
+## D. Changes Were Made on Target Computer
+
+Computer containing newest accepted CMS edits becomes temporary **source**:
+
+1. Run source steps on that computer.
+2. Push its code changes, if any.
+3. Create its SQL backup.
+4. Copy its SQL and uploads to other computer.
+5. Pull code and restore SQL on other computer.
+
+Never edit CMS on both computers at same time. SQL backups cannot safely merge.
+If both were edited, choose one database as master and manually re-enter required
+changes from other computer before making next backup.
+
+## E. Start and Verify
+
+Start stack:
+
+```cmd
+cd /d D:\RSAC_custom_cms
+npm run dev:all
 ```
 
 Open:
 
 - Website: `http://localhost:5173`
 - CMS: `http://localhost:5174`
-- API check: `http://localhost:3000/api/health`
+- API: `http://localhost:3000/api/health`
 
-### 6. Final Check
+In second CMD window, validate:
 
-Check English/Hindi, homepage, divisions, facilities, media, CMS login, and one
-harmless save test.
-
-## Future Updates
-
-Source computer:
-
-```powershell
-git add .
-git commit -m "Describe update"
-git push
+```cmd
+cd /d D:\RSAC_custom_cms
+npm run cms:validate
 ```
 
-Target computer:
+Check English, Hindi, images, PDFs, videos, CMS login, and one harmless edit.
 
-```powershell
-git pull
-npm.cmd ci --include=dev
+## F. CMS Login Fails After Restore
+
+Backup may contain older CMS password. Reset admin using password already stored
+in target `.env.local`:
+
+```cmd
+cd /d D:\RSAC_custom_cms
+npm run cms:reset-admin
 ```
 
-Do not restore an old database after every pull.
+Do not rerun `cms:setup` for this problem.
 
-## Whole Process
+## Safe Rule
 
 ```text
-Source: check -> DB backup -> copy uploads -> commit -> push
-Target: clone -> npm install -> CMS setup -> DB restore -> copy uploads -> start
+Code changed    -> Git push and pull
+CMS changed     -> SQL backup and restore
+Media changed   -> Copy server\uploads
+Fresh target    -> cms:setup once before first restore
+Existing target -> Never rerun cms:setup
 ```
-
-Database, seed, and media explanation: [FIRST_TIME_SETUP.md](FIRST_TIME_SETUP.md).
