@@ -1,6 +1,7 @@
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
 import { extractPageStructuralTextKeys, extractPageTextFields } from "../src/data/pageTextFields.js";
+import { collectDivisionSectionKeys } from "./lib/division-sections.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) {
@@ -59,11 +60,21 @@ try {
       const structuralKeys = usesCategorizedContent
         ? extractPageStructuralTextKeys(data.html)
         : new Set();
+      const categorizedSections = usesCategorizedContent
+        ? collectDivisionSectionKeys(data.html, data.title, row.entry_key)
+        : null;
+      const visibleKeys = categorizedSections
+        ? new Set(categorizedSections.sections.flatMap((section) => section.textKeys || []))
+        : null;
       const fields = extractPageTextFields(data.html);
       checkedFields += fields.length;
       const missing = fields.filter((field) => {
         const value = String(field.value || "").trim();
-        if (!value || punctuationOnly.test(value)) return false;
+        if (
+          !value ||
+          punctuationOnly.test(value) ||
+          (visibleKeys && !visibleKeys.has(field.key))
+        ) return false;
         return !keys.has(field.key) && !labels.has(canonical(value)) && !structuralKeys.has(field.key);
       });
       if (missing.length) {

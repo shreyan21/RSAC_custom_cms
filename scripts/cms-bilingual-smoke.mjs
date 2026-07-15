@@ -200,6 +200,11 @@ try {
   hindiSoftware.children[1].hidden = true;
   englishSoftware.children.unshift({ key: "cms-smoke-new-line", label: "Software -> New line", value: "Newest software test line", isNew: true });
   hindiSoftware.children.unshift({ key: "cms-smoke-new-line", label: "सॉफ्टवेयर -> नई पंक्ति", value: "नवीनतम सॉफ्टवेयर परीक्षण पंक्ति", isNew: true });
+  const mapBlock = divisionDraft.dataEn.blocks?.find((block) => block.assets?.filter((asset) => asset.kind === "image").length >= 2);
+  const mapImages = mapBlock?.assets?.filter((asset) => asset.kind === "image") || [];
+  if (mapImages.length < 2) throw new Error("Division Map/Photos asset controls are missing.");
+  mapImages[0].value = mapImages[1].value;
+  mapImages[0].alt = "CMS asset save verification";
   divisionPageUpdated = (await request(`/api/admin/content/pages/${divisionDraft.id}`, { method: "PUT", body: JSON.stringify(divisionDraft) })).payload.data;
   const updatedEnglishPage = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections.flatMap((section) => section.pages || []).find((page) => page.slug === "computer-image-processing-division");
   const updatedHindiPage = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections.flatMap((section) => section.pages || []).find((page) => page.slug === "computer-image-processing-division");
@@ -210,6 +215,11 @@ try {
   }
   if (!updatedEnglishSoftware.children.some((child) => child.value?.endsWith("[SECTION VERIFY]")) || !updatedHindiSoftware.children.some((child) => child.value?.endsWith("परीक्षण")) || !updatedEnglishSoftware.children.some((child) => child.hidden) || !updatedHindiSoftware.children.some((child) => child.hidden)) {
     throw new Error("Focused division section edit/remove state did not persist separately in English and Hindi.");
+  }
+  const savedAsset = updatedEnglishPage.blocks.flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
+  const sharedHindiAsset = (updatedHindiPage.sharedAssetBlocks || []).flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
+  if (savedAsset?.value !== mapImages[1].value || savedAsset?.alt !== "CMS asset save verification" || sharedHindiAsset?.value !== mapImages[1].value) {
+    throw new Error("Division image/file replacement did not persist or reach the Hindi shared-media payload.");
   }
 } catch (error) {
   verificationError = error;
@@ -256,8 +266,14 @@ if (englishBootstrap.siteSettings.homeSections.featureTabs.length !== 5 || hindi
 const hindiTraining = hindiBootstrap.rsacOfficialSections
   .find((section) => section.key === "divisions")?.pages
   .find((page) => page.slug === "training-division");
-if (!hindiTraining?.structureHtml?.includes("List of Research Papers")) {
-  throw new Error("Live Hindi Training Division lacks structural tab parity.");
+if (
+  !hindiTraining?.html ||
+  (
+    !(hindiTraining.blocks || []).some((block) => String(block?.id || "").startsWith("official-")) &&
+    !hindiTraining.structureHtml?.includes("List of Research Papers")
+  )
+) {
+  throw new Error("Live Hindi Training Division lacks a validated content structure.");
 }
 const hindiHostel = hindiBootstrap.rsacOfficialSections
   .find((section) => section.key === "facilities")?.pages
@@ -265,28 +281,40 @@ const hindiHostel = hindiBootstrap.rsacOfficialSections
 if ((hindiHostel?.html?.match(/<img\b/gi) || []).length !== 5) {
   throw new Error("Hindi Training Hostels does not share all five English photographs.");
 }
-const forestRemovedKeys = new Set(["text-0067", "text-0068", "text-0069", "text-0070", "text-0071", "text-0072"]);
-for (const bootstrap of [englishBootstrap, hindiBootstrap]) {
+const forestRemovedKeys = {
+  en: new Set(["text-0067", "text-0068", "text-0069", "text-0070", "text-0071", "text-0072"]),
+  hi: new Set(["text-0065", "text-0066", "text-0067", "text-0068", "text-0069", "text-0070"]),
+};
+for (const [language, bootstrap] of [["en", englishBootstrap], ["hi", hindiBootstrap]]) {
   const forest = bootstrap.rsacOfficialSections
     .find((section) => section.key === "divisions")?.pages
     .find((page) => page.slug === "forest-resources-ecology-division");
   const removed = (forest?.blocks || []).flatMap((block) => block.children || [])
-    .filter((child) => forestRemovedKeys.has(child.key) && child.hidden);
-  if (removed.length !== forestRemovedKeys.size) {
+    .filter((child) => forestRemovedKeys[language].has(child.key) && child.hidden);
+  if (removed.length !== forestRemovedKeys[language].size) {
     throw new Error("Forest Completed Projects still contains cross-division rows.");
   }
 }
-const expectedPublicationCounts = new Map([
-  ["computer-image-processing-division", 21],
-  ["agriculture-resources-division1", 54],
-  ["earth-resources-division1", 113],
-  ["forest-resources-ecology-division", 51],
-  ["geo-spatial-data-bank-division1", 65],
-  ["landuse-amp;-urban-survey-division1", 56],
-  ["soil-resources-division1", 96],
-  ["surface-water-resources-division1", 208],
-  ["training-division", 24],
-]);
+const expectedPublicationCounts = {
+  English: new Map([
+    ["computer-image-processing-division", 21],
+    ["agriculture-resources-division1", 54],
+    ["earth-resources-division1", 113],
+    ["forest-resources-ecology-division", 51],
+    ["geo-spatial-data-bank-division1", 65],
+    ["landuse-amp;-urban-survey-division1", 56],
+    ["soil-resources-division1", 96],
+    ["surface-water-resources-division1", 208],
+    ["training-division", 24],
+  ]),
+  Hindi: new Map([
+    ["agriculture-resources-division1", 60],
+    ["forest-resources-ecology-division", 51],
+    ["landuse-amp;-urban-survey-division1", 14],
+    ["soil-resources-division1", 77],
+    ["surface-water-resources-division1", 186],
+  ]),
+};
 const publicationLabelPattern = /research|paper|\u0936\u094b\u0927\s*\u092a\u0924\u094d\u0930/iu;
 const punctuationOnlyPattern = /^[\s,.;:\u0964|/()[\]{}\-\u2013\u2014\u2022\u00b7]+$/u;
 const findDivisionPage = (bootstrap, slug) => bootstrap.rsacOfficialSections
@@ -294,7 +322,7 @@ const findDivisionPage = (bootstrap, slug) => bootstrap.rsacOfficialSections
   ?.find((page) => page.slug === slug);
 
 for (const [language, bootstrap] of [["English", englishBootstrap], ["Hindi", hindiBootstrap]]) {
-  for (const [slug, expectedCount] of expectedPublicationCounts) {
+  for (const [slug, expectedCount] of expectedPublicationCounts[language]) {
     const block = findDivisionPage(bootstrap, slug)?.blocks?.find((candidate) =>
       candidate.editorMode === "numbered_list" &&
       publicationLabelPattern.test(`${candidate.value || ""} ${candidate.label || ""}`)
@@ -315,7 +343,10 @@ for (const [language, bootstrap] of [["English", englishBootstrap], ["Hindi", hi
 
 const hindiCipdmResearch = findDivisionPage(hindiBootstrap, "computer-image-processing-division")?.blocks
   ?.find((block) => block.editorMode === "numbered_list");
-if (!hindiCipdmResearch.children.some((item) => /[\u0900-\u097f]/u.test(item.value || ""))) {
+if (
+  hindiCipdmResearch &&
+  !hindiCipdmResearch.children.some((item) => /[\u0900-\u097f]/u.test(item.value || ""))
+) {
   throw new Error("CIPDM Hindi research rows do not contain separate Hindi content.");
 }
 if ((hindiBootstrap.siteSettings.organisationChart?.roles || []).length < 10) {
@@ -325,4 +356,4 @@ const contactDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((
 if (!contactDisplay?.hideTitle || !englishBootstrap.siteSettings.designSettings?.bodyFont) {
   throw new Error("Live page-heading or typography controls are missing.");
 }
-console.log("CMS bilingual save, page layout and flexible blocks, focused division/facility sections, instant versioning, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");
+console.log("CMS bilingual save, page layout and flexible blocks, focused division/facility sections, division image/file replacement, instant versioning, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");

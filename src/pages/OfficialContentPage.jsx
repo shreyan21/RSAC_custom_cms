@@ -44,6 +44,11 @@ import { hiTranslations } from "../data/translations";
 import { divisionHindiPhrases } from "../data/divisionHindiPhrases";
 import { isUnmirroredLegacyMedia } from "../data/officialMedia";
 import { sectionOverrideKey } from "../data/contentUtils";
+import {
+  appendNewPageAssets,
+  applyPageAssetFields,
+  flattenPageAssetFields,
+} from "../data/pageAssetFields";
 import { SHOW_BREADCRUMBS } from "../config/uiConfig";
 
 // Translate the visible text of an English rich-content HTML string into Hindi,
@@ -681,6 +686,116 @@ const normalizeLabel = (value) =>
     .replace(/[\s:._-]+/g, "")
     .toLowerCase();
 
+// Imported profile tables use many English and Hindi spellings for the same
+// field. Canonical keys let the CMS roster replace incomplete or duplicated
+// table rows without depending on the visible label language.
+const profileDetailLabelGroups = [
+  {
+    key: "duration",
+    aliases: [
+      "duration", "tenure", "time period", "time limit",
+      "अवधि", "कार्यकाल", "समय अवधि", "समयावधि", "समय सीमा",
+    ],
+  },
+  {
+    key: "employeeid",
+    aliases: ["employee id", "emp id", "कर्मचारी आईडी"],
+  },
+  {
+    key: "designation",
+    aliases: [
+      "designation", "present designation", "current designation",
+      "पदनाम", "पद का नाम", "वर्तमान पद",
+    ],
+  },
+  {
+    key: "qualification",
+    aliases: [
+      "qualification", "educational qualification", "academic qualification",
+      "योग्यता", "शैक्षणिक योग्यता", "शैक्षिक योग्यता",
+    ],
+  },
+  {
+    key: "deployment",
+    aliases: [
+      "deployment", "division", "posting",
+      "तैनाती", "नियुक्ति",
+    ],
+  },
+  {
+    key: "specialization",
+    aliases: [
+      "specialization", "specialisation", "area of specialization",
+      "area of specialisation", "विशेषज्ञता", "विशेषज्ञता का क्षेत्र",
+    ],
+  },
+  {
+    key: "experience",
+    aliases: [
+      "experience", "professional experience", "experience in years",
+      "अनुभव", "पेशेवर अनुभव",
+    ],
+  },
+  {
+    key: "publications",
+    aliases: [
+      "publication", "publications", "number of publications",
+      "no of publications", "प्रकाशन", "प्रकाशनों की संख्या",
+    ],
+  },
+  {
+    key: "contact",
+    aliases: ["contact", "contact no", "contact number", "संपर्क", "संपर्क संख्या"],
+  },
+  {
+    key: "email",
+    aliases: ["email", "email id", "e-mail", "e-mail id", "ई-मेल", "ईमेल", "ईमेल आईडी"],
+  },
+];
+
+const canonicalProfileDetailLabel = (label) => {
+  const normalized = normalizeLabel(label);
+  const group = profileDetailLabelGroups.find(({ aliases }) =>
+    aliases.some((alias) => normalized.includes(normalizeLabel(alias)))
+  );
+
+  return group?.key || normalized;
+};
+
+const profileDetailOrder = [
+  "designation",
+  "qualification",
+  "deployment",
+  "specialization",
+  "experience",
+  "publications",
+  "contact",
+  "email",
+  "employeeid",
+  "duration",
+];
+
+const mergeProfileDetailRows = (...detailGroups) => {
+  const merged = new Map();
+
+  detailGroups.flat().filter(Boolean).forEach((detail) => {
+    if (!detail?.label || !detail?.value) return;
+    const key = canonicalProfileDetailLabel(detail.label);
+    if (!merged.has(key)) merged.set(key, detail);
+  });
+
+  return Array.from(merged.entries())
+    .map(([key, detail], index) => ({ key, detail, index }))
+    .sort((left, right) => {
+      const leftRank = profileDetailOrder.indexOf(left.key);
+      const rightRank = profileDetailOrder.indexOf(right.key);
+      const normalizedLeftRank = leftRank < 0 ? Number.MAX_SAFE_INTEGER : leftRank;
+      const normalizedRightRank = rightRank < 0 ? Number.MAX_SAFE_INTEGER : rightRank;
+      return normalizedLeftRank - normalizedRightRank || left.index - right.index;
+    })
+    .map(({ detail }) => detail);
+};
+
 const normalizeCategoryText = (value) =>
   compactText(value)
     .replace(/&amp;/gi, "&")
@@ -793,6 +908,9 @@ const getProfileDetails = (profile) => {
     profile.designation
       ? { label: "Designation", value: profile.designation }
       : null,
+    profile.qualification
+      ? { label: "Qualification", value: profile.qualification }
+      : null,
     profile.deployment
       ? { label: "Deployment", value: profile.deployment }
       : null,
@@ -816,11 +934,17 @@ const getProfileDetails = (profile) => {
 
 const getProfileField = (profile, labels) => {
   const targets = labels.map(normalizeLabel);
+  const canonicalTargets = labels.map(canonicalProfileDetailLabel);
   const details = getProfileDetails(profile);
 
-  return details.find((detail) =>
-    targets.some((target) => normalizeLabel(detail.label).includes(target))
-  );
+  return details.find((detail) => {
+    const normalizedDetail = normalizeLabel(detail.label);
+    const canonicalDetail = canonicalProfileDetailLabel(detail.label);
+    return (
+      canonicalTargets.includes(canonicalDetail) ||
+      targets.some((target) => normalizedDetail.includes(target))
+    );
+  });
 };
 
 const isScientistProfileCard = (profile) => {
@@ -862,16 +986,14 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
   // live roster names are Devanagari while a scraped profile name is English (or
   // vice-versa); matching one side alone misses people and drops their
   // back-filled Deployment/Designation. (Mirrors getActiveScientistNames.)
-  const scientists = [
-    ...getScientistProfileData(scientistProfiles),
-    ...staticScientistProfiles,
-  ];
+  const liveScientists = getScientistProfileData(scientistProfiles);
+  const scientists = [...liveScientists, ...staticScientistProfiles];
   const employeeId = getProfileEmployeeId(profile);
   const profileName = normalizeEquivalentHonorifics(getProfileName(profile));
 
   const rawProfileName = normalizeName(getProfileName(profile));
 
-  return (
+  const matched = (
     (employeeId &&
       scientists.find(
         (scientist) => getProfileEmployeeId(scientist) === employeeId
@@ -888,35 +1010,55 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
         normalizeName(hiTranslations[scientist.name]) === rawProfileName
     )
   );
+
+  if (!matched) return null;
+
+  // A name variant can match the static English roster first. Resolve that
+  // identity back to the live roster so Hindi cards receive the Hindi CMS
+  // values rather than English fallback text.
+  const matchedEmployeeId = getProfileEmployeeId(matched);
+  if (matchedEmployeeId && matchedEmployeeId !== "notlisted") {
+    return liveScientists.find(
+      (scientist) => getProfileEmployeeId(scientist) === matchedEmployeeId
+    ) || matched;
+  }
+
+  return matched;
 };
 
-const mergeKnownScientistDetails = (profile, scientistProfiles) => {
+const mergeKnownScientistDetails = (
+  profile,
+  scientistProfiles,
+  supplementalProfiles = []
+) => {
   const knownProfile = getKnownScientistProfile(profile, scientistProfiles);
 
-  if (!knownProfile) {
+  if (!knownProfile && !supplementalProfiles.length) {
     return profile;
   }
 
-  const existingDetails = getProfileDetails(profile);
-  const hasDetail = (labels) =>
-    labels.some((label) => getProfileField(profile, [label]));
-  const knownDetails = [
-    !hasDetail(["Employee Id", "Emp Id"]) && knownProfile.employeeId
-      ? { label: "Employee Id", value: knownProfile.employeeId }
-      : null,
-    !hasDetail(["Designation"]) && knownProfile.designation
-      ? { label: "Designation", value: knownProfile.designation }
-      : null,
-    !hasDetail(["Deployment"]) && knownProfile.deployment
-      ? { label: "Deployment", value: knownProfile.deployment }
-      : null,
-  ].filter(Boolean);
+  const supplements = supplementalProfiles.filter(Boolean);
+  const knownDetails = knownProfile
+    ? getProfileDetails({ ...knownProfile, details: undefined })
+    : [];
+  const mergedDetails = mergeProfileDetailRows(
+    knownDetails,
+    supplements.flatMap((item) => getProfileDetails(item)),
+    getProfileDetails(profile)
+  );
+  const preferredProfile = knownProfile || supplements[0] || profile;
+  const preferredName = getProfileName(preferredProfile);
+  const preferredImage =
+    getProfileImage(knownProfile || {}) ||
+    supplements.map(getProfileImage).find(Boolean) ||
+    getProfileImage(profile);
 
   return {
-    ...knownProfile,
     ...profile,
-    image: getProfileImage(knownProfile) || getProfileImage(profile),
-    details: [...knownDetails, ...existingDetails],
+    ...(knownProfile || {}),
+    name: preferredName !== "Profile" ? preferredName : getProfileName(profile),
+    image: preferredImage,
+    details: mergedDetails,
   };
 };
 
@@ -1476,9 +1618,25 @@ const extractProfileCards = (html) => {
     };
     const existing = profileMap.get(key);
 
-    if (!existing || card.score > existing.score) {
+    if (!existing) {
       profileMap.set(key, card);
+      return;
     }
+
+    const preferred = card.score > existing.score ? card : existing;
+    const fallback = preferred === card ? existing : card;
+    const details = mergeProfileDetailRows(
+      preferred.details,
+      fallback.details
+    );
+
+    profileMap.set(key, {
+      ...fallback,
+      ...preferred,
+      image: preferred.image || fallback.image,
+      details,
+      score: details.length + (preferred.image || fallback.image ? 1 : 0),
+    });
   });
 
   return Array.from(profileMap.values()).filter(
@@ -3524,6 +3682,132 @@ const splitLongPlainParagraphs = (document) => {
   });
 };
 
+const getPseudoListMarker = (value) => {
+  const text = String(value || "");
+  const ordered = text.match(
+    /^\s*(?:\((\d{1,3})\)|(\d{1,3})[.)])(?!\d)\s*/u
+  );
+  if (ordered && text.slice(ordered[0].length).trim()) {
+    return {
+      type: "ordered",
+      length: ordered[0].length,
+      value: Number(ordered[1] || ordered[2]),
+    };
+  }
+
+  const bullet = text.match(/^\s*[•▪●◦]\s+/u);
+  return bullet
+    ? { type: "bullet", length: bullet[0].length, value: null }
+    : null;
+};
+
+const removeLeadingText = (element, characterCount) => {
+  const walker = element.ownerDocument.createTreeWalker(element, 4);
+  let remaining = characterCount;
+  let node = walker.nextNode();
+
+  while (node && remaining > 0) {
+    const length = node.nodeValue?.length || 0;
+    if (length <= remaining) {
+      node.nodeValue = "";
+      remaining -= length;
+    } else {
+      node.nodeValue = node.nodeValue.slice(remaining);
+      remaining = 0;
+    }
+    node = walker.nextNode();
+  }
+};
+
+const normalizePseudoListParagraphs = (document) => {
+  Array.from(document.body.querySelectorAll("p")).forEach((paragraph) => {
+    if (!paragraph.isConnected || paragraph.closest("li, td, th")) return;
+    if (paragraph.querySelectorAll("br").length >= 3) return;
+    const firstMarker = getPseudoListMarker(paragraph.textContent);
+    if (!firstMarker) return;
+
+    const list = document.createElement(firstMarker.type === "ordered" ? "ol" : "ul");
+    paragraph.before(list);
+    let current = paragraph;
+
+    while (current?.tagName === "P") {
+      const marker = getPseudoListMarker(current.textContent);
+      if (!marker || marker.type !== firstMarker.type) break;
+
+      const next = current.nextElementSibling;
+      removeLeadingText(current, marker.length);
+      const item = document.createElement("li");
+      if (marker.type === "ordered" && Number.isFinite(marker.value)) {
+        item.value = marker.value;
+      }
+      while (current.firstChild) item.appendChild(current.firstChild);
+      list.appendChild(item);
+      current.remove();
+      current = next;
+    }
+  });
+};
+
+const normalizeBreakSeparatedParagraphs = (document) => {
+  Array.from(document.body.querySelectorAll("p")).forEach((paragraph) => {
+    if (paragraph.closest("li, td, th")) return;
+    const breaks = Array.from(paragraph.querySelectorAll("br"));
+    if (breaks.length < 3 || compactText(paragraph.textContent).length < 180) {
+      return;
+    }
+
+    const fragments = [];
+    let startContainer = paragraph;
+    let startOffset = 0;
+
+    breaks.forEach((lineBreak) => {
+      const range = document.createRange();
+      range.setStart(startContainer, startOffset);
+      range.setEndBefore(lineBreak);
+      fragments.push(range.cloneContents());
+
+      const nextRange = document.createRange();
+      nextRange.setStartAfter(lineBreak);
+      startContainer = nextRange.startContainer;
+      startOffset = nextRange.startOffset;
+    });
+
+    const finalRange = document.createRange();
+    finalRange.setStart(startContainer, startOffset);
+    finalRange.setEnd(paragraph, paragraph.childNodes.length);
+    fragments.push(finalRange.cloneContents());
+
+    const meaningfulFragments = fragments.filter(
+      (fragment) =>
+        compactText(fragment.textContent) ||
+        fragment.querySelector("img, a, video, iframe")
+    );
+    if (meaningfulFragments.length < 3) return;
+
+    const stack = document.createElement("div");
+    stack.className = "rsac-detail-stack";
+    if (paragraph.id) stack.id = paragraph.id;
+
+    meaningfulFragments.forEach((fragment) => {
+      const line = paragraph.cloneNode(false);
+      line.removeAttribute("id");
+      line.classList.add("rsac-detail-line");
+      line.appendChild(fragment);
+
+      const marker = getPseudoListMarker(line.textContent);
+      if (marker?.type === "ordered") {
+        const heading = document.createElement("h4");
+        heading.className = "rsac-detail-heading";
+        while (line.firstChild) heading.appendChild(line.firstChild);
+        stack.appendChild(heading);
+      } else {
+        stack.appendChild(line);
+      }
+    });
+    paragraph.replaceWith(stack);
+  });
+};
+
 const normalizeRichContentTables = (document) => {
   document.body.querySelectorAll("table").forEach((table) => {
     table.classList.add("rsac-data-table");
@@ -3607,6 +3891,8 @@ const enhanceRichContentHtml = (
     }
   });
 
+  normalizePseudoListParagraphs(parsedDocument);
+  normalizeBreakSeparatedParagraphs(parsedDocument);
   splitLongPlainParagraphs(parsedDocument);
 
   parsedDocument.body.querySelectorAll("a[href]").forEach((link) => {
@@ -4407,9 +4693,17 @@ const buildDivisionSectionsFromHtml = (page) => {
       .flatMap(getBlockCategoryMarkers)
       .filter((category) => category.key !== "scientific-manpower");
     const nonProfileBlocks = blocks.filter((block) => !hasProfileMarker(block));
+    const isProfilePanel = panels.length > 0 && blocks.some(hasProfileMarker);
     let currentCategory = null;
 
     if (!nonProfileBlocks.length) {
+      return;
+    }
+
+    // Some legacy Hindi pages nest copies of every following list inside the
+    // scientist panel. Those copies are not part of the profile and must not
+    // consume the next tab's positional category.
+    if (isProfilePanel && !explicitCategories.length) {
       return;
     }
 
@@ -4556,11 +4850,121 @@ const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
   return localizedDocument.body.innerHTML;
 };
 
-const buildDivisionSections = (page) => {
+const profileImageIdentity = (profile) =>
+  getProfileImage(profile)
+    .split(/[?#]/)[0]
+    .split("/")
+    .at(-1)
+    ?.toLowerCase() || "";
+
+const scientistProfilesEquivalent = (left, right, scientistProfiles) => {
+  if (!left || !right) return false;
+  if (scientistProfilesMatch(left, right)) return true;
+
+  const leftImage = profileImageIdentity(left);
+  const rightImage = profileImageIdentity(right);
+  if (leftImage && rightImage && leftImage === rightImage) return true;
+
+  const leftKnown = getKnownScientistProfile(left, scientistProfiles);
+  const rightKnown = getKnownScientistProfile(right, scientistProfiles);
+  return Boolean(
+    leftKnown &&
+    rightKnown &&
+    scientistProfilesMatch(leftKnown, rightKnown)
+  );
+};
+
+const mergeDivisionProfileSections = (
+  sections,
+  page,
+  scientistProfiles,
+  profileReferencePage
+) => {
+  const existingIndex = sections.findIndex(
+    (section) => section.type === "profiles"
+  );
+  const localizedProfiles = existingIndex >= 0
+    ? sections[existingIndex].profiles || []
+    : [];
+  const structuralProfiles = page.profileStructureHtml
+    ? extractProfileCards(page.profileStructureHtml).filter((profile) =>
+        looksLikePersonName(getProfileName(profile))
+      )
+    : [];
+  const referenceProfiles = profileReferencePage
+    ? getPageProfiles(profileReferencePage, scientistProfiles)
+    : [];
+  const intendedProfiles = structuralProfiles.length
+    ? structuralProfiles
+    : localizedProfiles;
+
+  if (!intendedProfiles.length) return sections;
+
+  const completedProfiles = intendedProfiles
+    .map((sourceProfile) => {
+      const localizedProfile = localizedProfiles.find((candidate) =>
+        scientistProfilesEquivalent(candidate, sourceProfile, scientistProfiles)
+      );
+      const referenceProfile = referenceProfiles.find((candidate) =>
+        scientistProfilesEquivalent(candidate, sourceProfile, scientistProfiles)
+      );
+      const knownProfile = getKnownScientistProfile(sourceProfile, scientistProfiles);
+
+      // profileStructureHtml is English and exists only to identify which
+      // people belong in a Hindi division. Never expose an unmatched English
+      // fallback card on the Hindi website.
+      if (
+        structuralProfiles.length &&
+        !localizedProfile &&
+        !referenceProfile &&
+        !knownProfile
+      ) {
+        return null;
+      }
+
+      const baseProfile = localizedProfile || referenceProfile || knownProfile || sourceProfile;
+      return mergeKnownScientistDetails(baseProfile, scientistProfiles, [
+        referenceProfile,
+        localizedProfile,
+        sourceProfile,
+      ]);
+    })
+    .filter(Boolean);
+  const profiles = dedupeProfileCards(completedProfiles);
+
+  if (!profiles.length) return sections;
+
+  if (existingIndex >= 0) {
+    return sections.map((section, index) =>
+      index === existingIndex ? { ...section, profiles } : section
+    );
+  }
+
+  return [
+    {
+      key: "scientific-manpower",
+      label: "Scientific Manpower",
+      type: "profiles",
+      profiles,
+    },
+    ...sections,
+  ];
+};
+
+const buildDivisionSections = (
+  page,
+  scientistProfiles,
+  profileReferencePage
+) => {
   const localizedSections = buildDivisionSectionsFromHtml(page);
 
   if (!page.structureHtml || page.structureHtml === page.html) {
-    return localizedSections;
+    return mergeDivisionProfileSections(
+      localizedSections,
+      page,
+      scientistProfiles,
+      profileReferencePage
+    );
   }
 
   const structuralSections = buildDivisionSectionsFromHtml({
@@ -4573,7 +4977,7 @@ const buildDivisionSections = (page) => {
   const usedLocalizedKeys = new Set();
   const researchKeys = new Set(["research-paper-published", "research-papers"]);
 
-  return structuralSections.map((section) => {
+  const mergedSections = structuralSections.map((section) => {
     let localized = localizedByKey.get(section.key);
     if (!localized && researchKeys.has(section.key)) {
       localized = localizedSections.find(
@@ -4594,6 +4998,13 @@ const buildDivisionSections = (page) => {
       structureHtml: section.html,
     };
   });
+
+  return mergeDivisionProfileSections(
+    mergedSections,
+    page,
+    scientistProfiles,
+    profileReferencePage
+  );
 };
 
 const getProfileExperienceDuration = (profile) => {
@@ -4867,7 +5278,10 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   const pageLinks = flexibleItems(page.links);
   const pageWithCmsRows = useMemo(() => ({
     ...page,
-    html: applyImportedPageBlocks(page.html, page.blocks),
+    html: applyImportedPageBlocks(
+      applyImportedPageAssets(page.html, page.sharedAssetBlocks, { applyLabels: false }),
+      page.blocks
+    ),
   }), [page]);
   const linkBlock = pageLinks.length
     ? [{ type: "links", heading: "Related links", items: pageLinks }]
@@ -5149,12 +5563,27 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
 const applyImportedContentFields = (html, children, { insertNew = true } = {}) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  const belongsToImportedTabStrip = (node) => {
+    const span = node.parentElement?.closest("span");
+    const parent = span?.parentElement;
+
+    if (!span || !parent || span.parentElement !== parent) return false;
+
+    return Array.from(parent.children).filter(
+      (child) => child.tagName === "SPAN"
+    ).length >= 2;
+  };
   const textNodes = () => {
     const nodes = [];
     const walker = parsed.createTreeWalker(parsed.body, 4);
     let node = walker.nextNode();
     while (node) {
-      if (compactText(node.nodeValue)) nodes.push(node);
+      // Tab labels are structural markers. Duplicate title fields can carry
+      // the same text, so matching one against a tab span can erase the whole
+      // overview section when that duplicate field is hidden in the CMS.
+      if (compactText(node.nodeValue) && !belongsToImportedTabStrip(node)) {
+        nodes.push(node);
+      }
       node = walker.nextNode();
     }
     return nodes;
@@ -5174,7 +5603,10 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
     const labelParts = String(child.label || "").split(/\s*(?:\u2192|->)\s*/u);
     const previewKey = compactText(labelParts.slice(1).join(" ").replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
     const exactNode = valueKey ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === valueKey) : null;
-    const matchedNode = exactNode || (previewKey
+    const canUsePreviewMatch = previewKey && (
+      !child.hidden || valueKey.length >= 80
+    );
+    const matchedNode = exactNode || (canUsePreviewMatch
       ? nodes.find((node) => {
           const nodeKey = compactText(node.nodeValue).toLowerCase();
           if (nodeKey.startsWith(previewKey)) return true;
@@ -5227,12 +5659,16 @@ const applyImportedBlockHeading = (html, block) => {
   return parsed.body.innerHTML;
 };
 
-const applyImportedPageBlocks = (html, blocks) => {
+const applyImportedPageAssets = (html, blocks, options) =>
+  applyPageAssetFields(html, flattenPageAssetFields(blocks), options);
+
+const applyImportedPageBlocks = (html, blocks, { insertNewAssets = true } = {}) => {
   const editableBlocks = flexibleItems(blocks).filter((block) =>
     !block.hidden && (Array.isArray(block.children) || block.key)
   );
-  if (!editableBlocks.length) return html || "";
-  let nextHtml = html || "";
+  const assetFields = flattenPageAssetFields(editableBlocks);
+  if (!editableBlocks.length && !assetFields.length) return html || "";
+  let nextHtml = applyPageAssetFields(html || "", assetFields);
   editableBlocks.forEach((block) => {
     if (block.controlsSectionLabel !== false) {
       nextHtml = applyImportedBlockHeading(nextHtml, block);
@@ -5262,10 +5698,15 @@ const applyImportedPageBlocks = (html, blocks) => {
       }
     });
   });
-  return parsed.body.innerHTML;
+  const rendered = parsed.body.innerHTML;
+  return insertNewAssets ? appendNewPageAssets(rendered, assetFields) : rendered;
 };
 
-const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
+const DivisionCategorizedContent = ({
+  page,
+  scientistProfiles,
+  profileReferencePage,
+}) => {
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
     const ordinaryBlocks = flexibleItems(page.blocks)
@@ -5276,10 +5717,19 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
           !child.isNew && !String(child.key || "").startsWith("cms-")
         ),
       }));
-    const built = buildDivisionSections({
+    const preparedPage = {
       ...page,
-      html: applyImportedPageBlocks(page.html, ordinaryBlocks),
-    });
+      html: applyImportedPageAssets(page.html, page.sharedAssetBlocks, { applyLabels: false }),
+      structureHtml: applyImportedPageAssets(page.structureHtml, page.structureAssetBlocks),
+    };
+    const built = buildDivisionSections(
+      {
+        ...preparedPage,
+        html: applyImportedPageBlocks(preparedPage.html, ordinaryBlocks, { insertNewAssets: false }),
+      },
+      scientistProfiles,
+      profileReferencePage
+    );
     // Editor tab renames: content_fields section-header rows are synthetic
     // (no html text node), so a renamed header reaches the page as a
     // label -> new-name override instead.
@@ -5311,6 +5761,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
       const override = overrides[matchKey];
       return override ? { ...next, label: override } : next;
     });
+    const labeledSectionKeys = new Set();
     editablePageBlocks
       .filter((block) => Array.isArray(block?.children) && !block.hidden)
       .forEach((block) => {
@@ -5327,19 +5778,30 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
         const visibleLabel = block.controlsSectionLabel === false
           ? ""
           : String(block.value || "").trim();
-        nextSections = nextSections.map((section, index) => index === sectionIndex
-          ? {
-              ...section,
-              ...(visibleLabel ? { label: visibleLabel } : {}),
-              html: block.editorMode === "numbered_list"
-                ? applyImportedNumberedItems(
-                    section.structureHtml || section.html,
-                    block.children,
-                    headingOverridesBySource.get(sourceKey) || []
-                  )
-                : applyImportedContentFields(section.html, block.children),
-            }
-          : section);
+        const sectionKey = nextSections[sectionIndex].key;
+        const existingLabel = String(nextSections[sectionIndex].label || "");
+        const preserveCombinedPublicationLabel =
+          sectionKey === "publications" &&
+          /publications.*technical reports/i.test(existingLabel) &&
+          !/technical reports/i.test(visibleLabel);
+        const isFirstVisibleLabel = visibleLabel && !labeledSectionKeys.has(sectionKey);
+        const applyVisibleLabel = isFirstVisibleLabel && !preserveCombinedPublicationLabel;
+        if (isFirstVisibleLabel) labeledSectionKeys.add(sectionKey);
+        nextSections = nextSections.map((section, index) => {
+          if (index !== sectionIndex) return section;
+          const editedHtml = block.editorMode === "numbered_list"
+            ? applyImportedNumberedItems(
+                section.structureHtml || section.html,
+                block.children,
+                headingOverridesBySource.get(sourceKey) || []
+              )
+            : applyImportedContentFields(section.html, block.children);
+          return {
+            ...section,
+            ...(applyVisibleLabel ? { label: visibleLabel } : {}),
+            html: appendNewPageAssets(editedHtml, block.assets),
+          };
+        });
       });
     const managed = page.managedSectionItems || {};
     managedDivisionSectionDefinitions.forEach((definition) => {
@@ -5360,7 +5822,7 @@ const DivisionCategorizedContent = ({ page, scientistProfiles }) => {
       }, definition.afterKey);
     });
     return nextSections;
-  }, [page, language]);
+  }, [page, language, scientistProfiles, profileReferencePage]);
   const [activeSectionState, setActiveSectionState] = useState({
     pageSlug: page.slug,
     key: sections[0]?.key || "",
@@ -5862,6 +6324,9 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
   const { slug } = useParams();
   const section = officialSections.find((item) => item.key === sectionKey);
   const page = section?.pages.find((item) => item.slug === slug);
+  const profileReferencePage = officialSections
+    .find((item) => item.key === "about-us")
+    ?.pages.find((item) => item.slug === "scientific-manpower");
 
   if (!section) {
     if (!officialSections.length) {
@@ -5930,6 +6395,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
             <DivisionCategorizedContent
               page={page}
               scientistProfiles={scientistProfiles}
+              profileReferencePage={profileReferencePage}
             />
           ) : staticProfilePageSlugs.has(page.slug) ? (
             <OfficialStaticProfileGrid

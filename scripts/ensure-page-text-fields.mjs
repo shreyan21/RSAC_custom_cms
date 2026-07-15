@@ -6,6 +6,7 @@ import {
   extractPageTextFields,
   extractPageTextTree,
 } from "../src/data/pageTextFields.js";
+import { collectDivisionSectionKeys } from "./lib/division-sections.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) {
@@ -50,6 +51,12 @@ const ensureDataFields = (data, sectionKey, pageSlug) => {
   const structuralKeys = usesCategorizedContent
     ? extractPageStructuralTextKeys(data.html)
     : new Set();
+  const categorizedSections = usesCategorizedContent
+    ? collectDivisionSectionKeys(data.html, data.title, pageSlug)
+    : null;
+  const visibleKeys = categorizedSections
+    ? new Set(categorizedSections.sections.flatMap((section) => section.textKeys || []))
+    : null;
   const tree = extractPageTextTree(data.html);
   const bucketByKey = new Map();
   tree.forEach((bucket) => (bucket.children || []).forEach((child) => bucketByKey.set(child.key, bucket)));
@@ -63,7 +70,8 @@ const ensureDataFields = (data, sectionKey, pageSlug) => {
       punctuationOnly.test(value) ||
       keys.has(field.key) ||
       labels.has(canonical(value)) ||
-      structuralKeys.has(field.key)
+      structuralKeys.has(field.key) ||
+      (visibleKeys && !visibleKeys.has(field.key))
     ) continue;
 
     const bucket = bucketByKey.get(field.key);

@@ -14,8 +14,11 @@ const sharedKeys = new Set([
   "icon", "iconKey", "sectionKey", "sourceKey", "groupKey", "blockKey", "entryKey",
   "sourceKeys",
   "type", "kind", "layout", "width", "align", "objectPosition", "sort", "sortOrder",
+  "spacing", "variant", "textSize", "mediaSize",
+  "headingSize",
   "active", "enabled", "hidden", "openInNewTab", "mapQuery", "sourceUrl", "externalUrl",
   "controlsSectionLabel", "editorMode", "isNew",
+  "assets", "assetOnly", "sourceValue", "linkedHref",
   "keywords", "languageLabels",
   "accent", "radius", "surface", "secondary", "fontFamily", "contentWidth", "cardEyebrowSize",
   "eyebrowSize",
@@ -234,8 +237,13 @@ try {
 
   for (const row of rows) {
     const definition = getCollection(row.collection);
+    const hasIndependentOfficialHindi =
+      row.collection === "pages" &&
+      Array.isArray(row.data_hi?.blocks) &&
+      row.data_hi.blocks.some((block) => String(block?.id || "").startsWith("official-"));
     for (const field of definition?.fields || []) {
       if (field.localized === false || row.data_en?.[field.name] === undefined) continue;
+      if (hasIndependentOfficialHindi && ["html", "blocks"].includes(field.name)) continue;
       compareLocalized(row.data_en[field.name], row.data_hi?.[field.name], row, [field.name]);
     }
   }

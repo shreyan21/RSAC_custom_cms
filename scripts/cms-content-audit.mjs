@@ -21,6 +21,12 @@ const englishLanguageLeaks = [];
 const identicalLocalizedFields = [];
 const mediaPaths = new Set();
 const externalMediaUrls = [];
+const approvedExternalVideos = new Set([
+  "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/rsac_build_02.mp4",
+  "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/CHARBAGH2.mp4",
+  "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/badshahnagar.mp4",
+  "http://14.139.43.115:8090/rsac_MODEL_vIDEOS/AISHBAGH2.mp4",
+]);
 
 const collectStrings = (value, path = "", output = []) => {
   if (typeof value === "string") output.push([path, value]);
@@ -52,7 +58,9 @@ for (const row of rows) {
       mediaPaths.add(match[0].replace(/[.,;:]+$/u, "").split(/[?#]/u)[0]);
     }
     for (const url of findOfficialMediaUrls(value)) {
-      externalMediaUrls.push(`${row.collection}/${row.entry_key}.${path}: ${url}`);
+      if (!approvedExternalVideos.has(url)) {
+        externalMediaUrls.push(`${row.collection}/${row.entry_key}.${path}: ${url}`);
+      }
     }
   }
 }

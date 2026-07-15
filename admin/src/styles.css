@@ -196,6 +196,25 @@ textarea { resize: vertical; }
 .imported-list-item .danger-icon { margin-top: 20px; }
 .restore-items { width: fit-content; }
 .empty-inline { margin: 0; padding: 24px; text-align: center; color: #718593; }
+.imported-assets-editor { min-width: 0; display: grid; gap: 11px; border-top: 1px solid #dbe4e8; margin-top: 6px; padding-top: 15px; }
+.imported-assets-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.imported-assets-heading strong { color: #173f56; }
+.imported-assets-heading p { margin: 3px 0 0; color: #647a89; font-size: 12px; }
+.imported-assets-add { display: flex; flex-wrap: wrap; gap: 7px; }
+.imported-assets-search { position: relative; max-width: 520px; }
+.imported-assets-search svg { position: absolute; left: 11px; top: 11px; width: 17px; color: #6d8290; }
+.imported-assets-search input { padding-left: 36px; }
+.imported-assets-list { max-height: 64vh; display: grid; gap: 8px; overflow: auto; padding-right: 4px; }
+.imported-asset-row { min-width: 0; display: grid; grid-template-columns: 30px minmax(0,120px) minmax(0,1fr) 36px; align-items: start; gap: 10px; border: 1px solid #d8e2e7; border-radius: 6px; background: #fff; padding: 10px; }
+.imported-asset-row > img { width: 100%; aspect-ratio: 4 / 3; border: 1px solid #d5dfe4; border-radius: 5px; background: #f4f8fa; object-fit: contain; padding: 3px; }
+.imported-asset-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e8f4ed; color: #0f6f42; font-size: 11px; font-weight: 900; }
+.imported-asset-fields { min-width: 0; display: grid; gap: 8px; }
+.imported-asset-row:not(.has-preview) .imported-asset-fields { grid-column: 2 / 4; }
+.imported-asset-row:not(.has-preview) > .danger-icon { grid-column: 4; }
+.imported-asset-fields > strong { overflow-wrap: anywhere; color: #526b7b; font-size: 12px; }
+.imported-asset-url { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.imported-asset-url input { min-width: 0; }
+.imported-asset-row > .danger-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #e2c4c1; border-radius: 5px; background: white; color: #a13c34; }
 .government-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; color: #526b7b; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
 .government-identity img { width: 42px; height: 42px; object-fit: contain; }
 .government-brand { display: flex; align-items: center; gap: 10px; margin-inline: -16px; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,.12); color: #dce9e1; font-size: 10px; font-weight: 700; line-height: 1.4; }
@@ -386,6 +405,15 @@ textarea { resize: vertical; }
   .media-field { grid-template-columns: 1fr; }
   .block-row__head { align-items: flex-start; }
   .structured-item--fields > div { grid-template-columns: 1fr; }
+  .imported-assets-heading { align-items: stretch; flex-direction: column; }
+  .imported-assets-list { max-height: none; }
+  .imported-asset-row { grid-template-columns: 30px minmax(0,1fr) 36px; }
+  .imported-asset-row > img { grid-column: 2; max-width: 180px; }
+  .imported-asset-fields { grid-column: 2; }
+  .imported-asset-row:not(.has-preview) .imported-asset-fields { grid-column: 2; }
+  .imported-asset-row > .danger-icon { grid-column: 3; grid-row: 1; }
+  .imported-asset-row:not(.has-preview) > .danger-icon { grid-column: 3; }
+  .imported-asset-url { grid-template-columns: 1fr; }
   .table-item-row { grid-template-columns: 1fr; }
   .guide-grid { grid-template-columns: 1fr 1fr; }
 }

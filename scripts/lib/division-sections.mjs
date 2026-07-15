@@ -463,8 +463,12 @@ export const collectDivisionSectionKeys = (html, pageTitle = "", slug = "") => {
   contentGroups.forEach((blocks, groupIndex) => {
     const explicitCategories = blocks.flatMap(getBlockCategoryMarkers).filter((c) => c.key !== "scientific-manpower");
     const nonProfileBlocks = blocks.filter((b) => !hasProfileMarker(b));
+    const isProfilePanel = panels.length > 0 && blocks.some(hasProfileMarker);
     let currentCategory = null;
     if (!nonProfileBlocks.length) return;
+    // A few legacy Hindi pages contain duplicated project/publication lists
+    // inside the scientist panel. Keep those copies out of later CMS sections.
+    if (isProfilePanel && !explicitCategories.length) return;
     if (!explicitCategories.length) {
       if (groupIndex === 0 && tabSections.some((s) => s.key === "overview")) {
         blocks.forEach((b) => { if (!hasProfileMarker(b)) overviewKeys.push(...keysIn(b, keyMap)); });
@@ -522,12 +526,16 @@ export const collectPageImages = (html, pageTitle = "") => {
   if (!imgs.length) return [];
 
   const sectionOf = new Map(); // img element -> section/person label
+  const sectionKeyOf = new Map();
   // Person profile photos -> "Scientific Manpower — <person>"
   getProfileCandidates(document)
     .filter((candidate) => looksLikePersonName(candidate.name))
     .forEach((candidate) => {
       Array.from(candidate.container.querySelectorAll("img[src]")).forEach((img) => {
-        if (!sectionOf.has(img)) sectionOf.set(img, `Scientific Manpower — ${candidate.name}`);
+        if (!sectionOf.has(img)) {
+          sectionOf.set(img, `Scientific Manpower — ${candidate.name}`);
+          sectionKeyOf.set(img, "scientific-manpower");
+        }
       });
     });
   // Tab pages: label panel images with the tab they appear under.
@@ -537,7 +545,10 @@ export const collectPageImages = (html, pageTitle = "") => {
     if (panels.length === tabSections.length) {
       tabSections.forEach((tab, index) => {
         Array.from(panels[index].querySelectorAll("img[src]")).forEach((img) => {
-          if (!sectionOf.has(img)) sectionOf.set(img, tab.label);
+          if (!sectionOf.has(img)) {
+            sectionOf.set(img, tab.label);
+            sectionKeyOf.set(img, tab.key);
+          }
         });
       });
     }
@@ -559,7 +570,13 @@ export const collectPageImages = (html, pageTitle = "") => {
       : section
         ? `${section} — photo ${n} (${fileName})`
         : `Photo ${n} (${fileName})`;
-    bySrc.set(src, { src, label, sort: bySrc.size + 1 });
+    bySrc.set(src, {
+      src,
+      label,
+      sort: bySrc.size + 1,
+      sectionKey: sectionKeyOf.get(img) || "",
+      sectionLabel: isPerson ? "Scientific Manpower" : section,
+    });
   });
   return Array.from(bySrc.values());
 };

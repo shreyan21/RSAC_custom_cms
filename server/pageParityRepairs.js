@@ -1,4 +1,11 @@
 const pageRepairs = new Map([
+  ["agriculture-resources-division1", {
+    visibleBlockLabels: new Set(),
+    hiddenChildKeys: new Set(),
+    maxHindiImportedChildByBlockId: new Map([
+      ["official-agriculture-resources-division1-02", 24],
+    ]),
+  }],
   ["training-hostels", {
     visibleBlockLabels: new Set(["Training Hostel"]),
     hiddenChildKeys: new Set(),
@@ -12,6 +19,14 @@ const pageRepairs = new Map([
       "text-0070",
       "text-0071",
       "text-0072",
+    ]),
+    hiddenHindiChildKeys: new Set([
+      "text-0065",
+      "text-0066",
+      "text-0067",
+      "text-0068",
+      "text-0069",
+      "text-0070",
     ]),
   }],
 ]);
@@ -130,21 +145,38 @@ export const repairCmsPageParity = async (db) => {
     const dataEn = structuredClone(row.data_en || {});
     const dataHi = structuredClone(row.data_hi || {});
     let changed = false;
-    const repairBlocks = (blocks, allowBlockVisibilityRepair) => (blocks || []).map((block) => {
+    const repairBlocks = (
+      blocks,
+      allowBlockVisibilityRepair,
+      hiddenChildKeys,
+      maxImportedChildByBlockId = new Map()
+    ) => (blocks || []).map((block) => {
       let next = block;
       if (allowBlockVisibilityRepair && repair.visibleBlockLabels.has(block.label) && block.hidden === true) {
         next = { ...next, hidden: false };
         changed = true;
       }
-      const children = (next.children || []).map((child) => {
-        if (!repair.hiddenChildKeys.has(child.key) || child.hidden === true) return child;
+      const maxImportedChild = maxImportedChildByBlockId.get(String(block.id || ""));
+      const children = (next.children || []).filter((child) => {
+        if (!Number.isInteger(maxImportedChild)) return true;
+        const keyMatch = String(child.key || "").match(/^text-(\d+)$/);
+        if (!keyMatch || Number(keyMatch[1]) <= maxImportedChild) return true;
+        changed = true;
+        return false;
+      }).map((child) => {
+        if (!hiddenChildKeys.has(child.key) || child.hidden === true) return child;
         changed = true;
         return { ...child, hidden: true };
       });
       return { ...next, children };
     });
-    dataEn.blocks = repairBlocks(dataEn.blocks, true);
-    dataHi.blocks = repairBlocks(dataHi.blocks, false);
+    dataEn.blocks = repairBlocks(dataEn.blocks, true, repair.hiddenChildKeys);
+    dataHi.blocks = repairBlocks(
+      dataHi.blocks,
+      false,
+      repair.hiddenHindiChildKeys || repair.hiddenChildKeys,
+      repair.maxHindiImportedChildByBlockId
+    );
     if (!changed) continue;
 
     await db.query(

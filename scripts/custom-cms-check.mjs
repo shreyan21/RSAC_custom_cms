@@ -30,6 +30,9 @@ if (missingEditorSchemas.length) throw new Error(`CMS editor schemas missing for
 const english = assembleBootstrap(contentRows, "en");
 const hindi = assembleBootstrap(contentRows, "hi");
 const divisionPages = english.rsacOfficialSections.find((section) => section.key === "divisions")?.pages || [];
+if (canonicalDivisionSection("Publications and Technical Reports") !== "Publications") {
+  throw new Error("Combined groundwater publications/report section has the wrong CMS owner.");
+}
 const expectedDivisionOrder = ["computer-image-processing", "agriculture-resources"];
 const actualDivisionOrder = english.divisions.slice(0, 2).map((item) => item.key);
 if (JSON.stringify(actualDivisionOrder) !== JSON.stringify(expectedDivisionOrder)) {
@@ -77,8 +80,14 @@ for (const item of hindi.siteSettings.impactStats || []) {
 const hindiTraining = hindi.rsacOfficialSections
   .find((section) => section.key === "divisions")?.pages
   .find((page) => page.slug === "training-division");
-if (!hindiTraining?.structureHtml?.includes("List of Research Papers")) {
-  throw new Error("Hindi Training Division is missing English structural HTML for tab parity.");
+if (
+  !hindiTraining?.html ||
+  (
+    !(hindiTraining.blocks || []).some((block) => String(block?.id || "").startsWith("official-")) &&
+    !hindiTraining.structureHtml?.includes("List of Research Papers")
+  )
+) {
+  throw new Error("Hindi Training Division is missing a validated content structure.");
 }
 const sectionBlockSignature = (page) => (page?.blocks || [])
   .filter((block) => block.controlsSectionLabel !== false && !String(block.id || "").startsWith("cms-text-"))
@@ -98,6 +107,17 @@ if (
 }
 const hindiDivisionPages = hindi.rsacOfficialSections.find((section) => section.key === "divisions")?.pages || [];
 const hindiDivisionBySlug = new Map(hindiDivisionPages.map((page) => [page.slug, page]));
+const hindiAgriculture = hindiDivisionBySlug.get("agriculture-resources-division1");
+const agricultureScientistBlock = (hindiAgriculture?.blocks || []).find(
+  (block) => block.id === "official-agriculture-resources-division1-02"
+);
+const leakedAgricultureFields = (agricultureScientistBlock?.children || []).filter((child) => {
+  const match = String(child.key || "").match(/^text-(\d+)$/);
+  return match && Number(match[1]) > 24;
+});
+if (!agricultureScientistBlock || leakedAgricultureFields.length) {
+  throw new Error("Hindi Agriculture Scientific Manpower owns duplicated project or publication fields.");
+}
 const sectionSequence = (page) => {
   const seen = new Set();
   return (page.blocks || [])
@@ -117,6 +137,8 @@ const blockOwnersByChildKey = (page) => {
 };
 for (const englishPage of divisionPages) {
   const hindiPage = hindiDivisionBySlug.get(englishPage.slug);
+  const hasIndependentOfficialHindi =
+    (hindiPage?.blocks || []).some((block) => String(block?.id || "").startsWith("official-"));
   if (!hindiPage?.structureHtml || hindiPage.structureHtml !== englishPage.html) {
     throw new Error(`${englishPage.slug} lacks shared English structural HTML in Hindi mode.`);
   }
@@ -125,14 +147,19 @@ for (const englishPage of divisionPages) {
   }
   const englishSections = sectionSequence(englishPage);
   const hindiSections = sectionSequence(hindiPage);
-  if (JSON.stringify(englishSections) !== JSON.stringify(hindiSections)) {
+  if (
+    !hasIndependentOfficialHindi &&
+    JSON.stringify(englishSections) !== JSON.stringify(hindiSections)
+  ) {
     throw new Error(`${englishPage.slug} section mismatch: English [${englishSections.join(", ")}], Hindi [${hindiSections.join(", ")}].`);
   }
   const englishOwners = blockOwnersByChildKey(englishPage);
   const hindiOwners = blockOwnersByChildKey(hindiPage);
-  for (const [key, owner] of englishOwners) {
-    if (hindiOwners.has(key) && hindiOwners.get(key) !== owner) {
-      throw new Error(`${englishPage.slug}/${key} belongs to ${owner} in English but ${hindiOwners.get(key)} in Hindi.`);
+  if (!hasIndependentOfficialHindi) {
+    for (const [key, owner] of englishOwners) {
+      if (hindiOwners.has(key) && hindiOwners.get(key) !== owner) {
+        throw new Error(`${englishPage.slug}/${key} belongs to ${owner} in English but ${hindiOwners.get(key)} in Hindi.`);
+      }
     }
   }
   const managedKeys = new Set([

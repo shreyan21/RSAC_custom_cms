@@ -39,6 +39,24 @@ const cleanBlocks = (blocks) => {
     for (const key of ["html", "text"]) {
       if (typeof next[key] === "string") next[key] = sanitizeHtml(next[key], richTextOptions);
     }
+    if (Array.isArray(next.assets)) {
+      const allowedKinds = new Set(["image", "document", "video", "audio", "embed", "link"]);
+      next.assets = next.assets.slice(0, 1000).map((asset) => ({
+        ...asset,
+        key: String(asset?.key || crypto.randomUUID()).slice(0, 160),
+        kind: allowedKinds.has(String(asset?.kind)) ? String(asset.kind) : "link",
+        label: String(asset?.label || "Media").trim().slice(0, 1000),
+        value: cleanUrl(asset?.value),
+        sourceValue: cleanUrl(asset?.sourceValue),
+        linkedHref: cleanUrl(asset?.linkedHref),
+        alt: String(asset?.alt || "").trim().slice(0, 1000),
+        title: String(asset?.title || "").trim().slice(0, 1000),
+        caption: String(asset?.caption || "").trim().slice(0, 5000),
+        text: String(asset?.text || "").trim().slice(0, 1000),
+        hidden: Boolean(asset?.hidden),
+        isNew: Boolean(asset?.isNew),
+      }));
+    }
     return next;
   });
 };

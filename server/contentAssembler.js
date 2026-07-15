@@ -131,13 +131,24 @@ const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
 export const localize = (entry, language) => {
   if (language !== "hi") return entry.data_en;
   const localized = { ...(entry.data_hi || {}) };
+  const hasIndependentOfficialHindi =
+    entry.collection === "pages" &&
+    Array.isArray(entry.data_hi?.blocks) &&
+    entry.data_hi.blocks.some((block) => String(block?.id || "").startsWith("official-"));
   const definition = getCollection(entry.collection);
   for (const field of definition?.fields || []) {
-    if (field.localized === false) localized[field.name] = entry.data_en?.[field.name];
+    if (
+      field.localized === false &&
+      !(hasIndependentOfficialHindi && field.name === "sourceUrl")
+    ) {
+      localized[field.name] = entry.data_en?.[field.name];
+    }
   }
   if (entry.collection === "pages") {
     localized.baseTitle = entry.data_en?.title || "";
-    localized.blocks = alignLocalizedBlockOwners(localized.blocks, entry.data_en?.blocks);
+    if (!hasIndependentOfficialHindi) {
+      localized.blocks = alignLocalizedBlockOwners(localized.blocks, entry.data_en?.blocks);
+    }
     const categorizedPage = entry.data_en?.sectionKey === "divisions" ||
       /^training-division-?$/u.test(entry.data_en?.slug || entry.entry_key || "");
     // Division media is merged per tab in the frontend. Appending every missing
@@ -203,12 +214,24 @@ export const assembleBootstrap = (rows, language = "en") => {
   }
   const list = (collection) => (groups.get(collection) || []).sort(bySort).map((entry) => {
     const localized = localize(entry, language);
+    const hasIndependentOfficialHindi =
+      collection === "pages" &&
+      language === "hi" &&
+      Array.isArray(entry.data_hi?.blocks) &&
+      entry.data_hi.blocks.some((block) => String(block?.id || "").startsWith("official-"));
     return {
       id: entry.id,
       key: entry.entry_key,
       ...localized,
       ...(collection === "pages" && language === "hi" && entry.data_en?.html
-        ? { structureHtml: entry.data_en.html }
+        ? {
+            structureHtml: entry.data_en.html,
+            structureAssetBlocks: entry.data_en.blocks || [],
+            sharedAssetBlocks: entry.data_en.blocks || [],
+          }
+        : {}),
+      ...(collection === "pages" && language === "hi" && entry.data_en?.html && hasIndependentOfficialHindi
+        ? { profileStructureHtml: entry.data_en.html }
         : {}),
     };
   });

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Copy, Plus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { blockTypes } from "../../shared/cmsCollections";
 import { api, mediaPreviewUrl } from "./api";
+import ImportedAssetEditor from "./ImportedAssetEditor";
 
 const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", mediaSize: "normal", spacing: "normal" });
 const itemFields = {
@@ -155,7 +156,7 @@ function ImportedContentFields({ block, onChange }) {
         <button type="button" className="primary" onClick={addAtTop}><Plus /> Add line at top</button>
         <label><Search aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${active.length} fields`} /></label>
       </div>
-      <p className="imported-list-help">Each row controls one visible line in this website section. Use dedicated People and Gallery collections for profile photos and gallery uploads.</p>
+      <p className="imported-list-help">Each row controls one visible line in this website section. Section-specific images, files and links are edited directly below.</p>
       <div className="imported-list-items">
         {visible.map(({ child, index, number }) => {
           const fieldName = String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
@@ -216,11 +217,12 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
         const isPeopleReference = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(sourceLabel);
         const isImported = Array.isArray(block.children);
         const importedCount = (block.children || []).filter((child) => !child.hidden).length;
+        const assetCount = (block.assets || []).filter((asset) => !asset.hidden).length;
         const itemCount = block.editorMode === "numbered_list" || importedCount ? importedCount : (block.items || []).length;
         return (
           <section className={`block-row${isOpen ? " open" : ""}`} key={blockKey}>
             <div className="block-row__head">
-              <button type="button" className="block-toggle" aria-expanded={isOpen} onClick={() => setFocusedIndex(index)}><ChevronDown /><span><strong>{index + 1}. {sourceLabel}</strong><small>{isPeopleReference ? "Managed in Scientists / Officials / Staff" : block.editorMode === "numbered_list" ? `Numbered list - ${itemCount} items` : importedCount ? `Editable section - ${itemCount} fields` : blockTypes.find((type) => type.value === block.type)?.label || block.type}</small></span></button>
+              <button type="button" className="block-toggle" aria-expanded={isOpen} onClick={() => setFocusedIndex(index)}><ChevronDown /><span><strong>{index + 1}. {sourceLabel}</strong><small>{isPeopleReference ? "Managed in Scientists / Officials / Staff" : block.editorMode === "numbered_list" ? `Numbered list - ${itemCount} items${assetCount ? `, ${assetCount} media` : ""}` : importedCount || assetCount ? `Editable section - ${itemCount} text fields${assetCount ? `, ${assetCount} media` : ""}` : blockTypes.find((type) => type.value === block.type)?.label || block.type}</small></span></button>
               <div className="icon-actions"><button type="button" title="Move up" onClick={() => move(index, -1)}><ArrowUp /></button><button type="button" title="Move down" onClick={() => move(index, 1)}><ArrowDown /></button><button type="button" title="Duplicate" onClick={() => onChange([...blocks.slice(0, index + 1), { ...structuredClone(block), id: crypto.randomUUID() }, ...blocks.slice(index + 1)])}><Copy /></button><button type="button" className="danger-icon" title="Remove block" onClick={() => { onChange(blocks.filter((_item, position) => position !== index)); setFocusedIndex(null); }}><Trash2 /></button></div>
             </div>
             {isOpen && <div className="block-row__body">
@@ -240,6 +242,7 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
                   <StructuredItems block={block} onChange={(patch) => update(index, patch)} onBusy={onBusy} onError={onError} />
                 </>
               )}
+              {isImported && !isPeopleReference && <ImportedAssetEditor assets={block.assets} onChange={(assets) => update(index, { assets })} onBusy={onBusy} onError={onError} />}
               <label className="inline-check"><input type="checkbox" checked={Boolean(block.hidden)} onChange={(event) => update(index, { hidden: event.target.checked })} /> Hide this block</label>
             </div>}
           </section>
