@@ -40,6 +40,9 @@ app.use("/uploads", express.static(config.uploadDir, { immutable: true, maxAge: 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
 const writeLimiter = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false });
 const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false });
+const previewLifetimeMs = 15 * 60 * 1000;
+const maxPreviewSessions = 100;
+const previewSessions = new Map();
 
 const slugify = (value) => String(value || "entry")
   .normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase()
@@ -51,6 +54,73 @@ const entryKeyFor = (body, dataEn) => {
     .join("")
     .slice(0, 160);
   return existing || slugify(dataEn.slug || dataEn.roleKey || dataEn.title || dataEn.name || dataEn.label);
+};
+
+const localPreviewPath = (value) => {
+  const path = String(value || "").trim();
+  if (!path || /^(?:https?:)?\/\//iu.test(path)) return "";
+  return path.startsWith("/") ? path : `/${path}`;
+};
+
+const previewPathFor = (collection, dataEn) => {
+  if (collection === "pages") {
+    if (dataEn.slug === "organisational-chart") return "/organisation-chart";
+    return dataEn.sectionKey && dataEn.slug
+      ? `/${dataEn.sectionKey}/${dataEn.slug}`
+      : "/";
+  }
+  if (collection === "page_sections") {
+    return localPreviewPath(dataEn.route || dataEn.key) || "/";
+  }
+  if (["menu_items", "page_display_settings"].includes(collection)) {
+    return localPreviewPath(dataEn.path) || "/";
+  }
+  if (["policies", "public_info"].includes(collection) && dataEn.slug) {
+    return `/${dataEn.slug}`;
+  }
+  if (collection === "division_section_items" && dataEn.divisionSlug) {
+    return `/divisions/${dataEn.divisionSlug}`;
+  }
+  if (["projects", "publications"].includes(collection)) {
+    return dataEn.divisionSlug
+      ? `/divisions/${dataEn.divisionSlug}`
+      : "/divisions";
+  }
+  if (collection === "profiles") {
+    const profilePaths = {
+      leadership: "/leadership",
+      official: "/leadership",
+      former: "/about-us/our-formers",
+      technical: "/technical-staff",
+      administration: "/administration",
+    };
+    return profilePaths[dataEn.profileType] || "/scientists";
+  }
+  const collectionPaths = {
+    divisions: "/divisions",
+    facilities: "/facilities",
+    manpower: "/manpower",
+    organisation_roles: "/organisation-chart",
+    notices: "/notices",
+    tenders: "/tenders",
+    faq: "/faq",
+    flood_reports: "/flood-reports",
+    gallery: "/gallery",
+    mobile_apps: "/mobile-apps",
+    geoportals: "/geoportals",
+    contact: "/contact",
+  };
+  return collectionPaths[collection] || "/";
+};
+
+const deleteExpiredPreviews = () => {
+  const now = Date.now();
+  previewSessions.forEach((preview, token) => {
+    if (preview.expiresAt <= now) previewSessions.delete(token);
+  });
+  while (previewSessions.size >= maxPreviewSessions) {
+    previewSessions.delete(previewSessions.keys().next().value);
+  }
 };
 
 const normalizeProfileIdentity = (value) => String(value || "")
@@ -130,6 +200,33 @@ app.get("/api/content/bootstrap", async (req, res, next) => {
     const rows = await readPublishedEntries();
     res.set("Cache-Control", "no-cache, must-revalidate");
     res.json({ data: assembleBootstrap(rows, language), generatedAt: new Date().toISOString() });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/content/preview/:token", async (req, res, next) => {
+  try {
+    deleteExpiredPreviews();
+    const preview = previewSessions.get(req.params.token);
+    if (!preview) {
+      return res.status(404).json({ error: "Preview expired. Return to the CMS and click Preview again." });
+    }
+
+    const language = req.query.lang === "hi" ? "hi" : "en";
+    const rows = await readPublishedEntries();
+    const previewIndex = rows.findIndex((row) =>
+      preview.entryId
+        ? String(row.id) === preview.entryId
+        : row.collection === preview.row.collection && row.entry_key === preview.row.entry_key
+    );
+    if (previewIndex >= 0) rows[previewIndex] = preview.row;
+    else rows.push(preview.row);
+
+    res.set("Cache-Control", "no-store");
+    res.set("Referrer-Policy", "no-referrer");
+    res.json({
+      data: { ...assembleBootstrap(rows, language), isPreview: true },
+      expiresAt: new Date(preview.expiresAt).toISOString(),
+    });
   } catch (error) { next(error); }
 });
 
@@ -221,6 +318,39 @@ app.post("/api/auth/logout", requireAuth, requireCsrf, async (req, res, next) =>
 });
 
 app.use("/api/admin", requireAuth);
+app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next) => {
+  try {
+    const collection = String(req.body?.collection || "");
+    const entry = req.body?.entry || {};
+    const { definition, dataEn, dataHi, sortOrder } = validateEntryPayload(collection, entry);
+    const entryKey = entryKeyFor(entry, dataEn);
+    const now = new Date();
+    const token = randomUUID();
+    const entryId = entry.id ? String(entry.id) : "";
+    const row = {
+      id: entryId || randomUUID(),
+      collection: definition.id,
+      entry_key: entryKey,
+      status: "published",
+      sort_order: definition.autoNewestFirst && !entryId ? -2147483648 : sortOrder,
+      data_en: dataEn,
+      data_hi: dataHi,
+      version: Number(entry.version) || 0,
+      updated_at: now,
+      content_version: now,
+    };
+    const expiresAt = Date.now() + previewLifetimeMs;
+
+    deleteExpiredPreviews();
+    previewSessions.set(token, { entryId, row, expiresAt });
+    res.set("Cache-Control", "no-store");
+    res.json({
+      token,
+      path: previewPathFor(definition.id, dataEn),
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  } catch (error) { next(error); }
+});
 app.get("/api/admin/schema", (_req, res) => res.json({ collections }));
 
 const cleanUser = (row) => ({

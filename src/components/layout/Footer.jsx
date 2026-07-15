@@ -8,7 +8,12 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useContactDetails, useDataContext, useSiteSettings } from "../../hooks/useData";
+import {
+  useContactDetails,
+  useDataContext,
+  useIsContentLoading,
+  useSiteSettings,
+} from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useVisitorCount } from "../../hooks/useVisitorCount";
 
@@ -48,7 +53,11 @@ const Footer = () => {
   const contactDetails = useContactDetails();
   const { branding, footer } = useSiteSettings();
   const visitorCount = useVisitorCount();
+  const contentLoading = useIsContentLoading();
   const currentYear = new Date().getFullYear();
+
+  if (contentLoading) return null;
+
   const lastUpdated = contentVersion || footer.reviewDate;
   const reviewLabel = formatReviewDate(
     lastUpdated,

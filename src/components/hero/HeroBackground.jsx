@@ -10,23 +10,25 @@ import { activeHeroVideo as bundledHeroVideo } from "../../data/heroVideos";
 import heroFrameZeroPoster from "../../assets/images/hero-videos/rsac-earth-studio-up-poster.jpg";
 
 const reduceMotionQuery = "(prefers-reduced-motion: reduce)";
+const constrainedConnectionTypes = new Set(["slow-2g", "2g", "3g"]);
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia(reduceMotionQuery).matches;
 
-const shouldLoadHeroVideo = () =>
-  typeof window !== "undefined" &&
-  !navigator.connection?.saveData;
+const shouldLoadHeroVideo = () => {
+  if (typeof window === "undefined") return false;
+  const connection = navigator.connection;
+  return !connection?.saveData && !constrainedConnectionTypes.has(connection?.effectiveType);
+};
 
-// Large or high-DPI screens stretch the 1280px master well past its native
-// size; serve the sharper 1920px encode there. Desktop-width layouts only —
-// phones can hit 1600 device pixels via devicePixelRatio alone, but their
-// small physical screens hide the softness and the bigger file would punish
-// mobile data. Decided once at mount so a window resize never swaps src
-// mid-playback (that would restart the video).
+// Very large desktop screens stretch the 1280px master beyond its native size,
+// so serve the sharper 1920px encode there. Phones can have high device-pixel
+// counts too, but their smaller screens do not justify the larger download.
+// Decide once at mount so resizing never restarts playback.
 const prefersLargeHeroSource = () =>
   typeof window !== "undefined" &&
-  (window.innerWidth || 0) >= 1280 &&
-  (window.innerWidth || 0) * (window.devicePixelRatio || 1) >= 1600;
+  (window.innerWidth || 0) >= 1800 &&
+  (window.innerWidth || 0) * (window.devicePixelRatio || 1) >= 1800 &&
+  shouldLoadHeroVideo();
 
 const HeroBackground = () => {
   const { t } = useLanguage();
@@ -50,7 +52,7 @@ const HeroBackground = () => {
       : "";
   const videoRef = useRef(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
-  const [loadHeroVideo, setLoadHeroVideo] = useState(shouldLoadHeroVideo);
+  const [loadHeroVideo, setLoadHeroVideo] = useState(false);
   const [failedVideos, setFailedVideos] = useState([]);
   const heroVideo = [requestedVideo, fallbackVideo].find(
     (source) => source && !failedVideos.includes(source)
@@ -114,8 +116,29 @@ const HeroBackground = () => {
   }, []);
 
   useEffect(() => {
+    let idleId;
+    let timerId;
+
+    const cancelScheduledLoad = () => {
+      if (idleId !== undefined) window.cancelIdleCallback?.(idleId);
+      if (timerId !== undefined) window.clearTimeout(timerId);
+      idleId = undefined;
+      timerId = undefined;
+    };
+
     const handleChange = () => {
-      setLoadHeroVideo(shouldLoadHeroVideo());
+      cancelScheduledLoad();
+      if (!shouldLoadHeroVideo()) {
+        setLoadHeroVideo(false);
+        return;
+      }
+
+      const enableVideo = () => setLoadHeroVideo(true);
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(enableVideo, { timeout: 1200 });
+      } else {
+        timerId = window.setTimeout(enableVideo, 250);
+      }
     };
 
     const connection = navigator.connection;
@@ -123,6 +146,7 @@ const HeroBackground = () => {
     connection?.addEventListener?.("change", handleChange);
 
     return () => {
+      cancelScheduledLoad();
       connection?.removeEventListener?.("change", handleChange);
     };
   }, []);
@@ -341,7 +365,7 @@ const HeroBackground = () => {
             muted
             loop
             playsInline
-            preload="auto"
+            preload="metadata"
             poster={heroPoster}
             disablePictureInPicture
             tabIndex={-1}

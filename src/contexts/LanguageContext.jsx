@@ -35,7 +35,16 @@ export function LanguageProvider({ children }) {
   useEffect(() => subscribeUiLabels(setLabelsVersion), []);
 
   const setLanguage = (value) => {
-    setLanguageState(supportedLanguages.has(value) ? value : "en");
+    const nextLanguage = supportedLanguages.has(value) ? value : "en";
+    setLanguageState(nextLanguage);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", nextLanguage);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
   };
 
   useEffect(() => {

@@ -504,6 +504,8 @@ const divisionCategoryDefinitions = [
       "चालू परियोजनाएँ",
       "चल रही परियोजना",
       "चल रही परियोजनाएँ",
+      "चल रही वैज्ञानिक परियोजनाएं",
+      "चल रही वैज्ञानिक परियोजनाएँ",
     ],
   },
   {
@@ -518,6 +520,8 @@ const divisionCategoryDefinitions = [
       "पूर्ण परियोजनाएँ",
       "पूर्ण/संलग्न परियोजनाएँ",
       "पूर्ण/संलग्न परियोजनाएं",
+      "पूर्ण/सम्मिलित परियोजनाएँ",
+      "पूर्ण / सम्मिलित परियोजनाएँ",
     ],
   },
   {
@@ -568,6 +572,7 @@ const divisionCategoryDefinitions = [
       "शोध पत्र / लेख",
       "शोध पत्र/लेख",
       "शोध पत्र / आलेख",
+      "शोध प्रपत्र",
     ],
   },
   {
@@ -1662,8 +1667,22 @@ const getDivisionTabSections = (document) =>
       .flatMap((strip) =>
         Array.from(strip.children)
           .filter((child) => child.tagName === "SPAN")
-          .map((span) => {
+          .map((span, index) => {
             const text = compactText(span.textContent);
+
+            // Imported division tab strips always begin with the division's
+            // overview. Titles such as "Geo-Spatial Data Bank Division"
+            // contain a category name, so text matching alone can otherwise
+            // misclassify the overview as a later tab.
+            if (index === 0) {
+              return text
+                ? {
+                    key: "overview",
+                    label: text,
+                  }
+                : null;
+            }
+
             const category = canonicalizeDivisionCategory(text);
 
             if (category) {
@@ -2180,6 +2199,24 @@ const blockMatchesText = (block, matcher) => {
   }
 
   return matcher.test(text);
+};
+
+const isGroundwaterPublicationTableBlock = (block) => {
+  const table = block?.matches?.("table")
+    ? block
+    : block?.querySelector?.("table");
+
+  if (!table) {
+    return false;
+  }
+
+  const headerText = compactText(table.querySelector("tr")?.textContent);
+
+  return (
+    /(?:subject|topic|विषय)/iu.test(headerText) &&
+    /(?:author|लेखक)/iu.test(headerText) &&
+    /(?:journal|जर्नल)/iu.test(headerText)
+  );
 };
 
 const htmlHasContent = (html) => {
@@ -3203,7 +3240,10 @@ const normalizeDivisionSections = (page, sections) => {
   }
 
   if (page.slug === "groundwater-resources-division1") {
-    const reportSectionLabel = "Publications and Technical Reports";
+    const isHindiPage = /[\u0900-\u097f]/u.test(page.title || "");
+    const reportSectionLabel = isHindiPage
+      ? "प्रकाशन एवं तकनीकी रिपोर्ट"
+      : "Publications and Technical Reports";
 
     normalized = moveSectionRange(normalized, {
       sourceKeys: [
@@ -3215,9 +3255,13 @@ const normalizeDivisionSections = (page, sections) => {
       ],
       destinationKey: "publications",
       destinationLabel: reportSectionLabel,
-      startMarker: /Some results of ground water targeting/i,
+      startMarker: (block) =>
+        isGroundwaterPublicationTableBlock(block) ||
+        /Some results of ground water targeting/i.test(
+          compactText(block.textContent)
+        ),
       endMarker: /Rain Water Harvesting Project/i,
-      heading: "Publications",
+      heading: isHindiPage ? "प्रकाशन" : "Publications",
       afterKey: "completed-projects",
     });
     normalized = moveSectionTail(normalized, {
@@ -4850,6 +4894,77 @@ const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
   return localizedDocument.body.innerHTML;
 };
 
+const mediaSectionKeys = new Set(["map-photos", "training-hostel-photos"]);
+
+const comparableSectionText = (value) =>
+  compactText(value)
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\p{Punctuation}\p{Symbol}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const cleanRepeatedMediaSectionText = (sections) => {
+  if (typeof DOMParser === "undefined") return sections;
+
+  const referenceTexts = sections
+    .filter((section) => !mediaSectionKeys.has(section.key) && section.type === "html")
+    .map((section) => {
+      const document = new DOMParser().parseFromString(section.html || "", "text/html");
+      return comparableSectionText(document.body.textContent);
+    })
+    .filter(Boolean);
+  const placeholderPattern = /^(?:content\s+(?:will\s+be\s+)?available\s+soon|content\s+coming\s+soon|विषयवस्तु\s+शीघ्र\s+ही\s+उपलब्ध\s+हो\s+जाएगी)$/iu;
+
+  return sections.map((section) => {
+    if (!mediaSectionKeys.has(section.key) || section.type !== "html") return section;
+
+    const document = new DOMParser().parseFromString(section.html || "", "text/html");
+    const structuralDocument = new DOMParser().parseFromString(
+      section.structureHtml || "",
+      "text/html"
+    );
+    const hasMedia = Boolean(
+      document.body.querySelector("img[src], video, audio, iframe[src], source[src]")
+    );
+    if (!hasMedia) return section;
+    const structuralHasMedia = Boolean(
+      structuralDocument.body.querySelector("img[src], video, audio, iframe[src], source[src]")
+    );
+    const structuralHasBodyText = Array.from(
+      structuralDocument.body.querySelectorAll("p, ul, ol, table, blockquote")
+    ).some((element) =>
+      !element.querySelector("img[src], video, audio, iframe[src], source[src]") &&
+      comparableSectionText(element.textContent).length >= 24
+    );
+    const structureExpectsMediaOnly = structuralHasMedia && !structuralHasBodyText;
+
+    document.body
+      .querySelectorAll("h1, h2, h3, h4, h5, h6, p, ul, ol, table, blockquote")
+      .forEach((element) => {
+        if (element.querySelector("img[src], video, audio, iframe[src], source[src]")) return;
+        const text = comparableSectionText(element.textContent);
+        const unexpectedBodyText = structureExpectsMediaOnly &&
+          element.matches("p, ul, ol, table, blockquote") &&
+          Boolean(text);
+        const repeatedElsewhere = text.length >= 24 && referenceTexts.some(
+          (reference) => reference.includes(text)
+        );
+        if (unexpectedBodyText || repeatedElsewhere || placeholderPattern.test(text)) element.remove();
+      });
+
+    Array.from(document.body.querySelectorAll("div, section, article, p"))
+      .reverse()
+      .forEach((element) => {
+        if (!compactText(element.textContent) && !element.querySelector("img, video, audio, iframe, a[href], table")) {
+          element.remove();
+        }
+      });
+
+    return { ...section, html: document.body.innerHTML.trim() };
+  });
+};
+
 const profileImageIdentity = (profile) =>
   getProfileImage(profile)
     .split(/[?#]/)[0]
@@ -4959,11 +5074,13 @@ const buildDivisionSections = (
   const localizedSections = buildDivisionSectionsFromHtml(page);
 
   if (!page.structureHtml || page.structureHtml === page.html) {
-    return mergeDivisionProfileSections(
-      localizedSections,
-      page,
-      scientistProfiles,
-      profileReferencePage
+    return cleanRepeatedMediaSectionText(
+      mergeDivisionProfileSections(
+        localizedSections,
+        page,
+        scientistProfiles,
+        profileReferencePage
+      )
     );
   }
 
@@ -4999,11 +5116,13 @@ const buildDivisionSections = (
     };
   });
 
-  return mergeDivisionProfileSections(
-    mergedSections,
-    page,
-    scientistProfiles,
-    profileReferencePage
+  return cleanRepeatedMediaSectionText(
+    mergeDivisionProfileSections(
+      mergedSections,
+      page,
+      scientistProfiles,
+      profileReferencePage
+    )
   );
 };
 
@@ -5780,10 +5899,12 @@ const DivisionCategorizedContent = ({
           : String(block.value || "").trim();
         const sectionKey = nextSections[sectionIndex].key;
         const existingLabel = String(nextSections[sectionIndex].label || "");
+        const combinedPublicationLabelPattern =
+          /(?:publications?.*technical\s+reports?|प्रकाशन.*तकनीकी\s+रिपोर्ट)/iu;
         const preserveCombinedPublicationLabel =
           sectionKey === "publications" &&
-          /publications.*technical reports/i.test(existingLabel) &&
-          !/technical reports/i.test(visibleLabel);
+          combinedPublicationLabelPattern.test(existingLabel) &&
+          !combinedPublicationLabelPattern.test(visibleLabel);
         const isFirstVisibleLabel = visibleLabel && !labeledSectionKeys.has(sectionKey);
         const applyVisibleLabel = isFirstVisibleLabel && !preserveCombinedPublicationLabel;
         if (isFirstVisibleLabel) labeledSectionKeys.add(sectionKey);

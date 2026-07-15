@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Languages, Plus, Save, Search, Trash2, Undo2, UserRound } from "lucide-react";
+import { ArrowLeft, Eye, Languages, Plus, Save, Search, Trash2, Undo2, UserRound } from "lucide-react";
 import FieldInput from "./FieldInput";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 
@@ -48,7 +48,7 @@ const matchingBlockIndex = (data, referenceBlock, fallbackIndex) => {
   return fallbackIndex < blocks.length ? fallbackIndex : -1;
 };
 
-export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, notify }) {
+export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", sectionFilter, onSave, onPreview, onClose, onOpenPeople, notify }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState(null);
   const [sectionIndex, setSectionIndex] = useState(null);
@@ -185,6 +185,17 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     }
   };
 
+  const preview = async () => {
+    setBusy(true);
+    try {
+      await onPreview(draft, language);
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!draft) {
     return (
       <section className="division-workspace">
@@ -212,7 +223,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   if (sectionIndex === "page-details") {
     return (
       <section className="division-workspace division-workspace-editor">
-        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit heading, introduction, media, sizing, or hide an unwanted repeated profile card by its exact visible name.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit heading, introduction, media, sizing, or hide an unwanted repeated profile card by its exact visible name.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
         <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
         <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
         <div className="editor-fields">
@@ -236,7 +247,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
 
   return (
     <section className="division-workspace division-workspace-editor">
-      <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>{label}</h2><p>{numbered ? "New items appear first and become number 1." : "Edit one website line at a time."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+      <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>{label}</h2><p>{numbered ? "New items appear first and become number 1." : "Edit one website line at a time."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
       <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label></div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>

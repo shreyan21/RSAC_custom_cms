@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive, ArrowLeft, BookOpen, Check, ChevronRight, ExternalLink, FileText,
-  History, Languages, LayoutDashboard, LoaderCircle, LogOut, Menu, MessageSquare,
+  Eye, History, Languages, LayoutDashboard, LoaderCircle, LogOut, Menu, MessageSquare,
   Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Users, X,
 } from "lucide-react";
 import upEmblem from "../../src/assets/images/up-emblem.webp";
@@ -20,6 +20,45 @@ const emptyEntry = (definition) => ({
 const titleOf = (entry) => entry?.dataEn?.title || entry?.dataEn?.name || entry?.dataEn?.label || entry?.entryKey || "Untitled";
 const hasLanguage = (entry, key) => Object.values(entry?.[key] || {}).some((value) => value !== "" && value !== null && value !== undefined);
 const slugify = (value) => String(value || "page").normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase().replace(/\s+/g, "-").replace(/-+/g, "-") || `page-${Date.now()}`;
+
+const prepareEntryPayload = (definition, draft) => {
+  const payload = structuredClone(draft);
+  const storageId = definition.storageId || definition.id;
+  if (storageId === "pages") {
+    payload.dataEn ||= {};
+    payload.dataEn.sectionKey ||= definition.presetDataEn?.sectionKey || "about-us";
+    payload.dataEn.slug ||= slugify(payload.dataEn.title);
+  }
+  return { payload, storageId };
+};
+
+const openContentPreview = async ({ collection, draft, language, notify }) => {
+  const previewWindow = window.open("about:blank", "_blank");
+  if (previewWindow) {
+    previewWindow.opener = null;
+    previewWindow.document.title = "Preparing RSAC-UP preview";
+    previewWindow.document.body.textContent = "Preparing secure preview...";
+  }
+
+  try {
+    const result = await api("/api/admin/preview", {
+      method: "POST",
+      body: JSON.stringify({ collection, entry: draft }),
+    });
+    const target = new URL(result.path || "/", websiteUrl);
+    target.searchParams.set("lang", language === "hi" ? "hi" : "en");
+    target.hash = new URLSearchParams({ "cms-preview": result.token }).toString();
+
+    if (previewWindow) previewWindow.location.replace(target.toString());
+    else if (!window.open(target.toString(), "_blank", "noopener,noreferrer")) {
+      throw new Error("Preview popup was blocked. Allow popups for this CMS and try again.");
+    }
+    notify("Preview opened. Live website content is unchanged.", "success");
+  } catch (error) {
+    previewWindow?.close();
+    throw error;
+  }
+};
 
 const profileIdentityKeys = (entry) => {
   const data = entry?.dataEn || {};
@@ -240,12 +279,7 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
   const save = async () => {
     setBusy(true); notify("");
     try {
-      const payload = structuredClone(draft);
-      if ((definition.storageId || definition.id) === "pages") {
-        payload.dataEn.sectionKey ||= definition.presetDataEn?.sectionKey || "about-us";
-        payload.dataEn.slug ||= slugify(payload.dataEn.title);
-      }
-      const storageId = definition.storageId || definition.id;
+      const { payload, storageId } = prepareEntryPayload(definition, draft);
       const method = payload.id ? "PUT" : "POST";
       const path = payload.id ? `/api/admin/content/${storageId}/${payload.id}` : `/api/admin/content/${storageId}`;
       const result = await api(path, { method, body: JSON.stringify(payload) });
@@ -254,12 +288,20 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
     } catch (error) { notify(error.message, "error"); }
     finally { setBusy(false); }
   };
+  const preview = async () => {
+    setBusy(true); notify("");
+    try {
+      const { payload, storageId } = prepareEntryPayload(definition, draft);
+      await openContentPreview({ collection: storageId, draft: payload, language, notify });
+    } catch (error) { notify(error.message, "error"); }
+    finally { setBusy(false); }
+  };
   return (
     <div className="editor-shell">
       <header className="editor-head">
         <button type="button" className="back-button" onClick={onClose}><ArrowLeft /> Back</button>
         <div><span>{definition.label}</span><h2>{draft.id ? titleOf(draft) : `Add ${definition.label}`}</h2></div>
-        <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button></div>
+        <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button></div>
       </header>
       <div className="editor-body">
         <aside className="editor-meta">
@@ -297,6 +339,7 @@ function GuideView() {
     ["Change page headings", "Open Page Headings and Subheadings. Hide, rename or resize a heading or introduction for an exact route such as /gallery or a route group such as /divisions/*."],
     ["Change website fonts", "Open Design Settings. Choose bundled fonts and a base size from 14 to 20, then verify English, Hindi and mobile."],
     ["Upload media", "Use Upload, add meaningful alt text, and verify the result at mobile and desktop width."],
+    ["Preview before publishing", "Open an item or page section, choose English or हिन्दी, then click Preview. A private 15-minute website preview opens without saving or changing live content."],
     ["Publish safely", "Check spelling, dates, URLs, English, Hindi, keyboard access and mobile layout before publishing."],
   ];
   return (
@@ -385,6 +428,9 @@ export default function App() {
     setEntries((current) => current.map((entry) => entry.id === result.data.id ? result.data : entry));
     return result.data;
   };
+  const previewDivisionPage = async (draft, language) => {
+    await openContentPreview({ collection: "pages", draft, language, notify });
+  };
   const filteredEntries = useMemo(() => entries.filter((entry) => `${titleOf(entry)} ${entry.entryKey}`.toLowerCase().includes(search.toLowerCase())), [entries, search]);
   const profileDuplicatePairs = useMemo(() => selected?.id === "profiles" ? findDuplicateProfilePairs(entries) : [], [entries, selected]);
   const visibleGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
@@ -410,7 +456,7 @@ export default function App() {
         {view === "collection" && selected?.id === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
         {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div><button className="secondary" onClick={loadCollections}><RefreshCw /> Refresh</button></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
-        {view === "content_workspace" && selected && <DivisionContentWorkspace pages={entries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} notify={notify} />}
+        {view === "content_workspace" && selected && <DivisionContentWorkspace pages={entries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onPreview={previewDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} notify={notify} />}
         {view === "collection" && selected && <section className="collection-view"><div className="collection-tools"><button className="back-button" onClick={() => openView("dashboard")}><ArrowLeft /> Collections</button><div className="search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title or key" /></div>{selected.allowCreate !== false && (!selected.singleton || !entries.some((entry) => entry.status !== "archived")) && <button className="primary" onClick={() => setEditing("new")}><Plus /> Add new</button>}</div><div className="sort-help"><RefreshCw /> {selected.id === "division_pages" ? "Choose a division, then open one section. English and Hindi remain separate." : selected.autoNewestFirst ? "New items appear first automatically and are numbered from 1." : "Lower Sort order appears first."} Published changes appear on website within a few seconds.</div><div className="content-table-wrap"><table className="content-table"><thead><tr><th>Content</th><th>English</th><th>Hindi</th><th>Status</th><th>Order</th><th /></tr></thead><tbody>{filteredEntries.map((entry) => <tr key={entry.id}><td data-label="Content"><strong>{titleOf(entry)}</strong><small>{entry.entryKey}</small></td><td data-label="English">{hasLanguage(entry, "dataEn") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Hindi">{hasLanguage(entry, "dataHi") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Status"><span className={`status ${entry.status}`}>{entry.status}</span></td><td data-label="Order">{selected.autoNewestFirst ? "Auto" : entry.sortOrder}</td><td className="content-actions"><div className="row-actions"><button onClick={() => setEditing(entry)}>{selected.id === "division_pages" ? <><ChevronRight /> Open sections</> : <><Pencil /> Edit</>}</button>{selected.id !== "division_pages" && entry.status !== "archived" && <button className="archive" aria-label={`Archive ${titleOf(entry)}`} title="Archive" onClick={() => archive(entry)}><Archive /></button>}</div></td></tr>)}{!filteredEntries.length && <tr><td colSpan="6" className="empty-row">No content found.</td></tr>}</tbody></table></div></section>}
         {view === "guide" && <GuideView />}
         {view === "feedback" && <FeedbackView notify={notify} />}

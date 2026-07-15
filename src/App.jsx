@@ -84,9 +84,7 @@ const RouteFallback = () => (
   </div>
 );
 
-const officialContentRoute = (element) => (
-  <Suspense fallback={<RouteFallback />}>{element}</Suspense>
-);
+const officialContentRoute = (element) => element;
 
 // ======================
 // HOMEPAGE
@@ -242,6 +240,7 @@ function App() {
 
         <Navbar />
 
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
 
         {/* ================= HOME ================= */}
@@ -529,6 +528,7 @@ function App() {
         </Routes>
 
         <Footer />
+        </Suspense>
         <BackToTopButton />
         </DialogProvider>
       </DataProvider>

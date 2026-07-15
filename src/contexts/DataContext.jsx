@@ -5,6 +5,11 @@ import { setUiLabels } from "../data/uiLabels";
 import { DataContext } from "./DataContextCore";
 
 const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v1";
+const readPreviewToken = () => {
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return String(params.get("cms-preview") || "").trim();
+};
 const fontStacks = {
   Inter: '"Inter Variable", Inter, "Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Nirmala UI", sans-serif',
   "Plus Jakarta Sans": '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Nirmala UI", sans-serif',
@@ -38,7 +43,10 @@ const decorateBootstrap = (value) => value ? {
 
 export function DataProvider({ children }) {
   const { language } = useLanguage();
-  const [data, setData] = useState(() => decorateBootstrap(readCachedBootstrap(language)));
+  const [previewToken] = useState(readPreviewToken);
+  const [data, setData] = useState(() =>
+    decorateBootstrap(previewToken ? null : readCachedBootstrap(language))
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
@@ -48,8 +56,8 @@ export function DataProvider({ children }) {
     if (!background) setIsLoading(true);
     setError("");
     try {
-      const next = await getCmsBootstrap(language, { refresh: true });
-      cacheBootstrap(next);
+      const next = await getCmsBootstrap(language, { refresh: true, previewToken });
+      if (!previewToken) cacheBootstrap(next);
       contentVersionRef.current = next.contentVersion || "";
       setData(decorateBootstrap(next));
     } catch (nextError) {
@@ -57,7 +65,7 @@ export function DataProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [language]);
+  }, [language, previewToken]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => load(), 0);
@@ -65,6 +73,7 @@ export function DataProvider({ children }) {
   }, [load, retryKey]);
 
   useEffect(() => {
+    if (previewToken) return undefined;
     const refresh = () => load({ background: true });
     const refreshWhenVisible = () => { if (!document.hidden) refresh(); };
     window.addEventListener("focus", refresh);
@@ -81,7 +90,7 @@ export function DataProvider({ children }) {
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       window.clearInterval(interval);
     };
-  }, [load]);
+  }, [load, previewToken]);
 
   useEffect(() => {
     setUiLabels(data?.siteSettings?.interfaceLabels);
@@ -128,5 +137,26 @@ export function DataProvider({ children }) {
     return <div className="min-h-screen bg-[#f7fbf8]" aria-busy="true"><span className="sr-only">Loading</span></div>;
   }
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  const exitPreviewUrl = `${window.location.pathname}${window.location.search}`;
+
+  return (
+    <DataContext.Provider value={value}>
+      {children}
+      {previewToken && (
+        <div
+          className="fixed bottom-4 left-1/2 z-[1000] flex w-[min(92vw,38rem)] -translate-x-1/2 items-center justify-between gap-4 rounded-lg border-2 border-amber-500 bg-[#102f46] px-4 py-3 text-sm font-semibold text-white shadow-2xl"
+          role="status"
+          aria-live="polite"
+        >
+          <span>CMS preview only. Live website is unchanged.</span>
+          <a
+            className="shrink-0 rounded-md bg-white px-3 py-2 font-bold text-[#102f46] no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            href={exitPreviewUrl}
+          >
+            Exit preview
+          </a>
+        </div>
+      )}
+    </DataContext.Provider>
+  );
 }

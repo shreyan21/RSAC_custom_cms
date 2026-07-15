@@ -17,12 +17,13 @@ This guide is for website editors. No coding is required.
 3. Edit **English** first.
 4. Select the **Hindi** tab and enter the approved Hindi manually.
 5. Keep URLs, files, slugs, keys, and technical values unchanged unless necessary.
-6. New content starts as **Published - visible**. Change it to Draft only when it must remain hidden.
-7. Click **Save**, then use **Open website** to verify desktop and mobile layout.
+6. Click **Preview English** or **Preview हिन्दी**. This opens a private 15-minute preview; the live website and database are not changed.
+7. New content starts as **Published - visible**. Change it to Draft only when it must remain hidden.
+8. When the preview is correct, click **Save**, then use **Open website** to verify the published page.
 
 Hindi fields override English fields in Hindi mode. A shared field, such as a URL or image, is used by both languages. The CMS does not auto-translate.
 
-Saved published content normally appears within 2 seconds. A hard refresh is not normally required.
+Saved published content normally appears within 2 seconds. A hard refresh is not normally required. Use **Exit preview** before checking the live page.
 
 ## Add, Hide, Reorder, Restore
 

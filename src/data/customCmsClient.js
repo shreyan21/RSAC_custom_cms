@@ -20,16 +20,23 @@ export async function cmsRequest(path, options = {}) {
   }
 }
 
-export async function getCmsBootstrap(language = "en", { refresh = false } = {}) {
+export async function getCmsBootstrap(
+  language = "en",
+  { refresh = false, previewToken = "" } = {}
+) {
   const lang = language === "hi" ? "hi" : "en";
-  if (!refresh && bootstrapCache.has(lang)) return bootstrapCache.get(lang);
-  const request = cmsRequest(`/api/content/bootstrap?lang=${lang}`, { cache: refresh ? "no-store" : "no-cache" })
+  const cacheKey = previewToken ? `${lang}:preview:${previewToken}` : lang;
+  if (!refresh && bootstrapCache.has(cacheKey)) return bootstrapCache.get(cacheKey);
+  const path = previewToken
+    ? `/api/content/preview/${encodeURIComponent(previewToken)}?lang=${lang}`
+    : `/api/content/bootstrap?lang=${lang}`;
+  const request = cmsRequest(path, { cache: previewToken || refresh ? "no-store" : "no-cache" })
     .then((payload) => payload.data)
     .catch((error) => {
-      bootstrapCache.delete(lang);
+      bootstrapCache.delete(cacheKey);
       throw error;
     });
-  bootstrapCache.set(lang, request);
+  bootstrapCache.set(cacheKey, request);
   return request;
 }
 
