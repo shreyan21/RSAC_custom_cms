@@ -75,6 +75,7 @@ const collectionDefinitions = (await request("/api/admin/collections")).payload.
 const divisionListDefinition = collectionDefinitions.find((item) => item.id === "division_section_items");
 const pageDefinition = collectionDefinitions.find((item) => item.id === "pages");
 const designDefinition = collectionDefinitions.find((item) => item.id === "design_settings");
+const siteSettingsDefinition = collectionDefinitions.find((item) => item.id === "site_settings");
 const divisionField = divisionListDefinition?.fields?.find((field) => field.name === "divisionSlug");
 const sectionField = divisionListDefinition?.fields?.find((field) => field.name === "sectionKey");
 if (!divisionListDefinition?.autoNewestFirst || divisionField?.type !== "select" || sectionField?.type !== "select") {
@@ -84,8 +85,11 @@ const hiddenProfilesField = pageDefinition?.fields?.find((field) => field.name =
 if (hiddenProfilesField?.type !== "list" || hiddenProfilesField.localized !== false) {
   throw new Error("CMS portal does not expose shared per-page duplicate profile controls.");
 }
-if (designDefinition?.fields?.find((field) => field.name === "siteFont")?.type !== "select" || designDefinition?.fields?.find((field) => field.name === "homeSectionTypography")?.type !== "json") {
-  throw new Error("CMS portal does not expose complete-site font and homepage section typography controls.");
+if (designDefinition?.fields?.find((field) => field.name === "siteFont")?.type !== "select" || designDefinition?.fields?.some((field) => field.name === "homeSectionTypography")) {
+  throw new Error("Website Design and Fonts does not expose one clear, non-duplicated set of global controls.");
+}
+if (siteSettingsDefinition?.fields?.find((field) => field.name === "settings")?.type !== "json") {
+  throw new Error("Homepage, Sitemap and Global Text does not expose homepage typography controls.");
 }
 
 const profileEntries = (await request("/api/admin/content/profiles")).payload.data;
@@ -113,6 +117,9 @@ if (!original?.entryKey) throw new Error("Admin entryKey contract is missing.");
 const designEntries = (await request("/api/admin/content/design_settings")).payload.data;
 const designOriginal = structuredClone(designEntries.find((item) => item.status === "published"));
 if (!designOriginal?.entryKey) throw new Error("Website Design and Fonts record is missing.");
+const siteSettingsEntries = (await request("/api/admin/content/site_settings")).payload.data;
+const siteSettingsOriginal = structuredClone(siteSettingsEntries.find((item) => item.status === "published"));
+if (!siteSettingsOriginal?.entryKey) throw new Error("Homepage, Sitemap and Global Text record is missing.");
 const testEn = `${original.dataEn.label} [CMS VERIFY]`;
 const testHi = `${original.dataHi.label} परीक्षण`;
 let updated = null;
@@ -121,20 +128,23 @@ let facilityUpdated = null;
 let divisionPageOriginal = null;
 let divisionPageUpdated = null;
 let designUpdated = null;
+let siteSettingsUpdated = null;
 let verificationError = null;
 
 try {
   const designDraft = structuredClone(designOriginal);
   designDraft.dataEn.siteFont = "System Sans";
-  designDraft.dataEn.homeSectionTypography = {
-    ...(designDraft.dataEn.homeSectionTypography || {}),
+  designUpdated = (await request(`/api/admin/content/design_settings/${designDraft.id}`, { method: "PUT", body: JSON.stringify(designDraft) })).payload.data;
+  const siteSettingsDraft = structuredClone(siteSettingsOriginal);
+  siteSettingsDraft.dataEn.settings.homeSectionTypography = {
+    ...(siteSettingsDraft.dataEn.settings.homeSectionTypography || {}),
     about: { headingSize: "large", bodySize: "compact" },
   };
-  designUpdated = (await request(`/api/admin/content/design_settings/${designDraft.id}`, { method: "PUT", body: JSON.stringify(designDraft) })).payload.data;
-  const designEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.siteSettings.designSettings;
-  const designHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.siteSettings.designSettings;
-  if (designEnglish.siteFont !== "System Sans" || designHindi.siteFont !== "System Sans" || designEnglish.homeSectionTypography?.about?.headingSize !== "large" || designHindi.homeSectionTypography?.about?.bodySize !== "compact") {
-    throw new Error("Shared website font or homepage section typography controls did not reach both languages.");
+  siteSettingsUpdated = (await request(`/api/admin/content/site_settings/${siteSettingsDraft.id}`, { method: "PUT", body: JSON.stringify(siteSettingsDraft) })).payload.data;
+  const settingsEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.siteSettings;
+  const settingsHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.siteSettings;
+  if (settingsEnglish.designSettings.siteFont !== "System Sans" || settingsHindi.designSettings.siteFont !== "System Sans" || settingsEnglish.homeSectionTypography?.about?.headingSize !== "large" || settingsHindi.homeSectionTypography?.about?.bodySize !== "compact") {
+    throw new Error("Shared website font or canonical homepage section typography controls did not reach both languages.");
   }
   const draft = structuredClone(original);
   draft.dataEn.label = testEn;
@@ -240,6 +250,10 @@ try {
   if (designUpdated) {
     const restoreDesign = { ...designUpdated, entryKey: designOriginal.entryKey, dataEn: designOriginal.dataEn, dataHi: designOriginal.dataHi, status: designOriginal.status, sortOrder: designOriginal.sortOrder };
     await request(`/api/admin/content/design_settings/${designOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDesign) });
+  }
+  if (siteSettingsUpdated) {
+    const restoreSiteSettings = { ...siteSettingsUpdated, entryKey: siteSettingsOriginal.entryKey, dataEn: siteSettingsOriginal.dataEn, dataHi: siteSettingsOriginal.dataHi, status: siteSettingsOriginal.status, sortOrder: siteSettingsOriginal.sortOrder };
+    await request(`/api/admin/content/site_settings/${siteSettingsOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreSiteSettings) });
   }
   await request("/api/auth/logout", { method: "POST" });
 }

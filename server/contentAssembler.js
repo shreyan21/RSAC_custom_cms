@@ -279,7 +279,9 @@ export const assembleBootstrap = (rows, language = "en") => {
   const impactStats = list("impact_stats");
   if (impactStats.length) siteSettings.impactStats = impactStats;
   siteSettings.pageDisplaySettings = list("page_display_settings");
-  siteSettings.designSettings = first("design_settings") || {};
+  const designSettings = { ...(first("design_settings") || {}) };
+  delete designSettings.homeSectionTypography;
+  siteSettings.designSettings = designSettings;
   const organisationRoles = list("organisation_roles");
   if (organisationRoles.length) {
     siteSettings.organisationChart = {

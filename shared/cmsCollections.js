@@ -245,11 +245,10 @@ export const collections = [
   {
     id: "design_settings",
     label: "Website Design and Fonts",
-    description: "Change the complete website font, homepage section text sizes, spacing, backgrounds and card appearance.",
+    description: "Change the complete website font, base text size, spacing, backgrounds and card appearance.",
     singleton: true,
     fields: [
       { name: "siteFont", label: "Complete website font", type: "select", localized: false, defaultValue: "Inter", options: [{ value: "Inter", label: "Inter - Clean and modern" }, { value: "Plus Jakarta Sans", label: "Plus Jakarta Sans - Friendly and modern" }, { value: "System Sans", label: "System Sans - Simple" }, { value: "System Serif", label: "System Serif - Traditional" }] },
-      { name: "homeSectionTypography", label: "Homepage section text sizes", type: "json", localized: false },
       { name: "bodyFont", label: "Advanced body font override", type: "select", localized: false, advanced: true, options: ["Inter", "Plus Jakarta Sans", "System Sans", "System Serif"] },
       { name: "headingFont", label: "Advanced heading font override", type: "select", localized: false, advanced: true, options: ["Plus Jakarta Sans", "Inter", "System Sans", "System Serif"] },
       { name: "hindiFont", label: "Advanced Hindi font override", type: "select", localized: false, advanced: true, options: ["Noto Sans Devanagari", "System Devanagari"] },

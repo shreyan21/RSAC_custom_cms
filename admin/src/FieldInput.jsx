@@ -35,10 +35,10 @@ const settingsGroups = [
     ],
   },
   {
-    label: "Homepage text sizes",
+    label: "Homepage default text sizes",
     fields: [
-      ["appearance.homeHeadingSize", "Section heading size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
-      ["appearance.homeBodySize", "Paragraph and card text size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+      ["appearance.homeHeadingSize", "Default section heading size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+      ["appearance.homeBodySize", "Default paragraph and card text size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
     ],
   },
   {
@@ -188,6 +188,13 @@ const homepageSections = [
   ["gallery", "Photo gallery preview"],
   ["location", "Location and map"],
 ];
+
+const sharedSettingsPaths = new Set([
+  "appearance.homeHeadingSize",
+  "appearance.homeBodySize",
+  "location.eyebrowSize",
+  "location.cardEyebrowSize",
+]);
 
 const homepageTypographySections = [
   ["hero", "Hero banner"],
@@ -345,17 +352,19 @@ function HomepageTypographyEditor({ value, onChange }) {
   );
 }
 
-function SettingsEditor({ field, value, onChange, onBusy, onError }) {
+function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, onBusy, onError }) {
+  const sharedSettings = sharedValue && typeof sharedValue === "object" ? sharedValue : value;
+  const updateSharedSettings = onSharedChange || onChange;
   return (
     <div className="settings-editor">
-      <p className="settings-note">Edit selected language only. Lists and cards below are structured; normal homepage work needs no JSON.</p>
-      <HomepageLayoutEditor value={value} onChange={onChange} />
+      <p className="settings-note">Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi.</p>
+      <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />
       <fieldset className="settings-group homepage-typography-editor">
-        <legend>Homepage per-section heading and paragraph sizes</legend>
-        <p className="settings-note">Use this when one homepage section needs a different heading or paragraph size. For example, change Institution at a Glance / statistics here.</p>
+        <legend>Homepage section size overrides</legend>
+        <p className="settings-note">This is the only place for changing one homepage section independently. For example, change Institution at a Glance / statistics here; use Homepage default text sizes below for all sections.</p>
         <HomepageTypographyEditor
-          value={value?.homeSectionTypography}
-          onChange={(nextValue) => onChange({ ...(value || {}), homeSectionTypography: nextValue })}
+          value={sharedSettings?.homeSectionTypography}
+          onChange={(nextValue) => updateSharedSettings({ ...(sharedSettings || {}), homeSectionTypography: nextValue })}
         />
       </fieldset>
       {settingsGroups.map((group) => (
@@ -372,18 +381,23 @@ function SettingsEditor({ field, value, onChange, onBusy, onError }) {
                 onBusy={onBusy}
                 onError={onError}
               />
-            ) : (
+            ) : (() => {
+              const isShared = sharedSettingsPaths.has(path);
+              const source = isShared ? sharedSettings : value;
+              const updateSource = isShared ? updateSharedSettings : onChange;
+              return (
               <label key={path}>
-                <span>{label}</span>
+                <span>{label}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "select"
-                  ? <select value={getAtPath(value, path) || "normal"} onChange={(event) => onChange(setAtPath(value, path, event.target.value))}>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  ? <select value={getAtPath(source, path) || "normal"} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
                   : type === "list"
-                  ? <textarea rows="5" value={Array.isArray(getAtPath(value, path)) ? getAtPath(value, path).join("\n") : ""} onChange={(event) => onChange(setAtPath(value, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
+                  ? <textarea rows="5" value={Array.isArray(getAtPath(source, path)) ? getAtPath(source, path).join("\n") : ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
                   : type === "textarea"
-                  ? <textarea rows="4" value={getAtPath(value, path) || ""} onChange={(event) => onChange(setAtPath(value, path, event.target.value))} />
-                  : <input value={getAtPath(value, path) || ""} onChange={(event) => onChange(setAtPath(value, path, event.target.value))} />}
+                  ? <textarea rows="4" value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />
+                  : <input value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />}
               </label>
-            ))}
+              );
+            })())}
           </div>
         </fieldset>
       ))}
@@ -420,7 +434,7 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
   return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([...sections, { heading: "", body: "" }])}><Plus /> Add page section</button></div>;
 }
 
-export default function FieldInput({ field, value, onChange, onBusy = () => {}, onError = () => {} }) {
+export default function FieldInput({ field, value, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {
   const fileRef = useRef(null);
   const upload = async (file) => {
     if (!file) return;
@@ -437,8 +451,7 @@ export default function FieldInput({ field, value, onChange, onBusy = () => {}, 
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;
   if (field.type === "select") return <select value={value || field.defaultValue || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
-  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
-  if (field.type === "json" && field.name === "homeSectionTypography") return <HomepageTypographyEditor value={value} onChange={onChange} />;
+  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && field.name === "sections") return <SectionListEditor value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
   if (field.type === "json") return <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />;

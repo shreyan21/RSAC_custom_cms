@@ -108,15 +108,11 @@ const HomePage = () => {
   const {
     layout,
     appearance = {},
-    designSettings = {},
     homeSectionTypography = {},
   } = useSiteSettings();
   const allowedTypographySizes = new Set(["compact", "normal", "large"]);
   const typographyFor = (sectionKey) => {
-    const section = {
-      ...(homeSectionTypography?.[sectionKey] || {}),
-      ...(designSettings.homeSectionTypography?.[sectionKey] || {}),
-    };
+    const section = homeSectionTypography?.[sectionKey] || {};
     return {
       "data-rsac-home-section": sectionKey,
       "data-rsac-section-eyebrow-size": allowedTypographySizes.has(section.eyebrowSize || section.headingSize) ? (section.eyebrowSize || section.headingSize) : undefined,
