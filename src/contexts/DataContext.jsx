@@ -51,46 +51,90 @@ export function DataProvider({ children }) {
   const [error, setError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
   const contentVersionRef = useRef(data?.contentVersion || "");
-
-  const load = useCallback(async ({ background = false } = {}) => {
-    if (!background) setIsLoading(true);
-    setError("");
-    try {
-      const next = await getCmsBootstrap(language, { refresh: true, previewToken });
-      if (!previewToken) cacheBootstrap(next);
-      contentVersionRef.current = next.contentVersion || "";
-      setData(decorateBootstrap(next));
-    } catch (nextError) {
-      setError(nextError.name === "AbortError" ? "The content server took too long to respond." : nextError.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [language, previewToken]);
+  const dataRef = useRef(data);
+  const languageRef = useRef(language);
+  const inFlightLoadsRef = useRef(new Map());
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => load(), 0);
+    dataRef.current = data;
+  }, [data]);
+
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
+
+  const load = useCallback(async ({ background = false } = {}) => {
+    const requestKey = `${language}:${previewToken || "live"}`;
+    const existing = inFlightLoadsRef.current.get(requestKey);
+    if (existing) return existing;
+
+    const request = (async () => {
+      if (!background) setIsLoading(true);
+      setError("");
+      try {
+        const next = await getCmsBootstrap(language, { refresh: true, previewToken });
+        if (languageRef.current !== language) return;
+        if (!previewToken) cacheBootstrap(next);
+        contentVersionRef.current = next.contentVersion || "";
+        setData(decorateBootstrap(next));
+      } catch (nextError) {
+        if (languageRef.current !== language) return;
+        setError(nextError.name === "AbortError" ? "The content server took too long to respond." : nextError.message);
+      } finally {
+        if (languageRef.current === language) setIsLoading(false);
+      }
+    })();
+
+    inFlightLoadsRef.current.set(requestKey, request);
+    try {
+      await request;
+    } finally {
+      if (inFlightLoadsRef.current.get(requestKey) === request) {
+        inFlightLoadsRef.current.delete(requestKey);
+      }
+    }
+    return request;
+  }, [language, previewToken]);
+
+  const checkForUpdates = useCallback(async () => {
+    if (previewToken) return load();
+    try {
+      const version = await getCmsVersion();
+      if (version && version !== contentVersionRef.current) {
+        await load({ background: true });
+      } else {
+        setIsLoading(false);
+      }
+    } catch {
+      if (dataRef.current?.language !== language) await load();
+      else setIsLoading(false);
+    }
+  }, [language, load, previewToken]);
+
+  useEffect(() => {
+    const hasCurrentCachedData =
+      !previewToken &&
+      dataRef.current?.language === language &&
+      Boolean(contentVersionRef.current);
+    const timeout = window.setTimeout(
+      () => (hasCurrentCachedData ? checkForUpdates() : load()),
+      0
+    );
     return () => window.clearTimeout(timeout);
-  }, [load, retryKey]);
+  }, [checkForUpdates, language, load, previewToken, retryKey]);
 
   useEffect(() => {
     if (previewToken) return undefined;
-    const refresh = () => load({ background: true });
-    const refreshWhenVisible = () => { if (!document.hidden) refresh(); };
-    window.addEventListener("focus", refresh);
+    const refreshWhenVisible = () => { if (!document.hidden) checkForUpdates(); };
+    window.addEventListener("focus", checkForUpdates);
     document.addEventListener("visibilitychange", refreshWhenVisible);
-    const checkVersion = async () => {
-      try {
-        const version = await getCmsVersion();
-        if (version && version !== contentVersionRef.current) refresh();
-      } catch { /* regular page requests still report API failures */ }
-    };
-    const interval = window.setInterval(checkVersion, 1500);
+    const interval = window.setInterval(checkForUpdates, 5000);
     return () => {
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("focus", checkForUpdates);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       window.clearInterval(interval);
     };
-  }, [load, previewToken]);
+  }, [checkForUpdates, previewToken]);
 
   useEffect(() => {
     setUiLabels(data?.siteSettings?.interfaceLabels);

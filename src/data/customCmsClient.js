@@ -30,7 +30,7 @@ export async function getCmsBootstrap(
   const path = previewToken
     ? `/api/content/preview/${encodeURIComponent(previewToken)}?lang=${lang}`
     : `/api/content/bootstrap?lang=${lang}`;
-  const request = cmsRequest(path, { cache: previewToken || refresh ? "no-store" : "no-cache" })
+  const request = cmsRequest(path, { cache: previewToken ? "no-store" : "no-cache" })
     .then((payload) => payload.data)
     .catch((error) => {
       bootstrapCache.delete(cacheKey);

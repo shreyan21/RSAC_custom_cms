@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -33,6 +34,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "X-CSRF-Token"],
 }));
+app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: "3mb" }));
 app.use(cookieParser());
 app.use("/uploads", express.static(config.uploadDir, { immutable: true, maxAge: "1y" }));
@@ -43,6 +45,35 @@ const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standa
 const previewLifetimeMs = 15 * 60 * 1000;
 const maxPreviewSessions = 100;
 const previewSessions = new Map();
+const publicBootstrapCache = new Map();
+let contentVersionCache = { checkedAt: 0, value: "" };
+
+const readContentVersion = async () => {
+  const now = Date.now();
+  if (now - contentVersionCache.checkedAt < 1000) return contentVersionCache.value;
+
+  const { rows } = await pool.query("SELECT max(updated_at) AS version FROM cms_entries");
+  const value = rows[0].version?.toISOString?.() || "";
+  contentVersionCache = { checkedAt: now, value };
+  return value;
+};
+
+const readBootstrapPayload = async (language) => {
+  const currentVersion = await readContentVersion();
+  const cached = publicBootstrapCache.get(language);
+  if (cached?.version === currentVersion) return cached.body;
+
+  const rows = await readPublishedEntries();
+  const data = assembleBootstrap(rows, language);
+  const body = JSON.stringify({ data, generatedAt: new Date().toISOString() });
+  publicBootstrapCache.set(language, { version: data.contentVersion, body });
+  return body;
+};
+
+const invalidatePublicContentCache = () => {
+  publicBootstrapCache.clear();
+  contentVersionCache = { checkedAt: 0, value: "" };
+};
 
 const slugify = (value) => String(value || "entry")
   .normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase()
@@ -197,9 +228,9 @@ app.get("/api/health", async (_req, res, next) => {
 app.get("/api/content/bootstrap", async (req, res, next) => {
   try {
     const language = req.query.lang === "hi" ? "hi" : "en";
-    const rows = await readPublishedEntries();
+    const body = await readBootstrapPayload(language);
     res.set("Cache-Control", "no-cache, must-revalidate");
-    res.json({ data: assembleBootstrap(rows, language), generatedAt: new Date().toISOString() });
+    res.type("application/json").send(body);
   } catch (error) { next(error); }
 });
 
@@ -232,9 +263,9 @@ app.get("/api/content/preview/:token", async (req, res, next) => {
 
 app.get("/api/content/version", async (_req, res, next) => {
   try {
-    const { rows } = await pool.query("SELECT max(updated_at) AS version FROM cms_entries");
+    const version = await readContentVersion();
     res.set("Cache-Control", "no-store");
-    res.json({ version: rows[0].version?.toISOString?.() || "" });
+    res.json({ version });
   } catch (error) { next(error); }
 });
 
@@ -483,6 +514,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
       await audit(client, req, "create", result.rows[0], null, result.rows[0]);
       return result.rows[0];
     });
+    invalidatePublicContentCache();
     res.status(201).json({ data: publicEntry(row) });
   } catch (error) { next(error); }
 });
@@ -505,6 +537,7 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       await audit(client, req, "update", updated.rows[0], before.rows[0], updated.rows[0]);
       return updated.rows[0];
     });
+    invalidatePublicContentCache();
     res.json({ data: publicEntry(row) });
   } catch (error) { next(error); }
 });
@@ -518,6 +551,7 @@ app.delete("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, asyn
       await audit(client, req, "archive", archived.rows[0], before.rows[0], archived.rows[0]);
       return archived.rows[0];
     });
+    invalidatePublicContentCache();
     res.json({ data: publicEntry(row) });
   } catch (error) { next(error); }
 });

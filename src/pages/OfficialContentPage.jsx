@@ -5821,6 +5821,20 @@ const applyImportedPageBlocks = (html, blocks, { insertNewAssets = true } = {}) 
   return insertNewAssets ? appendNewPageAssets(rendered, assetFields) : rendered;
 };
 
+const reorderDivisionSections = (sections, requestedKeys) => {
+  const sectionsByKey = new Map(sections.map((section) => [section.key, section]));
+  const orderedKeys = [...new Set(requestedKeys)].filter((key) => sectionsByKey.has(key));
+  if (orderedKeys.length < 2) return sections;
+
+  const orderedKeySet = new Set(orderedKeys);
+  const orderedSections = orderedKeys.map((key) => sectionsByKey.get(key));
+  let orderedIndex = 0;
+
+  return sections.map((section) =>
+    orderedKeySet.has(section.key) ? orderedSections[orderedIndex++] : section
+  );
+};
+
 const DivisionCategorizedContent = ({
   page,
   scientistProfiles,
@@ -5857,6 +5871,7 @@ const DivisionCategorizedContent = ({
     const overrides = page.sectionLabelOverrides || {};
     const extras = page.sectionExtraItems || {};
     const editablePageBlocks = flexibleItems(page.blocks);
+    const editorSectionOrder = [];
     const headingOverridesBySource = new Map();
     editablePageBlocks
       .filter((block) => block.controlsSectionLabel === false && Array.isArray(block.children))
@@ -5893,11 +5908,13 @@ const DivisionCategorizedContent = ({
         if (sectionIndex < 0 && /division|resources|school of geo/i.test(sourceKey)) {
           sectionIndex = nextSections.findIndex((section) => section.key === "overview");
         }
-        if (sectionIndex < 0 || nextSections[sectionIndex].type !== "html") return;
+        if (sectionIndex < 0) return;
+        const sectionKey = nextSections[sectionIndex].key;
+        editorSectionOrder.push(sectionKey);
+        if (nextSections[sectionIndex].type !== "html") return;
         const visibleLabel = block.controlsSectionLabel === false
           ? ""
           : String(block.value || "").trim();
-        const sectionKey = nextSections[sectionIndex].key;
         const existingLabel = String(nextSections[sectionIndex].label || "");
         const combinedPublicationLabelPattern =
           /(?:publications?.*technical\s+reports?|प्रकाशन.*तकनीकी\s+रिपोर्ट)/iu;
@@ -5942,7 +5959,7 @@ const DivisionCategorizedContent = ({
         html: appendManagedItemsToSection("", items, language),
       }, definition.afterKey);
     });
-    return nextSections;
+    return reorderDivisionSections(nextSections, editorSectionOrder);
   }, [page, language, scientistProfiles, profileReferencePage]);
   const [activeSectionState, setActiveSectionState] = useState({
     pageSlug: page.slug,

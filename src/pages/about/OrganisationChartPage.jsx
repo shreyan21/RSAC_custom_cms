@@ -31,8 +31,6 @@ const OrganisationChartPage = () => {
   return (
     <>
       <PageShell
-      density="compact"
-      contentWidth="wide"
       eyebrow={c.eyebrow}
       title={c.title}
       intro={organisationChart.intro}
@@ -58,12 +56,20 @@ const OrganisationChartPage = () => {
       {organisationChart.roles?.length ? (
         <section
           aria-labelledby="official-chart-image"
-          className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_56px_rgba(18,50,74,0.07)]"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_56px_rgba(18,50,74,0.07)]"
         >
-          <h2 id="official-chart-image" className="sr-only">
-            {t("Official organisational chart")}
-          </h2>
-          <figure className="bg-white p-1.5 sm:p-2">
+          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#0b6fa4]">
+              {t("Published Structure")}
+            </p>
+            <h2
+              id="official-chart-image"
+              className="mt-1 text-lg font-extrabold text-[#102f46]"
+            >
+              {t("Official organisational chart")}
+            </h2>
+          </div>
+          <figure className="bg-white p-2 sm:p-4 lg:p-6">
             <OrganisationChartDiagram roles={organisationChart.roles} />
             <figcaption className="mt-3 px-2 text-center text-xs font-medium text-slate-500 sm:hidden">
               {t("Swipe horizontally to view the complete chart")}
