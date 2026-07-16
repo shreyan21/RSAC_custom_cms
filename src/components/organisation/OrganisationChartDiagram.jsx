@@ -1,198 +1,205 @@
+import { useEffect, useId, useRef, useState } from "react";
 import { useLanguage } from "../../hooks/useLanguage";
+import "./organisation-chart.css";
 
-const CHART_WIDTH = 1110;
-const CHART_HEIGHT = 1350;
+const CHART_WIDTH = 1280;
+const CHART_HEIGHT = 600;
 
-const leadershipCards = [
-  { roleKey: "general-body-president", x: 144, y: 47, width: 182, height: 249 },
-  { roleKey: "general-body-vice-president-1", x: 774, y: 47, width: 181, height: 242 },
-  { roleKey: "general-body-vice-president-2", x: 779, y: 302, width: 180, height: 243 },
-  {
-    roleKey: "governing-body-chairman",
-    x: 139,
-    y: 370,
-    width: 181,
-    height: 241,
-    designation: "post",
-  },
-  {
-    roleKey: "governing-body-chairman",
-    x: 779,
-    y: 562,
-    width: 180,
-    height: 241,
-    designation: "role",
-  },
-  { roleKey: "executive-director", x: 436, y: 631, width: 183, height: 242 },
+const generalBodyKeys = [
+  "general-body-president",
+  "general-body-vice-president-1",
+  "general-body-vice-president-2",
 ];
 
-const divisionCards = Array.from({ length: 11 }, (_, index) => ({
-  roleKey: `division-${index + 1}`,
-  x: 66 + index * 90,
-  y: 1012,
-  width: index === 10 ? 76 : 77,
-  height: 216,
-}));
-
-const supportCards = [
-  { roleKey: "support-1", x: 56, y: 1240, width: 225, height: 87 },
-  { roleKey: "support-2", x: 395, y: 1240, width: 216, height: 78 },
-  { roleKey: "support-3", x: 835, y: 1240, width: 234, height: 88 },
-];
+const divisionKeys = Array.from({ length: 11 }, (_, index) => `division-${index + 1}`);
+const supportKeys = Array.from({ length: 3 }, (_, index) => `support-${index + 1}`);
 
 const fallbackPhotos = {
   "general-body-president": "/organisation-chart-photos/chief-minister.jpg",
   "general-body-vice-president-1": "/organisation-chart-photos/minister.jpg",
-  "general-body-vice-president-2":
-    "/organisation-chart-photos/minister-of-state.jpg",
-  "governing-body-chairman":
-    "/organisation-chart-photos/principal-secretary.jpg",
+  "general-body-vice-president-2": "/organisation-chart-photos/minister-of-state.jpg",
+  "governing-body-chairman": "/organisation-chart-photos/principal-secretary.jpg",
   "executive-director": "/organisation-chart-photos/director.jpg",
 };
 
-const cardStyle = ({ x, y, width, height }) => ({
-  left: `${x}px`,
-  top: `${y}px`,
-  width: `${width}px`,
-  height: `${height}px`,
-});
+const designationLines = (item) => [item?.role, item?.post].filter(
+  (value) => value && !["Scientific Divisions", "Support Functions"].includes(value)
+);
 
-const designationLines = (item, preferred) => {
-  const values = preferred
-    ? [item?.[preferred], preferred === "role" ? item?.post : item?.role]
-    : [item?.role, item?.post];
+const useChartScale = () => {
+  const viewportRef = useRef(null);
+  const [scale, setScale] = useState(1);
 
-  return values.filter(
-    (value) =>
-      value &&
-      !["Scientific Divisions", "Support Functions"].includes(value)
-  );
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return undefined;
+    let active = true;
+
+    const resize = () => {
+      const bounds = viewport.getBoundingClientRect();
+      const availableHeight = Math.max(260, window.innerHeight - Math.max(bounds.top, 0) - 16);
+      const widthScale = viewport.clientWidth / CHART_WIDTH;
+      const heightScale = availableHeight / CHART_HEIGHT;
+      const nextScale = viewport.clientWidth < 720
+        ? Math.min(0.72, heightScale, 1)
+        : Math.min(widthScale, heightScale, 1);
+      if (active) setScale(Math.max(0.35, Number(nextScale.toFixed(3))));
+    };
+
+    resize();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+    observer?.observe(viewport);
+    document.fonts?.ready.then(resize);
+    window.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("resize", resize);
+    return () => {
+      active = false;
+      observer?.disconnect();
+      window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return { viewportRef, scale };
 };
 
-const LeadershipCard = ({ item, position }) => {
-  const photo = item?.photo || fallbackPhotos[position.roleKey];
-  const designations = designationLines(item, position.designation);
-
+const LeadershipCard = ({ item, roleKey, variant = "general" }) => {
+  const photo = item?.photo || fallbackPhotos[roleKey];
   return (
     <article
-      className="absolute z-10 flex flex-col items-center overflow-hidden bg-[#0d4d08] px-2 pb-2 pt-2 text-center text-white"
-      style={cardStyle(position)}
-      aria-label={[item?.name, ...designations].filter(Boolean).join(", ")}
+      className={`org-chart-leader org-chart-leader--${variant}`}
+      aria-label={[item?.name, ...designationLines(item)].filter(Boolean).join(", ")}
     >
       {photo && (
         <img
           src={photo}
           alt=""
-          className="h-[56%] w-[68%] shrink-0 border border-black/50 bg-white object-cover"
           style={{ objectPosition: item?.objectPosition || "center" }}
           onError={(event) => {
-            const fallback = fallbackPhotos[position.roleKey];
-            if (fallback && !event.currentTarget.src.endsWith(fallback)) {
-              event.currentTarget.src = fallback;
-            }
+            const fallback = fallbackPhotos[roleKey];
+            if (fallback && !event.currentTarget.src.endsWith(fallback)) event.currentTarget.src = fallback;
           }}
           loading="lazy"
           decoding="async"
         />
       )}
-      <p className="mt-1 text-[13px] font-semibold leading-[1.08]">
-        {item?.name}
-      </p>
-      {designations.map((designation) => (
-        <p key={designation} className="mt-0.5 text-[11px] leading-[1.12]">
-          {designation}
-        </p>
-      ))}
+      <div>
+        <span>{item?.title}</span>
+        <strong>{item?.name}</strong>
+        {designationLines(item).map((designation) => <small key={designation}>{designation}</small>)}
+      </div>
     </article>
   );
 };
 
-const DivisionCard = ({ item, position }) => (
+const DivisionCard = ({ item }) => (
   <article
-    className="absolute z-10 flex flex-col items-center rounded-[28px] border border-black/75 bg-[#0d4d08] px-1.5 py-4 text-center text-white"
-    style={cardStyle(position)}
-    aria-label={[item?.title, item?.name, ...designationLines(item)]
-      .filter(Boolean)
-      .join(", ")}
+    className="org-chart-division-card"
+    aria-label={[item?.title, item?.name, ...designationLines(item)].filter(Boolean).join(", ")}
   >
-    <p className="text-[11px] leading-[1.08]">{item?.title}</p>
-    <p className="mt-auto text-[11px] font-semibold leading-[1.08]">
-      {item?.name}
-    </p>
-    {designationLines(item).map((designation) => (
-      <p key={designation} className="mt-2 text-[9px] leading-none">
-        {designation}
-      </p>
-    ))}
+    <strong>{item?.title}</strong>
+    <span>
+      <b>{item?.name}</b>
+      <small>{designationLines(item).join(" · ")}</small>
+    </span>
   </article>
 );
 
-const SupportCard = ({ item, position }) => (
+const SupportCard = ({ item }) => (
   <article
-    className="absolute z-10 flex flex-col items-center justify-center border border-black/75 bg-[#0d4d08] px-3 py-2 text-center text-white"
-    style={{ ...cardStyle(position), borderRadius: "42% 42% 24% 24% / 18%" }}
-    aria-label={[item?.title, item?.name, ...designationLines(item)]
-      .filter(Boolean)
-      .join(", ")}
+    className="org-chart-support-card"
+    aria-label={[item?.title, item?.name, ...designationLines(item)].filter(Boolean).join(", ")}
   >
-    <p className="text-[12px] leading-tight">{item?.title}</p>
-    {item?.name && (
-      <p className="mt-1 text-[11px] font-semibold leading-tight">
-        {item.name}
-      </p>
-    )}
-    {designationLines(item).map((designation) => (
-      <p key={designation} className="text-[10px] leading-tight">
-        {designation}
-      </p>
-    ))}
+    <strong>{item?.title}</strong>
+    <span>{item?.name}</span>
+    <small>{designationLines(item).join(" · ")}</small>
   </article>
 );
 
 const OrganisationChartDiagram = ({ roles = [], className = "" }) => {
   const { t } = useLanguage();
   const rolesByKey = new Map(roles.map((item) => [item.roleKey, item]));
+  const markerId = `org-arrow-${useId().replace(/:/g, "")}`;
+  const { viewportRef, scale } = useChartScale();
 
   return (
     <div
-      className={`overflow-x-auto overscroll-x-contain rounded-lg border border-slate-300 bg-[#ffffe7] ${className}`}
+      ref={viewportRef}
+      className={`org-chart-viewport ${className}`}
       role="group"
-      aria-label={t(
-        "Organisational structure of the Remote Sensing Applications Centre, Uttar Pradesh"
-      )}
+      aria-label={t("Organisational structure of the Remote Sensing Applications Centre, Uttar Pradesh")}
     >
       <div
-        className="relative mx-auto shrink-0 overflow-hidden bg-[#ffffe7]"
-        style={{
-          width: CHART_WIDTH,
-          height: CHART_HEIGHT,
-          backgroundImage: "url('/organisation-chart.jpg')",
-          backgroundPosition: "left top",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "1368px 1544px",
-        }}
+        className="org-chart-scale-shell"
+        style={{ width: CHART_WIDTH * scale, height: CHART_HEIGHT * scale }}
       >
-        {leadershipCards.map((position, index) => (
-          <LeadershipCard
-            key={`${position.roleKey}-${index}`}
-            item={rolesByKey.get(position.roleKey)}
-            position={position}
-          />
-        ))}
-        {divisionCards.map((position) => (
-          <DivisionCard
-            key={position.roleKey}
-            item={rolesByKey.get(position.roleKey)}
-            position={position}
-          />
-        ))}
-        {supportCards.map((position) => (
-          <SupportCard
-            key={position.roleKey}
-            item={rolesByKey.get(position.roleKey)}
-            position={position}
-          />
-        ))}
+        <div
+          className="org-chart-stage"
+          style={{ width: CHART_WIDTH, height: CHART_HEIGHT, transform: `scale(${scale})` }}
+        >
+          <svg className="org-chart-connectors" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} aria-hidden="true">
+            <defs>
+              <marker id={markerId} markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L8,4 L0,8 Z" />
+              </marker>
+            </defs>
+
+            <path d="M640 58 V70 M220 70 H1060" />
+            <path d="M220 70 V84" markerEnd={`url(#${markerId})`} />
+            <path d="M640 70 V84" markerEnd={`url(#${markerId})`} />
+            <path d="M1060 70 V84" markerEnd={`url(#${markerId})`} />
+
+            <path d="M220 184 V206 M640 184 V206 M1060 184 V206 M220 206 H1060" />
+            <path d="M430 206 V214" markerEnd={`url(#${markerId})`} />
+
+            <path d="M610 258 H670" markerEnd={`url(#${markerId})`} />
+
+            <path d="M850 302 V318 M480 318 H1114" />
+            <path d="M480 318 V340" markerEnd={`url(#${markerId})`} />
+            <path d="M1114 318 V340" markerEnd={`url(#${markerId})`} />
+          </svg>
+
+          <div className="org-chart-institution">
+            <span>RSAC-UP</span>
+            <strong>{t("Remote Sensing Applications Centre, Uttar Pradesh")}</strong>
+          </div>
+
+          <div className="org-chart-general-tier">
+            {generalBodyKeys.map((roleKey) => (
+              <LeadershipCard key={roleKey} roleKey={roleKey} item={rolesByKey.get(roleKey)} />
+            ))}
+          </div>
+
+          <div className="org-chart-governance-card">
+            <LeadershipCard
+              roleKey="governing-body-chairman"
+              item={rolesByKey.get("governing-body-chairman")}
+              variant="governance"
+            />
+          </div>
+
+          <div className="org-chart-executive-card">
+            <LeadershipCard
+              roleKey="executive-director"
+              item={rolesByKey.get("executive-director")}
+              variant="executive"
+            />
+          </div>
+
+          <section className="org-chart-division-group" aria-label={t("Scientific Divisions")}>
+            <h3>{t("Scientific Divisions")}</h3>
+            <div>
+              {divisionKeys.map((roleKey) => <DivisionCard key={roleKey} item={rolesByKey.get(roleKey)} />)}
+            </div>
+          </section>
+
+          <section className="org-chart-support-group" aria-label={t("Support Functions")}>
+            <h3>{t("Support Functions")}</h3>
+            <div>
+              {supportKeys.map((roleKey) => <SupportCard key={roleKey} item={rolesByKey.get(roleKey)} />)}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

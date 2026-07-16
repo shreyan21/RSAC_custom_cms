@@ -254,6 +254,7 @@ export const hiTranslations = {
   "M.Tech. Programme in Remote Sensing and GIS":
     "रिमोट सेंसिंग एवं जीआईएस में एम.टेक. कार्यक्रम",
   "Scientific Divisions": "वैज्ञानिक प्रभाग",
+  "Support Functions": "सहायक कार्य",
   "SCIENTIFIC DIVISIONS": "वैज्ञानिक प्रभाग",
   "Division objectives, manpower, projects, reports, research papers, maps, and media.":
     "प्रभागों के उद्देश्य, कार्मिक, परियोजनाएं, रिपोर्ट, शोध पत्र, मानचित्र और मीडिया।",
