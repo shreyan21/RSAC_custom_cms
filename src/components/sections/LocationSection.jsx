@@ -3,12 +3,6 @@ import { useSiteSettings } from "../../hooks/useData";
 import RsacLocationMap from "../location/RsacLocationMap";
 import MaskReveal from "../motion/MaskReveal";
 
-const eyebrowSizeClasses = {
-  small: "rsac-kicker--small",
-  normal: "rsac-kicker--normal",
-  large: "rsac-kicker--large",
-};
-
 const LocationSection = () => {
   const shouldReduceMotion = useReducedMotion();
   const { location } = useSiteSettings();
@@ -48,9 +42,7 @@ const LocationSection = () => {
           {eyebrow && (
             <EyebrowTag
               id={title ? undefined : "visit-rsac-title"}
-              className={`rsac-kicker rsac-home-eyebrow flex items-center gap-2.5 text-[#c2410c] ${
-              eyebrowSizeClasses[location.eyebrowSize] || eyebrowSizeClasses.normal
-            }`}
+              className="rsac-kicker rsac-home-eyebrow flex items-center gap-2.5 text-[#c2410c]"
             >
               <span
                 className="geo-tricolor-bar"

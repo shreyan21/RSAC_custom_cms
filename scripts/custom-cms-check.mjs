@@ -184,4 +184,20 @@ const design = english.siteSettings.designSettings || {};
 if (!design.bodyFont || !design.headingFont || !design.hindiFont || design.baseFontSize < 14 || design.baseFontSize > 20) {
   throw new Error("Safe global typography settings are missing or invalid.");
 }
+const allowedHomeTypographySizes = new Set(["compact", "normal", "large"]);
+const englishHomeTypography = english.siteSettings.homeSectionTypography || {};
+const hindiHomeTypography = hindi.siteSettings.homeSectionTypography || {};
+if (JSON.stringify(englishHomeTypography) !== JSON.stringify(hindiHomeTypography)) {
+  throw new Error("Shared homepage typography differs between English and Hindi.");
+}
+for (const [sectionKey, section] of Object.entries(englishHomeTypography)) {
+  for (const property of ["eyebrowSize", "headingSize", "bodySize"]) {
+    if (section?.[property] && !allowedHomeTypographySizes.has(section[property])) {
+      throw new Error(`${sectionKey}.${property} has an invalid homepage typography size.`);
+    }
+  }
+}
+if (english.siteSettings.location?.eyebrowSize !== undefined || hindi.siteSettings.location?.eyebrowSize !== undefined) {
+  throw new Error("Legacy location eyebrow sizing conflicts with canonical homepage typography.");
+}
 console.log(`Custom CMS valid: ${rows[0].entries} entries, ${rows[0].published} published, ${rows[0].hindi} bilingual, ${rows[0].collections} populated collections; sort, five-tab and all-division bilingual contracts passed.`);

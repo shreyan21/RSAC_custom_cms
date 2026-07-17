@@ -21,6 +21,8 @@
     "cms:validate": "node scripts/custom-cms-check.mjs",
     "cms:audit": "node scripts/cms-content-audit.mjs",
     "cms:repair-pages": "node scripts/repair-cms-page-parity.mjs",
+    "cms:repair-bilingual": "node scripts/repair-bilingual-content-parity.mjs",
+    "cms:repair-scalars": "node scripts/repair-cms-scalar-placeholders.mjs",
     "cms:normalize-publications": "node scripts/normalize-numbered-publications.mjs",
     "cms:localize-media": "node scripts/localize-cms-media.mjs --apply",
     "cms:sync-hindi": "node scripts/sync-approved-hindi-content.mjs --apply",
@@ -31,6 +33,8 @@
     "cms:text-coverage": "node scripts/cms-text-coverage.mjs",
     "cms:asset-coverage": "node scripts/cms-asset-coverage.mjs",
     "cms:hindi-coverage": "node scripts/cms-hindi-coverage.mjs",
+    "cms:portal-audit": "node scripts/cms-portal-audit.mjs",
+    "cms:media-smoke": "node scripts/cms-media-smoke.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

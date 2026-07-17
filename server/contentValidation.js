@@ -83,17 +83,22 @@ const cleanValue = (field, value) => {
     if (field.type === "json") return {};
     return "";
   }
-  if (field.type === "boolean") return Boolean(value);
+  if (field.type === "boolean") return value === true || value === 1 || value === "1" || value === "true";
   if (field.type === "number") return Number.isFinite(Number(value)) ? Number(value) : 0;
   if (field.type === "select") {
     const allowed = (field.options || []).map((option) => String(typeof option === "object" ? option.value : option));
     return allowed.includes(String(value)) ? String(value) : "";
   }
-  if (field.type === "list") return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 200) : String(value).split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  if (field.type === "list") return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 200) : typeof value === "string" ? value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : [];
   if (field.type === "json") return typeof value === "object" ? value : JSON.parse(String(value || "{}"));
   if (field.type === "blocks") return cleanBlocks(value);
   if (field.type === "richtext") return sanitizeHtml(String(value), richTextOptions);
   if (["url", "media"].includes(field.type)) return cleanUrl(value);
+  if (field.type === "date") {
+    const text = String(value || "").trim();
+    return /^\d{4}-\d{2}-\d{2}$/u.test(text) ? text : "";
+  }
+  if (typeof value === "object") return "";
   return String(value).trim().slice(0, field.type === "textarea" ? 50000 : 1000);
 };
 
@@ -122,4 +127,13 @@ export const validateEntryPayload = (collectionId, payload) => {
   }
   const sortOrder = Number.isFinite(Number(payload.sortOrder)) ? Number(payload.sortOrder) : 0;
   return { definition, dataEn, dataHi, status, sortOrder };
+};
+
+export const preserveStoredUndeclaredFields = (definition, storedData, validatedData) => {
+  const declaredFields = new Set((definition?.fields || []).map((field) => field.name));
+  const preserved = Object.fromEntries(
+    Object.entries(storedData && typeof storedData === "object" ? storedData : {})
+      .filter(([name]) => !declaredFields.has(name))
+  );
+  return { ...preserved, ...validatedData };
 };

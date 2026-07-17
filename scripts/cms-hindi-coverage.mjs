@@ -113,10 +113,26 @@ const duplicateValues = (values) => {
 
 const issues = {
   missing: [],
+  missingEnglishStructure: [],
   identicalEnglish: [],
   latinOnlyReview: [],
   editorMetadataReview: [],
   structureReview: [],
+};
+
+const hasVisibleContent = (value) => {
+  if (typeof value === "string") return Boolean(normalize(value));
+  if (Array.isArray(value)) return value.some(hasVisibleContent);
+  if (value && typeof value === "object") return Object.values(value).some(hasVisibleContent);
+  return value !== undefined && value !== null && value !== false;
+};
+
+const recordMissingEnglishStructure = (row, path, hindi) => {
+  issues.missingEnglishStructure.push({
+    entry: `${row.collection}/${row.entry_key}`,
+    path: path.join("."),
+    hindi: clip(typeof hindi === "string" ? hindi : JSON.stringify(hindi)),
+  });
 };
 
 const record = (bucket, row, path, english, hindi = "") => {
@@ -202,10 +218,18 @@ const compareLocalized = (english, hindi, row, path) => {
   if (Array.isArray(english)) {
     const hindiItems = Array.isArray(hindi) ? hindi : [];
     const indexedHindi = new Map(hindiItems.map((item) => [identity(item), item]).filter(([key]) => key));
+    const matchedHindiItems = new Set();
     english.forEach((item, index) => {
       const itemIdentity = identity(item);
       const localizedItem = itemIdentity ? indexedHindi.get(itemIdentity) ?? hindiItems[index] : hindiItems[index];
+      const localizedIndex = hindiItems.indexOf(localizedItem);
+      if (localizedIndex >= 0) matchedHindiItems.add(localizedIndex);
       compareLocalized(item, localizedItem, row, [...path, String(index)]);
+    });
+    hindiItems.forEach((item, index) => {
+      if (!matchedHindiItems.has(index) && hasVisibleContent(item)) {
+        recordMissingEnglishStructure(row, [...path, String(index)], item);
+      }
     });
     return;
   }
@@ -223,6 +247,11 @@ const compareLocalized = (english, hindi, row, path) => {
         continue;
       }
       compareLocalized(value, localizedObject[key], row, [...path, key]);
+    }
+    for (const [key, value] of Object.entries(localizedObject)) {
+      if (!(key in english) && !sharedKeys.has(key) && hasVisibleContent(value)) {
+        recordMissingEnglishStructure(row, [...path, key], value);
+      }
     }
   }
 };
@@ -251,6 +280,7 @@ try {
   const report = {
     entries: rows.length,
     missing: issues.missing.length,
+    missingEnglishStructure: issues.missingEnglishStructure.length,
     identicalEnglish: issues.identicalEnglish.length,
     uniqueIdenticalEnglish: new Set(issues.identicalEnglish.map((issue) => normalize(issue.english))).size,
     latinOnlyReview: issues.latinOnlyReview.length,
@@ -268,7 +298,7 @@ try {
     examples: Object.fromEntries(Object.entries(issues).map(([key, values]) => [key, values.slice(0, 12)])),
   };
   console.log(JSON.stringify(report, null, 2));
-  if (issues.missing.length || issues.identicalEnglish.length) process.exitCode = 1;
+  if (issues.missing.length || issues.missingEnglishStructure.length || issues.identicalEnglish.length) process.exitCode = 1;
 } finally {
   await client.end();
 }

@@ -212,7 +212,11 @@ const Navbar = () => {
                       className={`rsac-brand-mark h-[clamp(2rem,4.2vw,3rem)] w-[clamp(2rem,4.2vw,3rem)] object-contain transition-[filter] duration-200 ${
                         isGovernmentEmblem ? "rsac-government-emblem rounded-full" : ""
                       } ${
-                        overDark
+                        isGovernmentEmblem
+                          ? overDark
+                            ? "drop-shadow-[0_2px_4px_rgba(0,0,0,0.58)]"
+                            : "drop-shadow-[0_2px_4px_rgba(15,23,42,0.22)]"
+                          : overDark
                           ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.42)]"
                           : "drop-shadow-[0_2px_4px_rgba(15,23,42,0.22)]"
                       }`}

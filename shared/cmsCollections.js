@@ -93,7 +93,7 @@ export const collections = [
     id: "page_sections",
     label: "Page Groups",
     description: "Top-level route groups and section introductions.",
-    fields: [text("title", "Title", { required: true }), plain("key", "Key", { required: true }), plain("route", "Route"), text("eyebrow", "Eyebrow"), textarea("intro", "Introduction")],
+    fields: [text("title", "Title"), plain("key", "Key", { required: true }), plain("route", "Route"), text("eyebrow", "Eyebrow"), textarea("intro", "Introduction")],
   },
   {
     id: "divisions",
@@ -124,7 +124,7 @@ export const collections = [
     id: "facilities",
     label: "Facility Ordering Data",
     description: "Internal facility-card ordering data. Editors normally use the Facilities page collection.",
-    fields: [text("title", "Facility name", { required: true }), plain("slug", "Slug", { required: true }), textarea("text", "Description")],
+    fields: [text("title", "Facility name", { required: true }), plain("slug", "Slug"), textarea("text", "Description")],
   },
   {
     id: "profiles",
@@ -171,19 +171,19 @@ export const collections = [
     id: "gallery",
     label: "Gallery",
     description: "Public photographs, captions and accessible alt text. Edit the gallery page title and subheading in Page Headings and Subheadings.",
-    fields: [text("title", "Caption", { required: true }), text("altText", "Alt text", { required: true }), { name: "image", label: "Image", type: "media", localized: false }],
+    fields: [text("title", "Caption"), text("altText", "Alt text", { required: true }), { name: "image", label: "Image", type: "media", localized: false }],
   },
   {
     id: "downloads",
     label: "Downloads",
     description: "Public documents and files.",
-    fields: [text("title", "Title", { required: true }), text("category", "Category"), textarea("summary", "Summary"), plain("date", "Date"), { name: "url", label: "Upload downloadable file", type: "media", localized: false }],
+    fields: [text("title", "Title", { required: true }), text("category", "Category"), textarea("summary", "Summary"), plain("date", "Date", { type: "date" }), { name: "url", label: "Upload downloadable file", type: "media", localized: false }],
   },
   {
     id: "flood_reports",
     label: "Flood Reports",
     description: "Daily flood reports and coverage.",
-    fields: [text("title", "Title", { required: true }), plain("date", "Date"), text("dateLabel", "Date label"), text("category", "Category"), text("coverage", "Coverage"), textarea("meta", "Details"), { name: "url", label: "Upload flood report / file", type: "media", localized: false }],
+    fields: [text("title", "Title", { required: true }), plain("date", "Date", { type: "date" }), text("dateLabel", "Date label"), text("category", "Category"), text("coverage", "Coverage"), textarea("meta", "Details"), { name: "url", label: "Upload flood report / file", type: "media", localized: false }],
   },
   {
     id: "mobile_apps",
@@ -307,7 +307,21 @@ export const collections = [
     id,
     label,
     description,
-    fields: [text("title", "Title", { required: true }), textarea("description", "Description"), textarea("details", "Details"), plain("path", "Path"), plain("url", "URL", { type: "url" }), plain("iconKey", "Icon"), text("category", "Category"), text("buttonLabel", "Button label")],
+    fields: [
+      text("title", "Title", { required: true }),
+      textarea("description", "Description"),
+      textarea("details", "Details"),
+      plain("path", "Path"),
+      plain("url", "URL", { type: "url" }),
+      plain("iconKey", "Icon"),
+      text("category", "Category"),
+      text("buttonLabel", "Button label"),
+      ...(id === "quick_links" ? [{ name: "accent", label: "Card accent colour", type: "color", localized: false }] : []),
+      ...(id === "geoportals" ? [
+        plain("accent", "Accent style", { advanced: true }),
+        { name: "accentHex", label: "Icon accent colour", type: "color", localized: false },
+      ] : []),
+    ],
   })),
   {
     id: "operational_domains",

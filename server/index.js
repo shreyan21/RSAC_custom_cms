@@ -14,7 +14,7 @@ import { config } from "./config.js";
 import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
-import { validateEntryPayload } from "./contentValidation.js";
+import { preserveStoredUndeclaredFields, validateEntryPayload } from "./contentValidation.js";
 
 const app = express();
 const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: true });
@@ -529,10 +529,12 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
+      const nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
+      const nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
       const updated = await client.query(
         `UPDATE cms_entries SET entry_key=$1, status=$2, sort_order=$3, data_en=$4, data_hi=$5,
                 version=version+1, updated_by=$6 WHERE id=$7 RETURNING *`,
-        [entryKey, status, sortOrder, dataEn, dataHi, req.cmsUser.id, req.params.id]
+        [entryKey, status, sortOrder, nextDataEn, nextDataHi, req.cmsUser.id, req.params.id]
       );
       await audit(client, req, "update", updated.rows[0], before.rows[0], updated.rows[0]);
       return updated.rows[0];

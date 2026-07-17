@@ -128,7 +128,6 @@ const settingsGroups = [
     label: "Location section",
     fields: [
       ["location.eyebrow", "Small heading"],
-      ["location.eyebrowSize", "Small heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
       ["location.title", "Section heading"],
       ["location.intro", "Introduction", "textarea"],
       ["location.cardEyebrow", "Map card small heading"],
@@ -322,7 +321,6 @@ const homepageSections = [
 const sharedSettingsPaths = new Set([
   "appearance.homeHeadingSize",
   "appearance.homeBodySize",
-  "location.eyebrowSize",
   "location.cardEyebrowSize",
   "footer.contactHeadingSize",
   "organisationChart.image",
@@ -339,7 +337,7 @@ const homepageTypographySections = [
   ["quickAccess", "Quick links"],
   ["stats", "Institution at a Glance / statistics"],
   ["gallery", "Photo gallery preview"],
-  ["location", "Location and map"],
+  ["location", "Location and map / Find the Centre"],
 ];
 
 const typographySizeOptions = [

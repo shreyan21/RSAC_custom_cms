@@ -1,6 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { assembleBootstrap } from "../server/contentAssembler.js";
-import { validateEntryPayload } from "../server/contentValidation.js";
+import { preserveStoredUndeclaredFields, validateEntryPayload } from "../server/contentValidation.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 const base = process.env.VITE_API_URL || "http://localhost:3000";
@@ -36,6 +36,19 @@ if (layoutOnlyHeading.dataEn.hideTitle || layoutOnlyHeading.dataEn.contentWidth 
 const validatedDivisionItem = validateEntryPayload("division_section_items", divisionItemPayload);
 if (validatedDivisionItem.dataEn.divisionSlug !== "training-division" || validatedDivisionItem.dataHi.title !== divisionItemPayload.dataHi.title) {
   throw new Error("Structured division item validation changed bilingual or shared fields.");
+}
+const validatedLosslessEntry = validateEntryPayload("impact_stats", {
+  status: "published",
+  dataEn: { label: "Lossless validation", value: "1", detail: "Test", injectedField: "must not be accepted" },
+  dataHi: { label: "Lossless validation", value: "1", detail: "Test" },
+});
+const losslessEntry = preserveStoredUndeclaredFields(
+  validatedLosslessEntry.definition,
+  { label: "Old label", legacySort: 7 },
+  validatedLosslessEntry.dataEn
+);
+if (losslessEntry.legacySort !== 7 || losslessEntry.label !== "Lossless validation" || Object.hasOwn(losslessEntry, "injectedField")) {
+  throw new Error("CMS update validation does not preserve stored legacy data safely.");
 }
 
 const fakeRows = [
@@ -114,6 +127,30 @@ if (!duplicateProfileRejected) throw new Error("CMS allowed a duplicate active p
 const entries = (await request("/api/admin/content/impact_stats")).payload.data;
 const original = structuredClone(entries.find((item) => item.status === "published"));
 if (!original?.entryKey) throw new Error("Admin entryKey contract is missing.");
+const previewDraft = structuredClone(original);
+previewDraft.dataEn.label = `${original.dataEn.label} [PREVIEW ONLY]`;
+previewDraft.dataHi.label = `${original.dataHi.label} पूर्वावलोकन`;
+const previewSession = (await request("/api/admin/preview", {
+  method: "POST",
+  body: JSON.stringify({ collection: "impact_stats", entry: previewDraft }),
+})).payload;
+if (!previewSession.token || !previewSession.expiresAt || previewSession.path !== "/") {
+  throw new Error("CMS preview did not return a valid private preview session.");
+}
+const previewEnglish = (await request(`/api/content/preview/${previewSession.token}?lang=en`)).payload.data;
+const previewHindi = (await request(`/api/content/preview/${previewSession.token}?lang=hi`)).payload.data;
+if (
+  !previewEnglish.isPreview ||
+  !previewHindi.isPreview ||
+  !previewEnglish.siteSettings.impactStats.some((item) => item.label === previewDraft.dataEn.label) ||
+  !previewHindi.siteSettings.impactStats.some((item) => item.label === previewDraft.dataHi.label)
+) {
+  throw new Error("CMS preview did not assemble separate English and Hindi content.");
+}
+const liveAfterPreview = (await request("/api/content/impact_stats?lang=en")).payload.data;
+if (liveAfterPreview.some((item) => item.label === previewDraft.dataEn.label)) {
+  throw new Error("CMS preview changed live website content.");
+}
 const designEntries = (await request("/api/admin/content/design_settings")).payload.data;
 const designOriginal = structuredClone(designEntries.find((item) => item.status === "published"));
 if (!designOriginal?.entryKey) throw new Error("Website Design and Fonts record is missing.");
@@ -139,11 +176,22 @@ try {
   siteSettingsDraft.dataEn.settings.homeSectionTypography = {
     ...(siteSettingsDraft.dataEn.settings.homeSectionTypography || {}),
     about: { headingSize: "large", bodySize: "compact" },
+    location: { eyebrowSize: "large", headingSize: "compact", bodySize: "large" },
   };
   siteSettingsUpdated = (await request(`/api/admin/content/site_settings/${siteSettingsDraft.id}`, { method: "PUT", body: JSON.stringify(siteSettingsDraft) })).payload.data;
   const settingsEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.siteSettings;
   const settingsHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.siteSettings;
-  if (settingsEnglish.designSettings.siteFont !== "System Sans" || settingsHindi.designSettings.siteFont !== "System Sans" || settingsEnglish.homeSectionTypography?.about?.headingSize !== "large" || settingsHindi.homeSectionTypography?.about?.bodySize !== "compact") {
+  if (
+    settingsEnglish.designSettings.siteFont !== "System Sans" ||
+    settingsHindi.designSettings.siteFont !== "System Sans" ||
+    settingsEnglish.homeSectionTypography?.about?.headingSize !== "large" ||
+    settingsHindi.homeSectionTypography?.about?.bodySize !== "compact" ||
+    settingsEnglish.homeSectionTypography?.location?.eyebrowSize !== "large" ||
+    settingsEnglish.homeSectionTypography?.location?.headingSize !== "compact" ||
+    settingsHindi.homeSectionTypography?.location?.bodySize !== "large" ||
+    settingsEnglish.location?.eyebrowSize !== undefined ||
+    settingsHindi.location?.eyebrowSize !== undefined
+  ) {
     throw new Error("Shared website font or canonical homepage section typography controls did not reach both languages.");
   }
   const draft = structuredClone(original);

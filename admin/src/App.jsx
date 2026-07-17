@@ -8,6 +8,7 @@ import upEmblem from "../../src/assets/images/up-emblem.webp";
 import { api, setCsrfToken, websiteUrl } from "./api";
 import DivisionContentWorkspace from "./DivisionContentWorkspace";
 import FieldInput from "./FieldInput";
+import { cmsGroups } from "./cmsGroups";
 
 const emptyEntry = (definition) => ({
   entryKey: "",
@@ -229,14 +230,6 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
   });
 };
 
-const groups = [
-  { title: "Homepage", ids: ["site_settings", "hero_banners", "homepage_features", "services", "applications", "operational_domains", "impact_stats", "quick_links", "geoportals"] },
-  { title: "Pages", ids: ["about_pages", "division_pages", "facility_pages", "academic_pages", "pages"] },
-  { title: "Navigation and appearance", ids: ["page_sections", "page_display_settings", "design_settings", "menu_items", "contact", "logos"] },
-  { title: "Divisions and people", ids: ["divisions", "facilities", "division_section_items", "projects", "publications", "profiles", "manpower", "organisation_roles"] },
-  { title: "Public information", ids: ["public_info", "policies", "notices", "tenders", "faq", "flood_reports", "gallery", "mobile_apps"] },
-];
-
 function Login({ onLogin }) {
   const [form, setForm] = useState({ username: "admin", password: "" });
   const [error, setError] = useState("");
@@ -436,7 +429,7 @@ export default function App() {
   };
   const filteredEntries = useMemo(() => entries.filter((entry) => `${titleOf(entry)} ${entry.entryKey}`.toLowerCase().includes(search.toLowerCase())), [entries, search]);
   const profileDuplicatePairs = useMemo(() => selected?.id === "profiles" ? findDuplicateProfilePairs(entries) : [], [entries, selected]);
-  const visibleGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
+  const visibleGroups = useMemo(() => cmsGroups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
 
   if (booting) return <div className="full-loader"><LoaderCircle className="spin" /><span>Opening secure CMS...</span></div>;
   if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(); }} />;

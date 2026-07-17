@@ -13,6 +13,34 @@ const mergeHomepageTypography = (siteTypography, legacyTypography) => {
   return merged;
 };
 
+const canonicalSize = (value) => value === "small" ? "compact" : value;
+
+const consolidateLocationEyebrowSize = (settings, localizedSettings) => {
+  const next = structuredClone(settings || {});
+  const legacyCandidates = [
+    canonicalSize(next.location?.eyebrowSize),
+    canonicalSize(localizedSettings?.location?.eyebrowSize),
+  ].filter((value) => ["compact", "normal", "large"].includes(value));
+  const legacySize = legacyCandidates.find((value) => value !== "normal") || legacyCandidates[0];
+  const currentSize = next.homeSectionTypography?.location?.eyebrowSize;
+  const shouldPromoteLegacy = ["compact", "normal", "large"].includes(legacySize) &&
+    (!currentSize || (currentSize === "normal" && legacySize !== "normal"));
+
+  if (shouldPromoteLegacy) {
+    next.homeSectionTypography = {
+      ...(next.homeSectionTypography || {}),
+      location: {
+        ...(next.homeSectionTypography?.location || {}),
+        eyebrowSize: legacySize,
+      },
+    };
+  }
+  if (next.location && typeof next.location === "object") {
+    delete next.location.eyebrowSize;
+  }
+  return next;
+};
+
 try {
   await client.query("BEGIN");
   const designResult = await client.query(
@@ -35,16 +63,19 @@ try {
   delete designHi.homeSectionTypography;
 
   const siteEn = structuredClone(siteEntry.data_en || {});
-  siteEn.settings = {
+  siteEn.settings = consolidateLocationEyebrowSize({
     ...(siteEn.settings || {}),
     homeSectionTypography: mergeHomepageTypography(
       siteEn.settings?.homeSectionTypography,
       legacyTypography
     ),
-  };
+  }, siteEntry.data_hi?.settings);
   const siteHi = structuredClone(siteEntry.data_hi || {});
   if (siteHi.settings && typeof siteHi.settings === "object") {
     delete siteHi.settings.homeSectionTypography;
+    if (siteHi.settings.location && typeof siteHi.settings.location === "object") {
+      delete siteHi.settings.location.eyebrowSize;
+    }
   }
 
   const designChanged = JSON.stringify(designEn) !== JSON.stringify(designEntry.data_en || {}) ||
@@ -78,7 +109,7 @@ try {
 
   await client.query("COMMIT");
   console.log(designChanged || siteChanged
-    ? "Website typography settings consolidated without changing the visible sizes."
+    ? "Website typography settings consolidated into the canonical controls."
     : "Website typography settings are already consolidated.");
 } catch (error) {
   await client.query("ROLLBACK");

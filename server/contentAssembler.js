@@ -103,7 +103,6 @@ const sharedSiteSettingPaths = [
   ["appearance", "homeHeadingSize"],
   ["appearance", "homeBodySize"],
   ["homeSectionTypography"],
-  ["location", "eyebrowSize"],
   ["location", "cardEyebrowSize"],
   ["hiddenHomeSections"],
   ["homeSectionOrder"],

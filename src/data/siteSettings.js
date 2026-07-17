@@ -334,7 +334,6 @@ export const siteSettings = {
   },
   location: {
     eyebrow: "Find the Centre",
-    eyebrowSize: "normal",
     // Title + intro intentionally blank (removed from the site). Blanking the
     // baked default too stops the old text flashing during the CMS load window.
     // Set these in the Website Text Editor if the copy is ever wanted back.

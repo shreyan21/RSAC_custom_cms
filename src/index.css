@@ -2037,6 +2037,12 @@ html:not(.rsac-high-contrast)
   background: transparent !important;
 }
 
+.rsac-government-emblem {
+  background: transparent !important;
+  -webkit-clip-path: circle(49% at 50% 50%);
+  clip-path: circle(49% at 50% 50%);
+}
+
 .rsac-high-contrast button:focus-visible,
 .rsac-high-contrast a:focus-visible {
   outline-color: #fde047;
@@ -2171,7 +2177,7 @@ html.rsac-high-contrast .official-index-card,
 }
 
 .rsac-high-contrast .rsac-navbar .rsac-government-emblem {
-  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.72)) contrast(1.08);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.62)) contrast(1.08);
 }
 
 .rsac-high-contrast #main-menu-toggle {

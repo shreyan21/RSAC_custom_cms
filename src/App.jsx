@@ -115,7 +115,7 @@ const HomePage = () => {
     const section = homeSectionTypography?.[sectionKey] || {};
     return {
       "data-rsac-home-section": sectionKey,
-      "data-rsac-section-eyebrow-size": allowedTypographySizes.has(section.eyebrowSize || section.headingSize) ? (section.eyebrowSize || section.headingSize) : undefined,
+      "data-rsac-section-eyebrow-size": allowedTypographySizes.has(section.eyebrowSize) ? section.eyebrowSize : undefined,
       "data-rsac-section-heading-size": allowedTypographySizes.has(section.headingSize) ? section.headingSize : undefined,
       "data-rsac-section-body-size": allowedTypographySizes.has(section.bodySize) ? section.bodySize : undefined,
     };
