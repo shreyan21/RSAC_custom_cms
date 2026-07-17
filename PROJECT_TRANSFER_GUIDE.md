@@ -63,7 +63,9 @@ Create database backup:
 npm run cms:backup
 ```
 
-Command prints new SQL filename. Existing backups are kept.
+The command prints the new SQL filename. After verifying the new dump, it removes
+older timestamped `rsac_custom_cms_YYYYMMDD_HHMMSS.sql` files and keeps the new
+one. Unrelated safety files are not removed.
 
 Copy SQL and uploads to USB/shared folder. Replace `X:` with its drive:
 

@@ -36,8 +36,23 @@ const cleanBlocks = (blocks) => {
   if (!Array.isArray(blocks)) return [];
   return blocks.slice(0, 100).map((block) => {
     const next = { ...block, id: String(block.id || crypto.randomUUID()), type: String(block.type || "rich_text") };
-    for (const key of ["html", "text"]) {
+    for (const key of ["html", "text", "body"]) {
       if (typeof next[key] === "string") next[key] = sanitizeHtml(next[key], richTextOptions);
+    }
+    for (const key of ["image", "src", "url", "href", "poster"]) {
+      if (next[key] !== undefined) next[key] = cleanUrl(next[key]);
+    }
+    if (Array.isArray(next.items)) {
+      const urlOnlyItems = ["gallery", "links", "buttons"].includes(next.type);
+      next.items = next.items.slice(0, 1000).map((item) => {
+        if (typeof item === "string") return urlOnlyItems ? cleanUrl(item) : item.trim().slice(0, 50000);
+        if (!item || typeof item !== "object") return {};
+        const cleanItem = { ...item };
+        for (const key of ["image", "src", "url", "href", "path", "poster"]) {
+          if (cleanItem[key] !== undefined) cleanItem[key] = cleanUrl(cleanItem[key]);
+        }
+        return cleanItem;
+      });
     }
     if (Array.isArray(next.assets)) {
       const allowedKinds = new Set(["image", "document", "video", "audio", "embed", "link"]);
@@ -62,7 +77,12 @@ const cleanBlocks = (blocks) => {
 };
 
 const cleanValue = (field, value) => {
-  if (value === undefined || value === null) return field.type === "boolean" ? false : "";
+  if (value === undefined || value === null) {
+    if (field.type === "boolean") return false;
+    if (["blocks", "list"].includes(field.type)) return [];
+    if (field.type === "json") return {};
+    return "";
+  }
   if (field.type === "boolean") return Boolean(value);
   if (field.type === "number") return Number.isFinite(Number(value)) ? Number(value) : 0;
   if (field.type === "select") {

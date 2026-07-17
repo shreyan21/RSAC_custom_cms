@@ -40,6 +40,29 @@ export const blockTypes = [
   { value: "divider", label: "Divider line" },
 ];
 
+export const pageCardIconOptions = [
+  ["bed-double", "Hostel / accommodation"],
+  ["book-open", "Library / publication"],
+  ["building", "Building / facility"],
+  ["sprout", "Agriculture"],
+  ["cpu", "Computer / processing"],
+  ["mountain", "Earth resources"],
+  ["trees", "Forest resources"],
+  ["droplets", "Groundwater"],
+  ["database", "Data bank"],
+  ["map", "Map / land use"],
+  ["waves", "Surface water"],
+  ["graduation-cap", "Training / academics"],
+  ["landmark", "Institution"],
+  ["user-round", "People"],
+  ["satellite", "Remote sensing"],
+  ["flask-conical", "Laboratory"],
+  ["printer", "Printing"],
+  ["scan-line", "Scanning / LiDAR"],
+  ["wrench", "Workshop / service"],
+  ["file-text", "Document"],
+].map(([value, label]) => ({ value, label }));
+
 export const collections = [
   {
     id: "pages",
@@ -61,9 +84,9 @@ export const collections = [
       { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
       { name: "hiddenProfileNames", label: "Hide profile cards by name", type: "list", localized: false, advanced: true },
       plain("sourceUrl", "Source URL", { type: "url", advanced: true }),
-      plain("cardIcon", "Card icon", { advanced: true }),
-      plain("cardColor", "Card colour", { advanced: true }),
-      plain("cardColor2", "Second card colour", { advanced: true }),
+      { name: "cardIcon", label: "Index card icon", type: "select", localized: false, options: pageCardIconOptions },
+      { name: "cardColor", label: "Index card primary colour", type: "color", localized: false },
+      { name: "cardColor2", label: "Index card secondary colour", type: "color", localized: false },
     ],
   },
   {
@@ -226,7 +249,7 @@ export const collections = [
   {
     id: "page_display_settings",
     label: "Page Headings and Subheadings",
-    description: "Rename, resize, hide, or adjust the heading, subheading and content layout for any website route.",
+    description: "Rename, resize, hide, or adjust any route, and add optional text, photos, galleries, cards, tables or downloads before or after its existing content.",
     fields: [
       plain("path", "Page path", { required: true }),
       text("eyebrow", "Small heading / flag text"),
@@ -240,6 +263,8 @@ export const collections = [
       { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
       { name: "mediaSize", label: "Content image size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }, { value: "full", label: "Full width" }] },
       { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
+      { name: "beforeBlocks", label: "Extra sections before the current page content", type: "blocks", localized: true },
+      { name: "afterBlocks", label: "Extra sections after the current page content", type: "blocks", localized: true },
     ],
   },
   {

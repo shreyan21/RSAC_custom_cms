@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Search, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
 import { api, mediaPreviewUrl } from "./api";
+import { uiLabelDefaults } from "../../src/data/uiLabels";
 
 function JsonEditor({ field, value, onChange, onError }) {
   const [text, setText] = useState(() => typeof value === "string" ? value : JSON.stringify(value || {}, null, 2));
@@ -39,6 +40,32 @@ const settingsGroups = [
     fields: [
       ["appearance.homeHeadingSize", "Default section heading size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
       ["appearance.homeBodySize", "Default paragraph and card text size", "select", [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+    ],
+  },
+  {
+    label: "Header, menu and shared controls",
+    fields: [
+      ["branding.organisationName", "Organisation name"],
+      ["branding.subtitle", "Organisation subtitle", "textarea"],
+      ["branding.shortName", "Short organisation name"],
+      ["ui.skipToContent", "Skip-to-content label"],
+      ["ui.skipToContentShort", "Short skip label"],
+      ["ui.openMenu", "Open menu label"],
+      ["ui.closeMenu", "Close menu label"],
+      ["ui.menuHeading", "Menu heading"],
+      ["ui.menuHint", "Menu instruction", "textarea"],
+      ["ui.menuCurrentPage", "Current-page label"],
+      ["ui.menuOpenSection", "Open-section label"],
+      ["ui.menuSelectedDomain", "Selected-domain label"],
+      ["ui.menuDestinations", "Menu destinations label"],
+      ["ui.openSearch", "Open search label"],
+      ["ui.searchButtonLabel", "Search button label"],
+      ["ui.displayOptions", "Display options label"],
+      ["ui.backToTop", "Back-to-top label"],
+      ["ui.scrollHint", "Scroll hint"],
+      ["cards.profileDetails", "Profile details heading"],
+      ["cards.profileFallback", "Missing profile information text", "textarea"],
+      ["cards.additionalInformation", "Additional information heading"],
     ],
   },
   {
@@ -127,6 +154,25 @@ const settingsGroups = [
     ],
   },
   {
+    label: "Website search",
+    fields: [
+      ["search.title", "Search heading"],
+      ["search.subtitle", "Search introduction", "textarea"],
+      ["search.inputLabel", "Search input label", "textarea"],
+      ["search.placeholder", "Search placeholder"],
+      ["search.resultsLabel", "Results heading"],
+      ["search.foundSuffix", "Result-count suffix"],
+      ["search.minCharsHint", "Minimum-character hint", "textarea"],
+      ["search.emptyTitle", "No-results heading"],
+      ["search.emptyHint", "No-results help", "textarea"],
+      ["search.quickLinksLabel", "Quick links heading"],
+      ["search.languageLabels.primary", "Primary language badge"],
+      ["search.languageLabels.secondary", "Secondary language badge"],
+      ["search.quickLinks", "Search quick links", "rows", [["title", "Title"], ["type", "Type"], ["path", "Website path"], ["description", "Description", "textarea"]]],
+      ["search.institutionalItems", "Additional searchable entries", "rows", [["title", "Title"], ["type", "Type"], ["path", "Website path"], ["description", "Description", "textarea"], ["keywords", "Search keywords (one per line)", "list"]]],
+    ],
+  },
+  {
     label: "Photo gallery",
     fields: [
       ["pageContent.gallery.eyebrow", "Small heading"],
@@ -135,6 +181,7 @@ const settingsGroups = [
       ["pageContent.gallery.actionLabel", "View-all button label"],
       ["pageContent.gallery.emptyText", "Empty gallery message", "textarea"],
       ["pageContent.gallery.imageAlt", "Default image alt text"],
+      ["pageContent.gallery.backLabel", "Back button label"],
     ],
   },
   {
@@ -158,6 +205,89 @@ const settingsGroups = [
       ["pageContent.sitemap.sectionTitles.policiesHelp", "Policies and help heading"],
       ["pageContent.sitemap.screenReaderLabel", "Screen reader link name"],
       ["pageContent.sitemap.backLabel", "Back to sitemap label"],
+      ["pageContent.sitemap.sitemapLabel", "Sitemap link label (leave blank to hide)"],
+    ],
+  },
+  {
+    label: "Contact, apps, notices and portal page labels",
+    fields: [
+      ["pageContent.contact.backLabel", "Contact page back label"],
+      ["pageContent.contact.downloadLabel", "Mobile app download label"],
+      ["pageContent.contact.mobileAppsHeading", "Mobile apps section heading"],
+      ["pageContent.contact.mobileAppsIntro", "Mobile apps section introduction", "textarea"],
+      ["pageContent.contact.unavailableLabel", "Unavailable app message", "textarea"],
+      ["pageContent.notices.backLabel", "Notices page back label"],
+      ["pageContent.notices.columns.serial", "Notices serial column"],
+      ["pageContent.notices.columns.notice", "Notices title column"],
+      ["pageContent.notices.columns.category", "Notices category column"],
+      ["pageContent.notices.columns.action", "Notices action column"],
+      ["pageContent.geoportals.backLabel", "Geoportals page back label"],
+      ["pageContent.leadership.backLabel", "Leadership page back label"],
+      ["pageContent.manpower.backLabel", "Manpower page back label"],
+      ["pageContent.screenReader.backLabel", "Screen-reader page back label"],
+    ],
+  },
+  {
+    label: "People pages and fallback page",
+    fields: [
+      ["pageContent.ourFormers.backLabel", "Our Formers back label"],
+      ["pageContent.ourFormers.profilesLabel", "Profile count label"],
+      ["pageContent.ourFormers.navigationLabel", "Our Formers navigation label"],
+      ["pageContent.ourFormers.sections", "Our Formers groups", "rows", [["title", "Group heading"], ["intro", "Group introduction", "textarea"], ["slug", "Group key"]]],
+      ["pageContent.scientists.backLabel", "Scientists page back label"],
+      ["pageContent.administration.backLabel", "Administration page back label"],
+      ["pageContent.technicalStaff.backLabel", "Technical staff page back label"],
+      ["pageContent.organisationChart.backLabel", "Organisation chart back label"],
+      ["pageContent.placeholder.body", "Missing-page message", "textarea"],
+      ["pageContent.placeholder.links", "Missing-page helpful links", "rows", [["label", "Link label"], ["path", "Website path"]]],
+    ],
+  },
+  {
+    label: "Vision, objectives, implementation and activities",
+    fields: [
+      ["pageContent.visionMission.back", "Back button label"],
+      ["pageContent.visionMission.cards", "Vision and mission cards", "rows", [["label", "Small label"], ["title", "Card heading"], ["text", "Card text", "textarea"]]],
+      ["pageContent.visionMission.objectivesHeading", "Objectives heading"],
+      ["pageContent.visionMission.objectives", "Objectives", "list"],
+      ["pageContent.visionMission.implementationHeading", "Implementation heading"],
+      ["pageContent.visionMission.implementationIntro", "Implementation introduction", "textarea"],
+      ["pageContent.visionMission.implementation", "Implementation points", "list"],
+      ["pageContent.visionMission.approachHeading", "Approach heading"],
+      ["pageContent.visionMission.approach", "Approach points", "list"],
+      ["pageContent.visionMission.sphereHeading", "Sphere of Activities heading"],
+      ["pageContent.visionMission.sphereIntro", "Sphere of Activities introduction", "textarea"],
+      ["pageContent.visionMission.sphere", "Sphere of Activities groups", "rows", [["name", "Group heading"], ["items", "Items (one per line)", "list"]]],
+    ],
+  },
+  {
+    label: "Flood monitoring and reports",
+    fields: [
+      ["floodSection.eyebrow", "Flood page small heading"],
+      ["floodSection.title", "Flood page heading"],
+      ["floodSection.intro", "Flood page introduction", "textarea"],
+      ["floodSection.note", "Season note", "textarea"],
+      ["floodSection.programmeHeading", "Programme heading"],
+      ["floodSection.programmes", "Flood programmes", "rows", [["title", "Title"], ["description", "Description", "textarea"], ["icon", "Icon name"]]],
+      ["floodSection.archiveHeading", "Archive heading"],
+      ["floodSection.archiveNote", "Archive note", "textarea"],
+      ["floodSection.archives", "Flood archive years", "rows", [["year", "Year"], ["url", "Archive URL"]]],
+      ["floodSection.resourcesHeading", "Related portals heading"],
+      ["floodSection.resources", "Related flood portals", "rows", [["label", "Name"], ["description", "Description", "textarea"], ["url", "Website URL"]]],
+      ["pageContent.floodReports.heading", "Daily reports heading"],
+      ["pageContent.floodReports.backLabel", "Flood reports back label"],
+      ["pageContent.floodReports.columns.date", "Date column"],
+      ["pageContent.floodReports.columns.report", "Report column"],
+      ["pageContent.floodReports.columns.coverage", "Coverage column"],
+      ["pageContent.floodReports.columns.action", "Action column"],
+    ],
+  },
+  {
+    label: "Accessibility and organisation chart media",
+    fields: [
+      ["accessibility.screenReaders", "Screen-reader software", "rows", [["name", "Software name"], ["type", "Type"], ["website", "Website URL"]]],
+      ["organisationChart.intro", "Organisation chart introduction", "textarea"],
+      ["organisationChart.image", "Organisation chart image", "media"],
+      ["organisationChart.downloadName", "Downloaded chart file name"],
     ],
   },
   {
@@ -194,6 +324,9 @@ const sharedSettingsPaths = new Set([
   "appearance.homeBodySize",
   "location.eyebrowSize",
   "location.cardEyebrowSize",
+  "footer.contactHeadingSize",
+  "organisationChart.image",
+  "organisationChart.downloadName",
 ]);
 
 const homepageTypographySections = [
@@ -253,6 +386,8 @@ function SettingsRowsEditor({ label, rows, columns, onChange, onBusy, onError })
                 <span>{fieldLabel}</span>
                 {type === "media"
                   ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={item[name]} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} />
+                  : type === "list"
+                    ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => update(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean))} />
                   : type === "textarea"
                     ? <textarea rows="3" value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} />
                     : <input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}
@@ -308,6 +443,31 @@ function HomepageLayoutEditor({ value, onChange }) {
   );
 }
 
+function InterfaceLabelsEditor({ value, onChange }) {
+  const [query, setQuery] = useState("");
+  const current = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const labels = { ...uiLabelDefaults, ...current };
+  const visible = Object.entries(labels).filter(([key, label]) => `${key} ${label} ${uiLabelDefaults[key] || ""}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const update = (key, nextValue) => onChange({ ...current, [key]: nextValue });
+
+  return (
+    <fieldset className="settings-group interface-labels-editor">
+      <legend>Buttons, badges and short interface text</legend>
+      <p className="settings-note">Search for the wording visible on the website, then edit it in the selected language.</p>
+      <label className="interface-label-search"><Search aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${Object.keys(labels).length} labels`} /></label>
+      <div className="interface-label-list">
+        {visible.map(([key]) => (
+          <label key={key}>
+            <span>{uiLabelDefaults[key] || key}<small>{key}</small></span>
+            <input value={current[key] || ""} placeholder={uiLabelDefaults[key] || key} onChange={(event) => update(key, event.target.value)} />
+          </label>
+        ))}
+      </div>
+      {!visible.length && <p className="empty-inline">No matching interface text.</p>}
+    </fieldset>
+  );
+}
+
 function HomepageTypographyEditor({ value, onChange }) {
   const settings = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const update = (sectionKey, property, nextValue) => {
@@ -357,7 +517,7 @@ function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, o
   const updateSharedSettings = onSharedChange || onChange;
   return (
     <div className="settings-editor">
-      <p className="settings-note">Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi.</p>
+      <p className="settings-note">Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route.</p>
       <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />
       <fieldset className="settings-group homepage-typography-editor">
         <legend>Homepage section size overrides</legend>
@@ -390,6 +550,8 @@ function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, o
                 <span>{label}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "select"
                   ? <select value={getAtPath(source, path) || "normal"} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  : type === "media"
+                  ? <FieldInput field={{ name: path, label, type: "media" }} value={getAtPath(source, path)} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} onBusy={onBusy} onError={onError} />
                   : type === "list"
                   ? <textarea rows="5" value={Array.isArray(getAtPath(source, path)) ? getAtPath(source, path).join("\n") : ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
                   : type === "textarea"
@@ -401,6 +563,7 @@ function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, o
           </div>
         </fieldset>
       ))}
+      <InterfaceLabelsEditor value={value?.interfaceLabels} onChange={(nextValue) => onChange(setAtPath(value, "interfaceLabels", nextValue))} />
       <details className="advanced-settings">
         <summary>Advanced technical settings</summary>
         <p>Use only when instructed by developer. Invalid JSON will not save.</p>
@@ -456,6 +619,10 @@ export default function FieldInput({ field, value, onChange, sharedValue, onShar
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
   if (field.type === "json") return <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />;
   if (field.type === "media") return <div className="media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
+  if (field.type === "color") {
+    const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";
+    return <div className="color-field"><input type="color" value={color} aria-label={`${field.label} colour picker`} onChange={(event) => onChange(event.target.value)} /><input value={value || ""} placeholder="#0f6f42" pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></div>;
+  }
   if (field.type === "richtext") return <div className="rich-field"><div className="rich-toolbar"><button type="button" onClick={() => document.execCommand("bold")}><strong>B</strong></button><button type="button" onClick={() => document.execCommand("italic")}><em>I</em></button><button type="button" onClick={() => document.execCommand("insertUnorderedList")}>List</button></div><div className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: value || "" }} onBlur={(event) => onChange(event.currentTarget.innerHTML)} /></div>;
   if (["textarea"].includes(field.type)) return <textarea rows="6" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
   return <input type={["email", "number", "date"].includes(field.type) ? field.type : "text"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />;

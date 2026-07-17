@@ -445,8 +445,10 @@ const getOfficialCardTheme = (section, page) => {
   // over the automatic theme; the texture is rebuilt from the custom colors so
   // the whole card header follows them.
   const cmsIcon = officialCardIconChoices[String(page?.cardIcon || "").trim()];
-  const accent = hexToRgba(page?.cardAccent, 1) ? page.cardAccent : "";
-  const accent2 = hexToRgba(page?.cardAccent2, 1) ? page.cardAccent2 : "";
+  const cardColor = page?.cardColor || page?.cardAccent;
+  const cardColor2 = page?.cardColor2 || page?.cardAccent2;
+  const accent = hexToRgba(cardColor, 1) ? cardColor : "";
+  const accent2 = hexToRgba(cardColor2, 1) ? cardColor2 : "";
 
   if (!cmsIcon && !accent && !accent2) {
     return theme;
@@ -3691,9 +3693,14 @@ const splitLongPlainParagraphs = (document) => {
     const text = compactText(paragraph.textContent);
     if (text.length < 1000) return;
 
-    const sentences = text.match(/[^.!?।;]+(?:[.!?।;]+(?=\s|$)|$)/gu)
-      ?.map(compactText)
-      .filter(Boolean) || [];
+    const sentenceParts = text.split(/([.!?\u0964;]+)(?:\s+|$)/u);
+    const sentences = [];
+    for (let index = 0; index < sentenceParts.length; index += 2) {
+      const sentence = compactText(
+        `${sentenceParts[index] || ""}${sentenceParts[index + 1] || ""}`
+      );
+      if (sentence) sentences.push(sentence);
+    }
     if (sentences.length < 2) return;
 
     const chunks = [];
@@ -5720,7 +5727,9 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
     const nodes = textNodes();
     const valueKey = compactText(value).toLowerCase();
     const labelParts = String(child.label || "").split(/\s*(?:\u2192|->)\s*/u);
-    const previewKey = compactText(labelParts.slice(1).join(" ").replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
+    const previewLabel = labelParts.slice(1).join(" ");
+    const previewWasTruncated = /(?:\u2026|\.{3})$/u.test(previewLabel.trim());
+    const previewKey = compactText(previewLabel.replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
     const exactNode = valueKey ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === valueKey) : null;
     const canUsePreviewMatch = previewKey && (
       !child.hidden || valueKey.length >= 80
@@ -5728,7 +5737,16 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
     const matchedNode = exactNode || (canUsePreviewMatch
       ? nodes.find((node) => {
           const nodeKey = compactText(node.nodeValue).toLowerCase();
-          if (nodeKey.startsWith(previewKey)) return true;
+          const hasComparableLength = nodeKey.length <= Math.max(
+            previewKey.length + 32,
+            Math.ceil(previewKey.length * 1.35)
+          );
+          if (
+            nodeKey.startsWith(previewKey) &&
+            (previewWasTruncated || hasComparableLength)
+          ) {
+            return true;
+          }
 
           // A section title often prefixes its first paragraph (for example,
           // "Library"). Do not let that short title capture the paragraph row.

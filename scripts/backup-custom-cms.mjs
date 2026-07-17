@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { mkdir, open, stat } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { mkdir, open, readdir, stat, unlink } from "node:fs/promises";
+import { basename, relative, resolve, sep } from "node:path";
 import { config as loadEnv } from "dotenv";
 
 const projectRoot = resolve(import.meta.dirname, "..");
@@ -76,5 +76,23 @@ if (!headerBuffer.toString("utf8").includes("PostgreSQL database dump")) {
   throw new Error("The new file is not a valid PostgreSQL plain-text dump. Older backups were kept.");
 }
 
+const escapedDatabaseName = expectedDatabase.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+const generatedBackupPattern = new RegExp(`^${escapedDatabaseName}_\\d{8}_\\d{6}\\.sql$`, "u");
+const backupEntries = await readdir(backupsDirectory, { withFileTypes: true });
+const olderBackups = backupEntries.filter((entry) =>
+  entry.isFile()
+  && entry.name !== basename(backupPath)
+  && generatedBackupPattern.test(entry.name)
+);
+
+for (const entry of olderBackups) {
+  const oldBackupPath = resolve(backupsDirectory, entry.name);
+  const relativePath = relative(backupsDirectory, oldBackupPath);
+  if (!relativePath || relativePath.startsWith("..") || relativePath.includes(sep)) {
+    throw new Error(`Refusing to remove a backup outside backups/: ${entry.name}`);
+  }
+  await unlink(oldBackupPath);
+}
+
 console.log(`Database backup created: backups/${basename(backupPath)} (${(details.size / 1024 / 1024).toFixed(1)} MB)`);
-console.log("Existing database backups were kept.");
+console.log(`Removed ${olderBackups.length} older generated backup${olderBackups.length === 1 ? "" : "s"}. The new backup is the only generated database backup kept.`);

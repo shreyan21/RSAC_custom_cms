@@ -1,5 +1,6 @@
 import Reveal from "../motion/Reveal";
 import PageTrail from "../navigation/PageTrail";
+import CmsRouteBlocks from "../content/CmsRouteBlocks";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 
@@ -158,7 +159,9 @@ const PageShell = ({
             data-rsac-media-size={resolvedMediaSize}
             data-rsac-content-spacing={resolvedContentSpacing}
           >
+            <CmsRouteBlocks blocks={display?.beforeBlocks} className="mb-6" />
             {children}
+            <CmsRouteBlocks blocks={display?.afterBlocks} className="mt-6" />
           </div>
         </div>
       </section>

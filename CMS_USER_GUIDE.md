@@ -79,7 +79,7 @@ Each block can be moved up/down, duplicated, hidden, or removed. **Section layou
 | Header / Footer Menu | Main navigation and child links |
 | Contact | Address, phone, email and officers |
 | Homepage and Global Text | Homepage visibility/order, Hero, About, Services, Statistics, Location, optional sections, Gallery and Footer text |
-| Page Headings | Rename, resize, or hide headings and adjust body text, image size, width, and spacing for any page path |
+| Page Headings | Rename, resize, or hide headings; adjust layout; and add optional text, photos, galleries, cards, tables, or downloads before/after any page path |
 | Design Settings | Change bundled English/Hindi font families and responsive base font size |
 | Hero Banners / Videos | Homepage hero media |
 | Header / Footer Logos | RSAC and government logos |
@@ -238,6 +238,8 @@ Open **Site Settings**. Normal editors see grouped text fields; technical JSON r
 ### Hide or Rename a Page Heading
 
 Open **Page Headings** and edit the row matching the page path, such as `/contact` or `/geoportals`. Check **Hide main heading** to remove the large heading or **Hide introduction** to remove its descriptive paragraph. Keep the small flag heading visible, then choose Small, Normal, or Large. The same row can set body text size, content width, content image size, and spacing. Add a new row for another exact route; `/divisions/*` can control every division detail page.
+
+Use **Extra sections before the current page content** or **Extra sections after the current page content** when a route needs a new paragraph, photo, gallery, card group, table, notice, or downloadable file without changing its existing React section. Add, reorder, hide, restore, or remove blocks independently in English and Hindi. An empty block area changes nothing on the website.
 
 ### Change Website Fonts
 

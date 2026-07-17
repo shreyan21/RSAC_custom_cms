@@ -2,12 +2,16 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Eye, Languages, Plus, Save, Search, Trash2, Undo2, UserRound } from "lucide-react";
 import FieldInput from "./FieldInput";
 import ImportedAssetEditor from "./ImportedAssetEditor";
+import { pageCardIconOptions } from "../../shared/cmsCollections";
 
 const pageFields = [
   { name: "title", label: "Main page heading", type: "text", localized: true, required: true },
   { name: "eyebrow", label: "Small heading", type: "text", localized: true },
   { name: "summary", label: "Page introduction", type: "textarea", localized: true },
   { name: "featuredImage", label: "Featured image", type: "media", localized: false },
+  { name: "cardIcon", label: "Index card icon", type: "select", localized: false, options: pageCardIconOptions },
+  { name: "cardColor", label: "Index card primary colour", type: "color", localized: false },
+  { name: "cardColor2", label: "Index card secondary colour", type: "color", localized: false },
   { name: "headingSize", label: "Page heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
   { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
   { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
@@ -210,7 +214,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     return (
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose only the section you need. Other sections stay closed.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
-        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, image, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
+        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
           const count = visibleRows(block).length;
           const mediaCount = (block.assets || []).filter((asset) => !asset.hidden).length;
