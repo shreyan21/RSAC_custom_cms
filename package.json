@@ -34,6 +34,7 @@
     "cms:asset-coverage": "node scripts/cms-asset-coverage.mjs",
     "cms:hindi-coverage": "node scripts/cms-hindi-coverage.mjs",
     "cms:portal-audit": "node scripts/cms-portal-audit.mjs",
+    "cms:contract-audit": "node scripts/cms-public-contract-audit.mjs",
     "cms:media-smoke": "node scripts/cms-media-smoke.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",
     "lint": "eslint .",

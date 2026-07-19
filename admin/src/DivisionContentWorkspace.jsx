@@ -3,6 +3,16 @@ import { ArrowLeft, Eye, Languages, Plus, Save, Search, Trash2, Undo2, UserRound
 import FieldInput from "./FieldInput";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import { pageCardIconOptions } from "../../shared/cmsCollections";
+import { importedEditorRows, updateImportedEditorRow } from "../../shared/importedEditorRows";
+import useLivePreview from "./useLivePreview";
+import {
+  createLocalizedDivisionBlock,
+  divisionBlockPrimarySection,
+  divisionChildSection,
+  divisionRowsForSection,
+  divisionSectionFamily,
+  findLocalizedDivisionBlockIndex,
+} from "../../src/data/divisionSectionLabels";
 
 const pageFields = [
   { name: "title", label: "Main page heading", type: "text", localized: true, required: true },
@@ -32,33 +42,58 @@ const sourceLabel = (block) => {
 const titleOf = (page) => page?.dataEn?.title || page?.entryKey || "Untitled division";
 const isPeopleSection = (label) => /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(label);
 
-const visibleRows = (block) => (block?.children || []).filter((child) => !child.hidden);
-
-const matchingBlockIndex = (data, referenceBlock, fallbackIndex) => {
-  const blocks = data?.blocks || [];
-  const referenceKeys = new Set((referenceBlock?.children || []).map((child) => child.key).filter(Boolean));
-  if (referenceKeys.size) {
-    let bestIndex = -1;
-    let bestScore = 0;
-    blocks.forEach((block, index) => {
-      const score = (block.children || []).reduce((count, child) => count + (referenceKeys.has(child.key) ? 1 : 0), 0);
-      if (score > bestScore) {
-        bestIndex = index;
-        bestScore = score;
-      }
-    });
-    if (bestIndex >= 0) return bestIndex;
-  }
-  return fallbackIndex < blocks.length ? fallbackIndex : -1;
+const editableRows = (block, referenceBlock = block, pageData, referencePageData = pageData) => {
+  const scopedChildren = divisionRowsForSection(block, referenceBlock);
+  const scopedReferenceChildren = divisionRowsForSection(referenceBlock, referenceBlock);
+  return importedEditorRows({
+    block: { ...(block || {}), children: scopedChildren },
+    referenceBlock: { ...(referenceBlock || {}), children: scopedReferenceChildren },
+    pageData,
+    referencePageData,
+  });
 };
 
-export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", sectionFilter, onSave, onPreview, onClose, onOpenPeople, notify }) {
+const visibleRows = (block, referenceBlock = block, pageData, referencePageData = pageData) =>
+  editableRows(block, referenceBlock, pageData, referencePageData).filter(({ child }) => !child.hidden);
+
+const ensureLocalizedBlock = (data, referenceBlock, fallbackIndex) => {
+  let index = findLocalizedDivisionBlockIndex(data, referenceBlock, fallbackIndex);
+  if (index >= 0) return index;
+  data.blocks ||= [];
+  data.blocks.push(createLocalizedDivisionBlock(referenceBlock));
+  index = data.blocks.length - 1;
+  return index;
+};
+
+const insertAtSectionTop = (block, referenceBlock, child) => {
+  const children = [...(block?.children || [])];
+  const firstSectionRow = divisionRowsForSection(block, referenceBlock)[0];
+  const insertIndex = firstSectionRow
+    ? children.findIndex((row) => row === firstSectionRow || row.key === firstSectionRow.key)
+    : 0;
+  children.splice(Math.max(0, insertIndex), 0, child);
+  return children;
+};
+
+const sectionLabelForReference = (block, referenceBlock) => {
+  const targetFamily = divisionSectionFamily(divisionBlockPrimarySection(referenceBlock));
+  const blockFamily = divisionSectionFamily(divisionBlockPrimarySection(block));
+  if (!targetFamily || targetFamily === blockFamily) return sourceLabel(block || referenceBlock);
+  const matchingChild = divisionRowsForSection(block, referenceBlock).find((child) =>
+    divisionSectionFamily(divisionChildSection(child)) === targetFamily
+  );
+  const childLabel = String(matchingChild?.label || "").split(/\s*(?:\u2192|->)\s*/u)[0];
+  return cleanSourceLabel(childLabel) || sourceLabel(referenceBlock);
+};
+
+export default function DivisionContentWorkspace({ pages, workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, notify }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState(null);
   const [sectionIndex, setSectionIndex] = useState(null);
   const [language, setLanguage] = useState("en");
   const [rowSearch, setRowSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const { openPreview } = useLivePreview({ collection: "pages", draft, language, notify });
 
   const filteredPages = useMemo(() => pages.filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase())), [pages, search]);
   const englishBlocks = draft?.dataEn?.blocks || [];
@@ -68,17 +103,19 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   const currentData = language === "hi" ? draft?.dataHi : draft?.dataEn;
   const blockSectionIndex = Number.isInteger(sectionIndex) ? sectionIndex : -1;
   const englishBlock = englishBlocks[blockSectionIndex];
-  const currentBlockIndex = language === "hi" ? matchingBlockIndex(currentData, englishBlock, blockSectionIndex) : blockSectionIndex;
-  const currentBlock = currentData?.blocks?.[currentBlockIndex];
-  const label = sourceLabel(currentBlock || englishBlock);
-  const rows = visibleRows(currentBlock);
+  const currentBlockIndex = language === "hi" ? findLocalizedDivisionBlockIndex(currentData, englishBlock, blockSectionIndex) : blockSectionIndex;
+  const currentBlock = currentData?.blocks?.[currentBlockIndex]
+    || (language === "hi" && englishBlock ? createLocalizedDivisionBlock(englishBlock) : undefined);
+  const label = sectionLabelForReference(currentBlock, englishBlock);
+  const editorRows = editableRows(currentBlock, englishBlock, currentData, draft?.dataEn);
+  const rows = editorRows.filter(({ child }) => !child.hidden);
   const sharedAssets = englishBlock?.assets || [];
   const sharedAssetSources = new Set(sharedAssets.map((asset) => `${asset.kind || "asset"}\u0000${asset.sourceValue || asset.value || asset.key}`));
   const localizedOnlyAssets = language === "hi"
     ? (currentBlock?.assets || []).filter((asset) => !sharedAssetSources.has(`${asset.kind || "asset"}\u0000${asset.sourceValue || asset.value || asset.key}`))
     : [];
-  const filteredRows = rows.filter((child) => `${child.label || ""} ${child.value || ""}`.toLowerCase().includes(rowSearch.toLowerCase()));
-  const removedCount = (currentBlock?.children || []).filter((child) => child.hidden).length;
+  const filteredRows = rows.filter(({ child, referenceChild }) => `${child.label || ""} ${child.value || ""} ${referenceChild?.label || ""} ${referenceChild?.value || ""}`.toLowerCase().includes(rowSearch.toLowerCase()));
+  const removedCount = editorRows.filter(({ child }) => child.hidden).length;
   const numbered = currentBlock?.editorMode === "numbered_list" || /research|paper|report|project|publication|software|programme|शोध|रिपोर्ट|परियोजना|प्रकाशन/iu.test(label);
   const itemName = workspaceKind === "facilities" ? "facility" : workspaceKind === "about-us" ? "page" : workspaceKind === "academics" ? "training page" : "division";
   const searchPlaceholder = workspaceKind === "facilities" ? "Search laboratory, library, hostel..." : workspaceKind === "about-us" ? "Search chairman, vision, organisation..." : workspaceKind === "academics" ? "Search training or academics..." : "Search Computer Image, Agriculture, Training...";
@@ -94,16 +131,17 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     const target = language === "hi" ? "dataHi" : "dataEn";
     const data = structuredClone(current[target] || {});
     const fallbackBlocks = structuredClone(current.dataEn?.blocks || []);
-    data.blocks = Array.isArray(data.blocks) ? data.blocks : fallbackBlocks.map((block) => ({ ...block, children: (block.children || []).map((child) => ({ ...child, value: "" })) }));
-    const targetIndex = target === "dataHi" ? matchingBlockIndex(data, fallbackBlocks[sectionIndex], sectionIndex) : sectionIndex;
-    const safeIndex = targetIndex >= 0 ? targetIndex : sectionIndex;
-    data.blocks[safeIndex] = updater(data.blocks[safeIndex] || structuredClone(fallbackBlocks[sectionIndex] || {}));
+    data.blocks = Array.isArray(data.blocks) ? data.blocks : fallbackBlocks.map((block) => createLocalizedDivisionBlock(block));
+    const targetIndex = target === "dataHi"
+      ? ensureLocalizedBlock(data, fallbackBlocks[sectionIndex], sectionIndex)
+      : sectionIndex;
+    data.blocks[targetIndex] = updater(data.blocks[targetIndex] || structuredClone(fallbackBlocks[sectionIndex] || {}));
     return { ...current, [target]: data };
   });
 
-  const updateRow = (key, value) => updateLanguageBlocks((block) => ({
+  const updateRow = (row, value) => updateLanguageBlocks((block) => ({
     ...block,
-    children: (block.children || []).map((child) => child.key === key ? { ...child, value } : child),
+    children: updateImportedEditorRow(block.children, row, { value }),
   }));
 
   const updateBothLanguages = (updater) => setDraft((current) => {
@@ -111,35 +149,44 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     const baseBlocks = structuredClone(current.dataEn?.blocks || []);
     for (const target of ["dataEn", "dataHi"]) {
       next[target] ||= {};
-      next[target].blocks = Array.isArray(next[target].blocks) ? next[target].blocks : baseBlocks.map((block) => ({ ...block, children: (block.children || []).map((child) => ({ ...child, value: "" })) }));
-      const targetIndex = target === "dataHi" ? matchingBlockIndex(next[target], baseBlocks[sectionIndex], sectionIndex) : sectionIndex;
-      const safeIndex = targetIndex >= 0 ? targetIndex : sectionIndex;
-      next[target].blocks[safeIndex] = updater(next[target].blocks[safeIndex] || structuredClone(baseBlocks[sectionIndex] || {}), target);
+      next[target].blocks = Array.isArray(next[target].blocks) ? next[target].blocks : baseBlocks.map((block) => createLocalizedDivisionBlock(block));
+      const targetIndex = target === "dataHi"
+        ? ensureLocalizedBlock(next[target], baseBlocks[sectionIndex], sectionIndex)
+        : sectionIndex;
+      next[target].blocks[targetIndex] = updater(next[target].blocks[targetIndex] || structuredClone(baseBlocks[sectionIndex] || {}), target);
     }
     return next;
   });
 
   const addAtTop = () => {
     const key = `cms-${crypto.randomUUID()}`;
-    updateBothLanguages((block, target) => ({
-      ...block,
-      children: [{
+    const sectionKey = divisionBlockPrimarySection(englishBlock) || sourceLabel(englishBlock);
+    updateBothLanguages((block, target) => {
+      const child = {
         key,
-        label: `${sourceLabel(block)} -> New item`,
+        label: `${sectionLabelForReference(block, englishBlock)} -> New item`,
         value: "",
         isNew: true,
+        sectionKey,
         language: target === "dataHi" ? "hi" : "en",
-      }, ...(block.children || [])],
-    }));
+      };
+      return {
+        ...block,
+        children: insertAtSectionTop(block, englishBlock, child),
+      };
+    });
   };
 
-  const removeRow = (key) => updateBothLanguages((block) => ({
+  const removeRow = (row) => {
+    const keys = new Set([row.child?.key, row.referenceChild?.key].filter(Boolean));
+    updateBothLanguages((block) => ({
     ...block,
     children: (block.children || []).flatMap((child) => {
-      if (child.key !== key) return [child];
+      if (!keys.has(child.key)) return [child];
       return child.isNew || String(child.key || "").startsWith("cms-") ? [] : [{ ...child, hidden: true }];
     }),
-  }));
+    }));
+  };
 
   const restoreRows = () => updateBothLanguages((block) => ({
     ...block,
@@ -160,7 +207,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     next[targetData] ||= {};
     next[targetData].blocks = Array.isArray(next[targetData].blocks) ? next[targetData].blocks : [];
     const targetIndex = target === "hi"
-      ? matchingBlockIndex(next[targetData], referenceBlocks[blockSectionIndex], blockSectionIndex)
+      ? ensureLocalizedBlock(next[targetData], referenceBlocks[blockSectionIndex], blockSectionIndex)
       : blockSectionIndex;
     if (targetIndex < 0) return current;
     next[targetData].blocks[targetIndex] = {
@@ -181,7 +228,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     try {
       const saved = await onSave(draft);
       setDraft(structuredClone(saved));
-      notify("Published content saved. Website refreshes automatically within 2 seconds.", "success");
+      notify("Published content saved. Open website tabs are updating now.", "success");
     } catch (error) {
       notify(error.message, "error");
     } finally {
@@ -192,7 +239,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   const preview = async () => {
     setBusy(true);
     try {
-      await onPreview(draft, language);
+      await openPreview();
     } catch (error) {
       notify(error.message, "error");
     } finally {
@@ -216,7 +263,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
         <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose only the section you need. Other sections stay closed.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
         <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => { setSectionIndex("page-details"); setRowSearch(""); }}><strong>Page heading and layout</strong><span>Edit the title, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
-          const count = visibleRows(block).length;
+          const count = visibleRows(block, block, draft.dataEn, draft.dataEn).length;
           const mediaCount = (block.assets || []).filter((asset) => !asset.hidden).length;
           return <button type="button" className="workspace-card" key={block.id || `${sectionLabel}-${index}`} onClick={() => { setSectionIndex(index); setRowSearch(""); }}><strong>{sectionLabel}</strong><span>{isPeopleSection(sectionLabel) ? "Open people controls" : `${count} text ${count === 1 ? "row" : "rows"}${mediaCount ? `, ${mediaCount} media` : ""}`}</span></button>;
         })}</div>
@@ -233,7 +280,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
         <div className="editor-fields">
           {pageFields.map((field) => {
             const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
-            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><FieldInput field={field} value={target?.[field.name]} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
           })}
         </div>
       </section>
@@ -255,16 +302,15 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label></div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
-      {currentBlock?.controlsSectionLabel !== false && typeof currentBlock?.value === "string" && <label className="field-row"><span>Section heading</span><input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
+      {currentBlock?.controlsSectionLabel !== false && typeof currentBlock?.value === "string" && <label className="field-row"><span>Section heading</span>{language === "hi" && englishBlock?.value && <small className="english-field-reference">English: {englishBlock.value}</small>}<input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
       <div className="workspace-row-list">
-        {filteredRows.map((child) => {
-          const number = rows.findIndex((row) => row.key === child.key) + 1;
+        {filteredRows.map((row) => {
+          const { child, referenceChild } = row;
+          const number = rows.findIndex((candidate) => candidate === row) + 1;
           const fieldLabel = numbered
-            ? child.groupLabel
-              ? `${child.groupLabel} - Item ${number}`
-              : `Item ${number}`
+            ? `Item ${number}`
             : String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
-          return <label className="workspace-row" key={child.key}><span className="workspace-row-number">{number}</span><span><strong>{fieldLabel}</strong><textarea rows="3" value={child.value || ""} onChange={(event) => updateRow(child.key, event.target.value)} /></span><button type="button" className="danger-icon" title={`Remove ${fieldLabel}`} onClick={() => removeRow(child.key)}><Trash2 /></button></label>;
+          return <label className="workspace-row" key={child.key || referenceChild?.key || row.referenceIndex}><span className="workspace-row-number">{number}</span><span><strong>{fieldLabel}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<textarea rows="3" aria-label={`${language === "hi" ? "Hindi" : "English"} ${fieldLabel}`} value={child.value || ""} onChange={(event) => updateRow(row, event.target.value)} /></span><button type="button" className="danger-icon" title={`Remove ${fieldLabel}`} onClick={() => removeRow(row)}><Trash2 /></button></label>;
         })}
         {!filteredRows.length && <div className="empty-panel">No matching rows. Use Add at top.</div>}
       </div>

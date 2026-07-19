@@ -76,6 +76,7 @@ const FloodReportsPage = lazy(() =>
 );
 const PublicInfoPage = lazy(() => import("./pages/public/PublicInfoPage"));
 const GalleryPage = lazy(() => import("./pages/public/GalleryPage"));
+const DownloadsPage = lazy(() => import("./pages/public/DownloadsPage"));
 const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage"));
 
 const RouteFallback = () => (
@@ -458,6 +459,11 @@ function App() {
         <Route
           path="/gallery"
           element={officialContentRoute(<GalleryPage />)}
+        />
+
+        <Route
+          path="/downloads"
+          element={officialContentRoute(<DownloadsPage />)}
         />
 
         <Route

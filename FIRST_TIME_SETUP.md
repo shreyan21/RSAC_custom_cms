@@ -17,6 +17,21 @@ Simple flow:
 Editor saves in CMS -> API saves in PostgreSQL -> Website reads new content
 ```
 
+## Which Folder Does What?
+
+| Folder | Simple meaning |
+|---|---|
+| `src/` | React public website seen by visitors |
+| `admin/` | React CMS portal used by editors |
+| `server/` | Express API and PostgreSQL connection |
+| `shared/` | CMS field definitions shared by the portal and API |
+| `public/` | Public images, PDFs, and the four CIPDM video previews |
+| `server/uploads/` | New files uploaded later through the CMS |
+| `scripts/` | Setup, start, backup, restore, and checking commands |
+
+You normally do not edit these folders by hand. Edit website words and media
+through the CMS portal.
+
 ## What Does the Database Contain?
 
 Database name: `rsac_custom_cms`
@@ -59,16 +74,18 @@ type, size, and description.
 
 `server/uploads/` is private runtime data. Git ignores it. Back it up separately.
 
-### 3. External Files
+### 3. CIPDM Map/Photos Videos
 
-Some old pages link to files hosted by another government server. Those files are
-not inside this project. They work only while that external server is available.
+The old government server no longer provides the original four MP4 files. This
+project therefore includes four small playable motion previews made only from
+the matching official RSAC poster images. They are stored here:
 
-The four CIPDM 3D-model cards use their original MP4 links and local JPG posters.
-The old source server is currently unavailable. For guaranteed playback, obtain
-the approved original MP4 files, upload them through **CMS > Media**, and use the
-new `/uploads/...` addresses in the CIPDM **Map/Photos** section. Do not replace
-them with unrelated videos.
+```text
+public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/
+```
+
+They move with Git. An editor can later replace a preview with an approved
+original video from the CIPDM **Map/Photos** media fields in the CMS.
 
 ## What Is a Seed?
 
@@ -108,6 +125,8 @@ It does **not** start the website. Use `npm run dev:all` after setup.
 
 ## First Setup on a New Windows Computer
 
+Do these steps only once.
+
 ### Step 1: Install Required Programs
 
 Install:
@@ -120,7 +139,8 @@ Keep the PostgreSQL password chosen during installation.
 
 ### Step 2: Download the Project
 
-Clone or pull the Git repository, then open PowerShell in the project folder.
+Clone or pull the Git repository. Open its folder. Click the address bar, type
+`powershell`, and press Enter.
 
 ### Step 3: Install Project Packages
 
@@ -155,6 +175,12 @@ Open:
 - Website: `http://localhost:5173`
 - CMS portal: `http://localhost:5174`
 - API health check: `http://localhost:3000/api/health`
+
+First setup is now finished. On later days, run only:
+
+```powershell
+npm.cmd run dev:all
+```
 
 ## Normal Daily Use
 

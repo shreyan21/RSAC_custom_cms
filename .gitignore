@@ -90,6 +90,8 @@ Desktop.ini
 # Large generated videos are excluded except approved source assets
 *.mp4
 !src/assets/videos/*.mp4
+!public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/
+!public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/*.mp4
 
 # Intentionally committed and therefore NOT ignored:
 # - server/seed-data.generated.json (starter CMS content)

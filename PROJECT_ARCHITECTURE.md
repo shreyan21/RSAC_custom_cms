@@ -2,6 +2,27 @@
 
 This document explains what runs, how data moves, and what maintained source files do. Binary images, videos, PDFs, and generated archive entries are grouped because listing every asset would not help maintenance.
 
+## Very Simple Folder Map
+
+```text
+src/             React public website
+admin/           React CMS portal
+server/          Express API and PostgreSQL code
+shared/          CMS form/field definitions
+public/          Public images, PDFs, and included videos
+server/uploads/  Files uploaded later through the CMS
+scripts/         Setup, start, backup, restore, and check commands
+```
+
+Simple content flow:
+
+```text
+CMS portal -> Express API -> PostgreSQL -> Express API -> public website
+```
+
+For first-time installation, follow `FIRST_TIME_SETUP.md`. A normal editor does
+not need to change source files.
+
 ## 1. System Overview
 
 The project has four parts:
@@ -268,4 +289,3 @@ Use `npm.cmd install` only when intentionally changing dependencies. Use `npm.cm
 - API/security/database behaviour: edit in `server/` and update `server/schema.sql` safely.
 - Never put passwords in source, seed JSON, documentation, or Git history.
 - Before deployment, run validation, audit, smoke test, lint, and both builds.
-

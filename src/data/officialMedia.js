@@ -2,6 +2,10 @@ import { officialMediaManifest } from "./officialMediaManifest.generated.js";
 
 const OFFICIAL_HOST = "rsac.up.gov.in";
 const LEGACY_HOST = "14.139.43.115:8090";
+const officialMediaAliases = {
+  "http://geoportal.rsacup.org.in:8080/video_rsac/RSACUPVirtualTour.mp4":
+    "/official-media/legacy-rsac/rsac_MODEL_vIDEOS/rsac_build_02.mp4",
+};
 const ASSET_EXTENSIONS = [
   "jpg",
   "jpeg",
@@ -35,7 +39,7 @@ const ASSET_EXTENSIONS = [
 ];
 
 const OFFICIAL_ASSET_PATTERN =
-  `https?:\\/\\/(?:rsac\\.up\\.gov\\.in|14\\.139\\.43\\.115:8090)` +
+  `https?:\\/\\/(?:rsac\\.up\\.gov\\.in|14\\.139\\.43\\.115:8090|geoportal\\.rsacup\\.org\\.in(?::8080)?)` +
   `\\/[^"'\\s)\\\\]+?\\.(?:${ASSET_EXTENSIONS.join("|")})` +
   `(?:\\?[^"'\\s)\\\\]*)?`;
 
@@ -105,7 +109,7 @@ export const rewriteOfficialMedia = (value) => {
 
   return value.replace(createOfficialAssetRegex(), (matchedUrl) => {
     const normalized = normalizeOfficialMediaUrl(matchedUrl);
-    return officialMediaManifest[normalized] || matchedUrl;
+    return officialMediaAliases[normalized] || officialMediaManifest[normalized] || matchedUrl;
   });
 };
 

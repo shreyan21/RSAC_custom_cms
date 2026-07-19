@@ -44,6 +44,16 @@ export async function getCmsVersion() {
   return (await cmsRequest("/api/content/version", { cache: "no-store" })).version || "";
 }
 
+export function subscribeCmsUpdates(onUpdate) {
+  if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
+    return () => {};
+  }
+
+  const source = new window.EventSource(`${apiBaseUrl}/api/content/events`);
+  source.addEventListener("content", onUpdate);
+  return () => source.close();
+}
+
 export function clearCmsCache() {
   bootstrapCache.clear();
 }

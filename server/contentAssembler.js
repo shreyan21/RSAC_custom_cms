@@ -5,6 +5,16 @@ const imageTags = (html) => String(html || "").match(/<img\b[^>]*\bsrc\s*=\s*["'
 
 const imageSource = (tag) => tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)?.[1] || "";
 
+const compactAssetBlocks = (blocks) => (Array.isArray(blocks) ? blocks : [])
+  .map((block) => ({ assets: Array.isArray(block?.assets) ? block.assets : [] }))
+  .filter((block) => block.assets.length);
+
+const compactSectionOrder = (blocks) => (Array.isArray(blocks) ? blocks : [])
+  .filter((block) => !block?.hidden && Array.isArray(block?.children))
+  .map((block) => block.sourceLabel || block.label || block.value || "")
+  .map((label) => String(label).trim())
+  .filter(Boolean);
+
 const escapeAttribute = (value) => String(value || "")
   .replace(/&/g, "&amp;")
   .replace(/"/g, "&quot;")
@@ -22,7 +32,7 @@ const isPlaceholderProfileImage = (value) =>
     String(value || "").split(/[?#]/)[0]
   );
 
-const publicProfileKeys = (profile) => {
+const publicProfileKeys = (profile, { includeType = true } = {}) => {
   const type = String(profile.profileType || "profile").toLowerCase();
   const pairs = [
     ["employee", normalizeProfileText(profile.employeeId)],
@@ -31,7 +41,9 @@ const publicProfileKeys = (profile) => {
   ];
   const photo = String(profile.photo || profile.image || "").split(/[?#]/)[0].toLowerCase();
   if (photo && !isPlaceholderProfileImage(photo)) pairs.push(["photo", photo]);
-  return pairs.filter(([, value]) => value && value !== "notlisted").map(([kind, value]) => `${type}:${kind}:${value}`);
+  return pairs
+    .filter(([, value]) => value && value !== "notlisted")
+    .map(([kind, value]) => `${includeType ? `${type}:` : ""}${kind}:${value}`);
 };
 
 const dedupePublicProfiles = (profiles) => {
@@ -47,6 +59,56 @@ const dedupePublicProfiles = (profiles) => {
 const normalizeProfileMedia = (profile) => {
   const image = profile.photo || profile.image || "";
   return image ? { ...profile, image } : profile;
+};
+
+const linkedProfileTypes = new Set(["official", "leadership"]);
+
+const profilesMatchAcrossTypes = (left, right) => {
+  const leftKeys = new Set(publicProfileKeys(left, { includeType: false }));
+  const identityMatch = publicProfileKeys(right, { includeType: false }).some((key) => leftKeys.has(key));
+  return identityMatch || (
+    Number.isFinite(left.__cmsSortOrder) &&
+    left.__cmsSortOrder === right.__cmsSortOrder
+  );
+};
+
+const newerProfile = (left, right) => {
+  if (!right) return left;
+  return String(right.__cmsUpdatedAt || "") > String(left.__cmsUpdatedAt || "") ? right : left;
+};
+
+const withoutProfileMetadata = (profile) => {
+  const { __cmsSortOrder, __cmsUpdatedAt, ...publicProfile } = profile;
+  void __cmsSortOrder;
+  void __cmsUpdatedAt;
+  return publicProfile;
+};
+
+const linkOfficialAndLeadershipProfiles = (profiles) => {
+  const byType = new Map(
+    [...linkedProfileTypes].map((type) => [
+      type,
+      profiles.filter((profile) => profile.profileType === type),
+    ])
+  );
+
+  const resolve = (type, counterpartType) => (byType.get(type) || []).map((target) => {
+    const counterpart = (byType.get(counterpartType) || []).find((candidate) =>
+      profilesMatchAcrossTypes(target, candidate)
+    );
+    const source = newerProfile(target, counterpart);
+    return withoutProfileMetadata({
+      ...source,
+      id: target.id,
+      key: target.key,
+      profileType: type,
+    });
+  });
+
+  return {
+    officials: resolve("official", "leadership"),
+    leadership: resolve("leadership", "official"),
+  };
 };
 
 const localizeImageTag = (tag, title) => {
@@ -175,18 +237,34 @@ const comparable = (value) => String(value || "").toLowerCase()
   .replace(/\bdivisions?\b/g, "")
   .replace(/[^\p{Letter}\p{Number}]+/gu, "");
 
-const orderPagesLike = (pages, records) => {
+const matchingOrderingRecord = (page, records) => {
+  const pageTitle = comparable(page.title);
+  const pageSlug = comparable(String(page.slug || "").replace(/amp/g, ""));
+  return records.find((record) => {
+    const recordTitle = comparable(record.title);
+    const recordSlug = comparable(record.slug);
+    return (recordSlug && pageSlug.startsWith(recordSlug)) || (recordTitle && pageTitle === recordTitle);
+  });
+};
+
+const orderPagesLike = (pages, records, recordSortOrders = new Map()) => {
+  const originalPositions = new Map(pages.map((page, index) => [page, index]));
   const rank = (page) => {
-    const pageTitle = comparable(page.title);
-    const pageSlug = comparable(String(page.slug || "").replace(/amp/g, ""));
-    const index = records.findIndex((record) => {
-      const recordTitle = comparable(record.title);
-      const recordSlug = comparable(record.slug);
-      return (recordSlug && pageSlug.startsWith(recordSlug)) || (recordTitle && pageTitle === recordTitle);
-    });
-    return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    const match = matchingOrderingRecord(page, records);
+    if (!match) return { position: originalPositions.get(page), managed: false };
+    const storedOrder = Number(recordSortOrders.get(String(match.id)));
+    return {
+      position: Number.isFinite(storedOrder) ? storedOrder : records.indexOf(match),
+      managed: true,
+    };
   };
-  return [...pages].sort((left, right) => rank(left) - rank(right));
+  return [...pages].sort((left, right) => {
+    const leftRank = rank(left);
+    const rightRank = rank(right);
+    return leftRank.position - rightRank.position
+      || Number(rightRank.managed) - Number(leftRank.managed)
+      || originalPositions.get(left) - originalPositions.get(right);
+  });
 };
 
 export const readPublishedEntries = async () => {
@@ -225,17 +303,30 @@ export const assembleBootstrap = (rows, language = "en") => {
       ...(collection === "pages" && language === "hi" && entry.data_en?.html
         ? {
             structureHtml: entry.data_en.html,
-            structureAssetBlocks: entry.data_en.blocks || [],
-            sharedAssetBlocks: entry.data_en.blocks || [],
+            structureAssetBlocks: compactAssetBlocks(entry.data_en.blocks),
+            structureSectionOrder: compactSectionOrder(entry.data_en.blocks),
           }
         : {}),
       ...(collection === "pages" && language === "hi" && entry.data_en?.html && hasIndependentOfficialHindi
-        ? { profileStructureHtml: entry.data_en.html }
+        ? { useStructureProfiles: true }
         : {}),
     };
   });
   const first = (collection) => list(collection)[0] || null;
-  const profiles = dedupePublicProfiles(list("profiles").map(normalizeProfileMedia));
+  const sortOrders = (collection) => new Map(
+    (groups.get(collection) || []).map((entry) => [String(entry.id), Number(entry.sort_order)])
+  );
+  const profileMetadata = new Map(
+    (groups.get("profiles") || []).map((entry) => [String(entry.id), {
+      __cmsSortOrder: entry.sort_order,
+      __cmsUpdatedAt: entry.updated_at ? new Date(entry.updated_at).toISOString() : "",
+    }])
+  );
+  const profiles = dedupePublicProfiles(list("profiles").map(normalizeProfileMedia)).map((profile) => ({
+    ...profile,
+    ...(profileMetadata.get(String(profile.id)) || {}),
+  }));
+  const linkedLeadership = linkOfficialAndLeadershipProfiles(profiles);
   const managedDivisionItems = list("division_section_items");
   const itemsByDivision = new Map();
   for (const item of managedDivisionItems) {
@@ -251,13 +342,30 @@ export const assembleBootstrap = (rows, language = "en") => {
   const divisions = list("divisions");
   const facilities = list("facilities");
   const sections = list("page_sections").map((section) => {
-    const sectionPages = pages.filter((page) => page.sectionKey === section.key);
+    const sectionPages = pages
+      .filter((page) => page.sectionKey === section.key)
+      .map((page) => {
+        if (section.key !== "divisions") return page;
+        const division = matchingOrderingRecord(page, divisions);
+        if (!division) return page;
+        return {
+          ...page,
+          title: division.title || page.title,
+          summary: division.lead || page.summary,
+          highlights: division.highlights?.length ? division.highlights : page.highlights,
+        };
+      });
     const orderingRecords = section.key === "divisions"
       ? divisions
-      : section.key === "facilities" && facilities.length >= sectionPages.length
+      : section.key === "facilities" && facilities.length
         ? facilities
         : [];
-    return { ...section, pages: orderPagesLike(sectionPages, orderingRecords) };
+    return {
+      ...section,
+      pages: orderPagesLike(sectionPages, orderingRecords, sortOrders(
+        section.key === "divisions" ? "divisions" : "facilities"
+      )),
+    };
   });
   const siteSettings = first("site_settings")?.settings || {};
   const homepageFeatures = list("homepage_features").map((item) => ({
@@ -305,12 +413,12 @@ export const assembleBootstrap = (rows, language = "en") => {
     divisions: divisions.map((item) => ({ ...item, id: item.slug || item.key })),
     facilities: facilities.map((item) => ({ ...item, id: item.slug || item.key })),
     contactDetails: first("contact") || {},
-    officials: profiles.filter((item) => item.profileType === "official"),
-    leadershipProfiles: profiles.filter((item) => item.profileType === "leadership"),
-    scientistProfiles: profiles.filter((item) => item.profileType === "scientist"),
-    formerProfiles: profiles.filter((item) => item.profileType === "former"),
-    technicalProfiles: profiles.filter((item) => item.profileType === "technical"),
-    administrationProfiles: profiles.filter((item) => item.profileType === "administration"),
+    officials: linkedLeadership.officials,
+    leadershipProfiles: linkedLeadership.leadership,
+    scientistProfiles: profiles.filter((item) => item.profileType === "scientist").map(withoutProfileMetadata),
+    formerProfiles: profiles.filter((item) => item.profileType === "former").map(withoutProfileMetadata),
+    technicalProfiles: profiles.filter((item) => item.profileType === "technical").map(withoutProfileMetadata),
+    administrationProfiles: profiles.filter((item) => item.profileType === "administration").map(withoutProfileMetadata),
     manpowerGroups: list("manpower"),
     heroVideos,
     activeHeroVideo: heroVideos[0] || null,

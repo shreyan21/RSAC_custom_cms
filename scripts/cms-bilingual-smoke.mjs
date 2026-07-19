@@ -147,8 +147,36 @@ if (
 ) {
   throw new Error("CMS preview did not assemble separate English and Hindi content.");
 }
+const refreshedPreviewDraft = structuredClone(previewDraft);
+refreshedPreviewDraft.dataEn.label = `${original.dataEn.label} [LIVE PREVIEW UPDATE]`;
+refreshedPreviewDraft.dataHi.label = `${original.dataHi.label} लाइव पूर्वावलोकन`;
+const refreshedPreviewSession = (await request("/api/admin/preview", {
+  method: "POST",
+  body: JSON.stringify({
+    collection: "impact_stats",
+    entry: refreshedPreviewDraft,
+    token: previewSession.token,
+  }),
+})).payload;
+if (
+  refreshedPreviewSession.token !== previewSession.token ||
+  !refreshedPreviewSession.revision ||
+  refreshedPreviewSession.revision < previewSession.revision
+) {
+  throw new Error("CMS live preview did not reuse and revise the existing preview session.");
+}
+const refreshedPreviewEnglish = (await request(`/api/content/preview/${previewSession.token}?lang=en`)).payload.data;
+const refreshedPreviewHindi = (await request(`/api/content/preview/${previewSession.token}?lang=hi`)).payload.data;
+if (
+  refreshedPreviewEnglish.previewRevision !== refreshedPreviewSession.revision ||
+  refreshedPreviewHindi.previewRevision !== refreshedPreviewSession.revision ||
+  !refreshedPreviewEnglish.siteSettings.impactStats.some((item) => item.label === refreshedPreviewDraft.dataEn.label) ||
+  !refreshedPreviewHindi.siteSettings.impactStats.some((item) => item.label === refreshedPreviewDraft.dataHi.label)
+) {
+  throw new Error("CMS live preview revision did not reach the existing bilingual preview session.");
+}
 const liveAfterPreview = (await request("/api/content/impact_stats?lang=en")).payload.data;
-if (liveAfterPreview.some((item) => item.label === previewDraft.dataEn.label)) {
+if (liveAfterPreview.some((item) => [previewDraft.dataEn.label, refreshedPreviewDraft.dataEn.label].includes(item.label))) {
   throw new Error("CMS preview changed live website content.");
 }
 const designEntries = (await request("/api/admin/content/design_settings")).payload.data;
@@ -164,6 +192,8 @@ let facilityOriginal = null;
 let facilityUpdated = null;
 let divisionPageOriginal = null;
 let divisionPageUpdated = null;
+let geoPageOriginal = null;
+let geoPageUpdated = null;
 let designUpdated = null;
 let siteSettingsUpdated = null;
 let verificationError = null;
@@ -275,9 +305,31 @@ try {
     throw new Error("Focused division section edit/remove state did not persist separately in English and Hindi.");
   }
   const savedAsset = updatedEnglishPage.blocks.flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
-  const sharedHindiAsset = (updatedHindiPage.sharedAssetBlocks || []).flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
+  const sharedHindiAsset = (updatedHindiPage.structureAssetBlocks || updatedHindiPage.sharedAssetBlocks || []).flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
   if (savedAsset?.value !== mapImages[1].value || savedAsset?.alt !== "CMS asset save verification" || sharedHindiAsset?.value !== mapImages[1].value) {
     throw new Error("Division image/file replacement did not persist or reach the Hindi shared-media payload.");
+  }
+
+  geoPageOriginal = structuredClone(pages.find((item) => item.entryKey === "geo-spatial-data-bank-division1"));
+  if (!geoPageOriginal) throw new Error("Geo-Spatial Data Bank Division CMS page is missing.");
+  const geoDraft = structuredClone(geoPageOriginal);
+  const geoEnglishResearch = geoDraft.dataEn.blocks?.find((block) => block.value === "Research Paper Published");
+  const geoHindiResearch = geoDraft.dataHi.blocks?.find((block) => /शोध\s*(?:पत्र|प्रपत्र)/u.test(`${block.value || ""} ${block.label || ""}`));
+  if (!geoEnglishResearch || !geoHindiResearch) throw new Error("Geo-Spatial bilingual research blocks are missing.");
+  const geoTestKey = "cms-smoke-geo-research";
+  geoEnglishResearch.children.unshift({ key: geoTestKey, label: "Research Paper Published -> New item", value: "Geo research English verification", isNew: true, sectionKey: "Research Paper Published", language: "en" });
+  geoHindiResearch.children.unshift({ key: geoTestKey, label: "शोध प्रपत्र -> नई प्रविष्टि", value: "भू-स्थानिक शोध हिन्दी सत्यापन", isNew: true, sectionKey: "Research Paper Published", language: "hi" });
+  geoPageUpdated = (await request(`/api/admin/content/pages/${geoDraft.id}`, { method: "PUT", body: JSON.stringify(geoDraft) })).payload.data;
+  const geoEnglishSaved = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections
+    .find((section) => section.key === "divisions")?.pages
+    .find((page) => page.slug === "geo-spatial-data-bank-division1");
+  const geoHindiSaved = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections
+    .find((section) => section.key === "divisions")?.pages
+    .find((page) => page.slug === "geo-spatial-data-bank-division1");
+  const savedEnglishItem = geoEnglishSaved?.blocks.flatMap((block) => block.children || []).find((child) => child.key === geoTestKey);
+  const savedHindiItem = geoHindiSaved?.blocks.flatMap((block) => block.children || []).find((child) => child.key === geoTestKey);
+  if (savedEnglishItem?.value !== "Geo research English verification" || savedHindiItem?.value !== "भू-स्थानिक शोध हिन्दी सत्यापन") {
+    throw new Error("Geo-Spatial research add-at-top did not reach both website languages.");
   }
 } catch (error) {
   verificationError = error;
@@ -294,6 +346,10 @@ try {
   if (divisionPageUpdated && divisionPageOriginal) {
     const restoreDivisionPage = { ...divisionPageUpdated, entryKey: divisionPageOriginal.entryKey, dataEn: divisionPageOriginal.dataEn, dataHi: divisionPageOriginal.dataHi, status: divisionPageOriginal.status, sortOrder: divisionPageOriginal.sortOrder };
     await request(`/api/admin/content/pages/${divisionPageOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDivisionPage) });
+  }
+  if (geoPageUpdated && geoPageOriginal) {
+    const restoreGeoPage = { ...geoPageUpdated, entryKey: geoPageOriginal.entryKey, dataEn: geoPageOriginal.dataEn, dataHi: geoPageOriginal.dataHi, status: geoPageOriginal.status, sortOrder: geoPageOriginal.sortOrder };
+    await request(`/api/admin/content/pages/${geoPageOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreGeoPage) });
   }
   if (designUpdated) {
     const restoreDesign = { ...designUpdated, entryKey: designOriginal.entryKey, dataEn: designOriginal.dataEn, dataHi: designOriginal.dataHi, status: designOriginal.status, sortOrder: designOriginal.sortOrder };

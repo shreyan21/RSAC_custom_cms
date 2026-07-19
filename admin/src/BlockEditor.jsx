@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Copy, Plus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { blockTypes } from "../../shared/cmsCollections";
+import {
+  findImportedReferenceBlock,
+  importedEditorRows,
+  updateImportedEditorRow,
+} from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 
@@ -76,23 +81,26 @@ function RichBlockEditor({ value, onChange }) {
   );
 }
 
-function ImportedNumberedItems({ block, onChange }) {
+function ImportedNumberedItems({ block, referenceBlock, pageData, referencePageData, language, onChange }) {
   const [query, setQuery] = useState("");
   const children = Array.isArray(block.children) ? block.children : [];
   const sourceLabel = importedSourceLabel(block);
-  const numbered = children.reduce((result, child, index) => {
-    if (!child.hidden) result.push({ child, index, number: result.length + 1 });
+  const editorRows = importedEditorRows({ block, referenceBlock, pageData, referencePageData });
+  const numbered = editorRows.reduce((result, row) => {
+    if (!row.child.hidden) result.push({ ...row, number: result.length + 1 });
     return result;
   }, []);
-  const visible = numbered.filter(({ child }) => String(child.value || "").toLowerCase().includes(query.trim().toLowerCase()));
-  const removed = children.reduce((count, child) => count + (child.hidden ? 1 : 0), 0);
-  const updateItem = (index, patch) => onChange({ children: children.map((child, position) => position === index ? { ...child, ...patch } : child) });
-  const removeItem = (index) => {
-    const item = children[index];
+  const visible = numbered.filter(({ child, referenceChild }) =>
+    `${child.value || ""} ${referenceChild?.value || ""}`.toLowerCase().includes(query.trim().toLowerCase())
+  );
+  const removed = editorRows.filter(({ child }) => child.hidden).length;
+  const updateItem = (row, patch) => onChange({ children: updateImportedEditorRow(children, row, patch) });
+  const removeItem = (row) => {
+    const item = row.index >= 0 ? children[row.index] : row.child;
     onChange({
-      children: item?.isNew || String(item?.key || "").startsWith("cms-")
-        ? children.filter((_child, position) => position !== index)
-        : children.map((child, position) => position === index ? { ...child, hidden: true } : child),
+      children: row.index >= 0 && (item?.isNew || String(item?.key || "").startsWith("cms-"))
+        ? children.filter((_child, position) => position !== row.index)
+        : updateImportedEditorRow(children, row, { hidden: true }),
     });
   };
   const addAtTop = () => onChange({
@@ -112,13 +120,14 @@ function ImportedNumberedItems({ block, onChange }) {
       </div>
       <p className="imported-list-help">Edit one numbered row at a time. New items appear first on the website automatically.</p>
       <div className="imported-list-items">
-        {visible.map(({ child, index, number }) => {
-          const itemLabel = child.groupLabel ? `${child.groupLabel} - Item ${number}` : `Item ${number}`;
+        {visible.map((row) => {
+          const { child, referenceChild, number } = row;
+          const itemLabel = `Item ${number}`;
           return (
-            <label className="imported-list-item" key={child.key || index}>
+            <label className="imported-list-item" key={child.key || row.referenceChild?.key || row.referenceIndex}>
               <span>{number}</span>
-              <span>{itemLabel}<textarea rows="3" value={child.value || ""} onChange={(event) => updateItem(index, { value: event.target.value })} /></span>
-              <button type="button" className="danger-icon" title={`Remove ${itemLabel}`} onClick={() => removeItem(index)}><Trash2 /></button>
+              <span><strong>{itemLabel}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<textarea rows="3" aria-label={`${language === "hi" ? "Hindi" : "English"} ${itemLabel}`} value={child.value || ""} onChange={(event) => updateItem(row, { value: event.target.value })} /></span>
+              <button type="button" className="danger-icon" title={`Remove ${itemLabel}`} onClick={() => removeItem(row)}><Trash2 /></button>
             </label>
           );
         })}
@@ -131,22 +140,25 @@ function ImportedNumberedItems({ block, onChange }) {
   );
 }
 
-function ImportedContentFields({ block, onChange }) {
+function ImportedContentFields({ block, referenceBlock, pageData, referencePageData, language, onChange }) {
   const [query, setQuery] = useState("");
   const children = Array.isArray(block.children) ? block.children : [];
   const sourceLabel = importedSourceLabel(block);
-  const active = children.reduce((result, child, index) => {
-    if (!child.hidden) result.push({ child, index, number: result.length + 1 });
+  const editorRows = importedEditorRows({ block, referenceBlock, pageData, referencePageData });
+  const active = editorRows.reduce((result, row) => {
+    if (!row.child.hidden) result.push({ ...row, number: result.length + 1 });
     return result;
   }, []);
-  const visible = active.filter(({ child }) => `${child.label || ""} ${child.value || ""}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const removed = children.filter((child) => child.hidden).length;
-  const updateItem = (index, patch) => onChange({ children: children.map((child, position) => position === index ? { ...child, ...patch } : child) });
-  const removeItem = (index) => {
-    const item = children[index];
-    onChange({ children: item?.isNew || String(item?.key || "").startsWith("cms-")
-      ? children.filter((_child, position) => position !== index)
-      : children.map((child, position) => position === index ? { ...child, hidden: true } : child) });
+  const visible = active.filter(({ child, referenceChild }) =>
+    `${child.label || ""} ${child.value || ""} ${referenceChild?.label || ""} ${referenceChild?.value || ""}`.toLowerCase().includes(query.trim().toLowerCase())
+  );
+  const removed = editorRows.filter(({ child }) => child.hidden).length;
+  const updateItem = (row, patch) => onChange({ children: updateImportedEditorRow(children, row, patch) });
+  const removeItem = (row) => {
+    const item = row.index >= 0 ? children[row.index] : row.child;
+    onChange({ children: row.index >= 0 && (item?.isNew || String(item?.key || "").startsWith("cms-"))
+      ? children.filter((_child, position) => position !== row.index)
+      : updateImportedEditorRow(children, row, { hidden: true }) });
   };
   const addAtTop = () => onChange({ children: [{ key: `cms-${crypto.randomUUID()}`, label: `${sourceLabel} -> New line`, value: "", isNew: true }, ...children] });
 
@@ -158,9 +170,10 @@ function ImportedContentFields({ block, onChange }) {
       </div>
       <p className="imported-list-help">Each row controls one visible line in this website section. Section-specific images, files and links are edited directly below.</p>
       <div className="imported-list-items">
-        {visible.map(({ child, index, number }) => {
+        {visible.map((row) => {
+          const { child, referenceChild, number } = row;
           const fieldName = String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
-          return <label className="imported-list-item" key={child.key || index}><span>{number}</span><span title={fieldName}>{fieldName}<textarea rows="3" value={child.value || ""} onChange={(event) => updateItem(index, { value: event.target.value })} /></span><button type="button" className="danger-icon" title={`Remove line ${number}`} onClick={() => removeItem(index)}><Trash2 /></button></label>;
+          return <label className="imported-list-item" key={child.key || referenceChild?.key || row.referenceIndex}><span>{number}</span><span title={fieldName}><strong>{fieldName}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<textarea rows="3" aria-label={`${language === "hi" ? "Hindi" : "English"} line ${number}`} value={child.value || ""} onChange={(event) => updateItem(row, { value: event.target.value })} /></span><button type="button" className="danger-icon" title={`Remove line ${number}`} onClick={() => removeItem(row)}><Trash2 /></button></label>;
         })}
         {!visible.length && <p className="empty-inline">No matching field.</p>}
       </div>
@@ -191,8 +204,9 @@ function StructuredItems({ block, onChange, onBusy, onError }) {
   return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "File or link URL" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : "image/*"} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
-export default function BlockEditor({ value, onChange, onBusy = () => {}, onError = () => {} }) {
+export default function BlockEditor({ value, referenceValue, pageData, referencePageData, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {
   const blocks = Array.isArray(value) ? value : [];
+  const referenceBlocks = Array.isArray(referenceValue) ? referenceValue : blocks;
   const [focusedIndex, setFocusedIndex] = useState(null);
   const update = (index, patch) => onChange(blocks.map((block, position) => position === index ? { ...block, ...patch } : block));
   const move = (index, offset) => {
@@ -213,10 +227,13 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
         if (focusedIndex !== null && focusedIndex !== index) return null;
         const blockKey = block.id || index;
         const isOpen = focusedIndex === index;
+        const referenceBlock = findImportedReferenceBlock(referenceBlocks, block, index) || block;
         const sourceLabel = importedSourceLabel(block);
         const isPeopleReference = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(sourceLabel);
         const isImported = Array.isArray(block.children);
-        const importedCount = (block.children || []).filter((child) => !child.hidden).length;
+        const importedCount = Array.isArray(block.children)
+          ? importedEditorRows({ block, referenceBlock, pageData, referencePageData }).filter(({ child }) => !child.hidden).length
+          : 0;
         const assetCount = (block.assets || []).filter((asset) => !asset.hidden).length;
         const itemCount = block.editorMode === "numbered_list" || importedCount ? importedCount : (block.items || []).length;
         return (
@@ -230,9 +247,9 @@ export default function BlockEditor({ value, onChange, onBusy = () => {}, onErro
               {isPeopleReference ? (
                 <div className="collection-reference"><strong>Use the dedicated people collection</strong><p>Open <b>Scientists / Officials / Staff</b> to add, edit, remove, reorder, or replace profile photographs. This prevents names, roles, and photos from becoming disconnected.</p></div>
               ) : block.editorMode === "numbered_list" ? (
-                <><label>Section heading<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label><ImportedNumberedItems block={block} onChange={(patch) => update(index, patch)} /></>
+                <><label>Section heading{language === "hi" && referenceBlock?.value && <small className="english-field-reference">English: {referenceBlock.value}</small>}<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label><ImportedNumberedItems block={block} referenceBlock={referenceBlock} pageData={pageData} referencePageData={referencePageData} language={language} onChange={(patch) => update(index, patch)} /></>
               ) : isImported ? (
-                <>{block.controlsSectionLabel !== false && <label>Section heading<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label>}<p className="imported-list-help">Every visible text row in this section can be edited separately.</p><ImportedContentFields block={block} onChange={(patch) => update(index, patch)} /></>
+                <>{block.controlsSectionLabel !== false && <label>Section heading{language === "hi" && referenceBlock?.value && <small className="english-field-reference">English: {referenceBlock.value}</small>}<input value={block.value || ""} onChange={(event) => update(index, { value: event.target.value })} /></label>}<p className="imported-list-help">Every row below controls one visible website item. Imported page titles and tab labels stay out of this list.</p><ImportedContentFields block={block} referenceBlock={referenceBlock} pageData={pageData} referencePageData={referencePageData} language={language} onChange={(patch) => update(index, patch)} /></>
               ) : (
                 <>
                   {block.type !== "divider" && <label>Section heading<input value={block.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>}

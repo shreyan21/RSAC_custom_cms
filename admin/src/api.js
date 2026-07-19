@@ -1,4 +1,17 @@
-const API_URL = String(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const matchLocalBrowserHost = (value) => {
+  const source = String(value || "");
+  if (typeof window === "undefined" || !localHosts.has(window.location.hostname)) return source;
+  try {
+    const url = new URL(source);
+    if (localHosts.has(url.hostname)) url.hostname = window.location.hostname;
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return source;
+  }
+};
+
+const API_URL = matchLocalBrowserHost(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
 let csrfToken = "";
 
 export const setCsrfToken = (value) => { csrfToken = value || ""; };
@@ -12,7 +25,7 @@ export const api = async (path, options = {}) => {
   return payload;
 };
 
-export const websiteUrl = import.meta.env.VITE_WEBSITE_URL || "http://localhost:5173";
+export const websiteUrl = matchLocalBrowserHost(import.meta.env.VITE_WEBSITE_URL || "http://localhost:5173");
 
 export const mediaPreviewUrl = (value) => {
   const source = String(value || "").trim();

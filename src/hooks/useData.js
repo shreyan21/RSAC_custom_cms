@@ -112,6 +112,10 @@ export function useGalleryItems() {
   return useDataContext().galleryItems;
 }
 
+export function useDownloads() {
+  return useDataContext().downloads;
+}
+
 export function useIsContentLoading() {
   return useDataContext().isLoading;
 }

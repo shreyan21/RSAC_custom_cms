@@ -46,7 +46,19 @@ const previewLifetimeMs = 15 * 60 * 1000;
 const maxPreviewSessions = 100;
 const previewSessions = new Map();
 const publicBootstrapCache = new Map();
+const publicContentSubscribers = new Set();
 let contentVersionCache = { checkedAt: 0, value: "" };
+
+const broadcastPublicContentUpdate = () => {
+  const message = `event: content\ndata: ${JSON.stringify({ updatedAt: new Date().toISOString() })}\n\n`;
+  publicContentSubscribers.forEach((response) => {
+    try {
+      response.write(message);
+    } catch {
+      publicContentSubscribers.delete(response);
+    }
+  });
+};
 
 const readContentVersion = async () => {
   const now = Date.now();
@@ -73,6 +85,7 @@ const readBootstrapPayload = async (language) => {
 const invalidatePublicContentCache = () => {
   publicBootstrapCache.clear();
   contentVersionCache = { checkedAt: 0, value: "" };
+  broadcastPublicContentUpdate();
 };
 
 const slugify = (value) => String(value || "entry")
@@ -137,6 +150,7 @@ const previewPathFor = (collection, dataEn) => {
     faq: "/faq",
     flood_reports: "/flood-reports",
     gallery: "/gallery",
+    downloads: "/downloads",
     mobile_apps: "/mobile-apps",
     geoportals: "/geoportals",
     contact: "/contact",
@@ -225,6 +239,26 @@ app.get("/api/health", async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get("/api/content/events", (req, res) => {
+  res.status(200);
+  res.set({
+    "Cache-Control": "no-cache, no-transform",
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Content-Encoding": "identity",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  res.flushHeaders();
+  res.write("retry: 3000\n\n");
+  publicContentSubscribers.add(res);
+
+  const heartbeat = setInterval(() => res.write(": keep-alive\n\n"), 25000);
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    publicContentSubscribers.delete(res);
+  });
+});
+
 app.get("/api/content/bootstrap", async (req, res, next) => {
   try {
     const language = req.query.lang === "hi" ? "hi" : "en";
@@ -255,7 +289,11 @@ app.get("/api/content/preview/:token", async (req, res, next) => {
     res.set("Cache-Control", "no-store");
     res.set("Referrer-Policy", "no-referrer");
     res.json({
-      data: { ...assembleBootstrap(rows, language), isPreview: true },
+      data: {
+        ...assembleBootstrap(rows, language),
+        isPreview: true,
+        previewRevision: preview.revision,
+      },
       expiresAt: new Date(preview.expiresAt).toISOString(),
     });
   } catch (error) { next(error); }
@@ -356,7 +394,11 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
     const { definition, dataEn, dataHi, sortOrder } = validateEntryPayload(collection, entry);
     const entryKey = entryKeyFor(entry, dataEn);
     const now = new Date();
-    const token = randomUUID();
+    deleteExpiredPreviews();
+    const requestedToken = String(req.body?.token || "").trim();
+    const token = requestedToken && previewSessions.has(requestedToken)
+      ? requestedToken
+      : randomUUID();
     const entryId = entry.id ? String(entry.id) : "";
     const row = {
       id: entryId || randomUUID(),
@@ -371,13 +413,14 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
       content_version: now,
     };
     const expiresAt = Date.now() + previewLifetimeMs;
+    const revision = now.toISOString();
 
-    deleteExpiredPreviews();
-    previewSessions.set(token, { entryId, row, expiresAt });
+    previewSessions.set(token, { entryId, row, expiresAt, revision });
     res.set("Cache-Control", "no-store");
     res.json({
       token,
       path: previewPathFor(definition.id, dataEn),
+      revision,
       expiresAt: new Date(expiresAt).toISOString(),
     });
   } catch (error) { next(error); }

@@ -22,6 +22,7 @@ const routeTitles = {
   "/notices": "Notices & Circulars",
   "/flood-reports": "Flood Daily Reports",
   "/tenders": "Tenders & Procurement",
+  "/downloads": "Downloads",
   "/rti": "Right to Information (RTI)",
   "/feedback": "Feedback",
 };

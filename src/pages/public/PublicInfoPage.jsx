@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, MapPin, Phone, UserRoundCheck } from "lucide-react";
+import { ArrowRight, ExternalLink, FileText, MapPin, Phone, UserRoundCheck } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
@@ -8,7 +8,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 import { useDialog } from "../../hooks/useDialog";
 
 const PublicInfoPage = ({ slug }) => {
-  const { isHindi } = useLanguage();
+  const { isHindi, t } = useLanguage();
   const { openDocument } = useDialog();
   const publicInfoPages = usePublicInfoPages();
   const page = publicInfoPages.find((item) => item.slug === slug);
@@ -45,8 +45,7 @@ const PublicInfoPage = ({ slug }) => {
       <div className="grid gap-8 lg:grid-cols-[0.72fr_0.28fr]">
         <div className="space-y-5">
           {slug === "feedback" && <FeedbackForm />}
-          {slug !== "feedback" &&
-            page.sections.map((section) => (
+          {page.sections.map((section) => (
             <article
               key={section.heading}
               className="rsac-shine group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(18,50,74,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#0f6f42]/30 hover:shadow-[0_22px_56px_rgba(18,50,74,0.1)]"
@@ -189,6 +188,49 @@ const PublicInfoPage = ({ slug }) => {
               {isHindi ? "दैनिक बाढ़ रिपोर्ट" : "Flood Daily Reports"}
             </Link>
           </div>
+
+          {page.links?.length > 0 && (
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h2 className="text-sm font-extrabold text-[#102f46]">
+                {t("Related Links")}
+              </h2>
+              <div className="mt-3 space-y-2">
+                {page.links.map((item) => {
+                  const path = item.path || item.url || "";
+                  const isExternal = /^https?:\/\//i.test(path);
+                  const LinkIcon = isExternal ? ExternalLink : ArrowRight;
+                  const className =
+                    "flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-sky-50 hover:text-[#0b6fa4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b6fa4]";
+                  const content = (
+                    <>
+                      <span>{item.label || item.title || path}</span>
+                      <LinkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    </>
+                  );
+
+                  return isExternal ? (
+                    <a
+                      key={`${item.label || item.title}-${path}`}
+                      href={path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={className}
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <Link
+                      key={`${item.label || item.title}-${path}`}
+                      to={path || "/"}
+                      className={className}
+                    >
+                      {content}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </PageShell>

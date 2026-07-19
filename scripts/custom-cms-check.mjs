@@ -2,7 +2,16 @@ import { config as loadEnv } from "dotenv";
 import pg from "pg";
 import { assembleBootstrap } from "../server/contentAssembler.js";
 import { collections as collectionDefinitions } from "../shared/cmsCollections.js";
-import { canonicalDivisionSection } from "../src/data/divisionSectionLabels.js";
+import {
+  canonicalDivisionSection,
+  createLocalizedDivisionBlock,
+  divisionBlockPrimarySection,
+  divisionBlockSections,
+  divisionChildSection,
+  divisionRowsForSection,
+  divisionSectionFamily,
+  findLocalizedDivisionBlockIndex,
+} from "../src/data/divisionSectionLabels.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) throw new Error("CMS_DATABASE_URL missing. Run npm run cms:setup.");
@@ -29,6 +38,22 @@ const missingEditorSchemas = databaseCollections.filter((collection) => !defined
 if (missingEditorSchemas.length) throw new Error(`CMS editor schemas missing for: ${missingEditorSchemas.join(", ")}`);
 const english = assembleBootstrap(contentRows, "en");
 const hindi = assembleBootstrap(contentRows, "hi");
+for (const [language, payload] of [["English", english], ["Hindi", hindi]]) {
+  if (payload.officials.length !== payload.leadershipProfiles.length || !payload.officials.length) {
+    throw new Error(`${language} official and leadership profile sets are not linked.`);
+  }
+  payload.officials.forEach((official, index) => {
+    const leader = payload.leadershipProfiles[index];
+    for (const field of ["name", "role", "designation", "department", "photo"]) {
+      if ((official[field] || "") !== (leader[field] || "")) {
+        throw new Error(`${language} official/leadership ${index + 1} differs in ${field}.`);
+      }
+    }
+    if ("__cmsUpdatedAt" in official || "__cmsSortOrder" in leader) {
+      throw new Error("Internal profile-link metadata leaked into public content.");
+    }
+  });
+}
 const divisionPages = english.rsacOfficialSections.find((section) => section.key === "divisions")?.pages || [];
 if (canonicalDivisionSection("Publications and Technical Reports") !== "Publications") {
   throw new Error("Combined groundwater publications/report section has the wrong CMS owner.");
@@ -141,6 +166,72 @@ for (const englishPage of divisionPages) {
     (hindiPage?.blocks || []).some((block) => String(block?.id || "").startsWith("official-"));
   if (!hindiPage?.structureHtml || hindiPage.structureHtml !== englishPage.html) {
     throw new Error(`${englishPage.slug} lacks shared English structural HTML in Hindi mode.`);
+  }
+  (englishPage.blocks || []).forEach((englishBlock, englishIndex) => {
+    const targetSection = divisionBlockPrimarySection(englishBlock);
+    if (!targetSection) return;
+    const targetFamily = divisionSectionFamily(targetSection);
+    const hindiIndex = findLocalizedDivisionBlockIndex(hindiPage, englishBlock, englishIndex);
+    if (hindiIndex < 0) {
+      const fallbackBlock = createLocalizedDivisionBlock(englishBlock);
+      const fallbackPage = { blocks: [...(hindiPage.blocks || []), fallbackBlock] };
+      const fallbackIndex = findLocalizedDivisionBlockIndex(fallbackPage, englishBlock, englishIndex);
+      if (
+        fallbackIndex < 0 ||
+        (!divisionRowsForSection(fallbackBlock, englishBlock).length && (englishBlock.children || []).length)
+      ) {
+        throw new Error(`${englishPage.slug}/${targetSection} cannot create a safe Hindi CMS section.`);
+      }
+      return;
+    }
+    const hindiBlock = hindiPage.blocks[hindiIndex];
+    const hindiFamilies = new Set(divisionBlockSections(hindiBlock).map(divisionSectionFamily));
+    if (!hindiFamilies.has(targetFamily)) {
+      throw new Error(`${englishPage.slug}/${targetSection} opens an unrelated Hindi CMS block.`);
+    }
+    if (
+      (englishBlock.children || []).some((child) => !child.hidden) &&
+      (hindiBlock.children || []).some((child) => !child.hidden) &&
+      !divisionRowsForSection(hindiBlock, englishBlock).some((child) => !child.hidden)
+    ) {
+      throw new Error(`${englishPage.slug}/${targetSection} exposes no matching Hindi CMS rows.`);
+    }
+  });
+  for (const [language, page] of [["English", englishPage], ["Hindi", hindiPage]]) {
+    for (const block of page.blocks || []) {
+      for (const child of block.children || []) {
+        const childSection = divisionChildSection(child);
+        const groupSection = canonicalDivisionSection(child.groupLabel);
+        if (
+          childSection &&
+          groupSection &&
+          divisionSectionFamily(childSection) !== divisionSectionFamily(groupSection)
+        ) {
+          throw new Error(`${englishPage.slug}/${language} has ${groupSection} metadata inside ${childSection}.`);
+        }
+      }
+    }
+  }
+  const hindiCmsOwners = new Map();
+  for (const block of hindiPage.blocks || []) {
+    for (const child of block.children || []) {
+      if (String(child.key || "").startsWith("cms-")) {
+        hindiCmsOwners.set(child.key, child.sectionKey || divisionBlockPrimarySection(block));
+      }
+    }
+  }
+  for (const block of englishPage.blocks || []) {
+    for (const child of block.children || []) {
+      if (!String(child.key || "").startsWith("cms-")) continue;
+      if (!hindiCmsOwners.has(child.key)) {
+        throw new Error(`${englishPage.slug}/${child.key} exists in English CMS only.`);
+      }
+      const englishOwner = divisionSectionFamily(child.sectionKey || divisionBlockPrimarySection(block));
+      const hindiOwner = divisionSectionFamily(hindiCmsOwners.get(child.key));
+      if (englishOwner && hindiOwner && englishOwner !== hindiOwner) {
+        throw new Error(`${englishPage.slug}/${child.key} belongs to different English and Hindi sections.`);
+      }
+    }
   }
   if (hindiPage.html?.includes("data-rsac-shared-media")) {
     throw new Error(`${englishPage.slug} appends shared media at page end instead of its owning section.`);

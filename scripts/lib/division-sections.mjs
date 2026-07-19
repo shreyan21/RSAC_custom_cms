@@ -9,12 +9,12 @@ import { JSDOM } from "jsdom";
 
 const divisionCategoryDefinitions = [
   { key: "scientific-manpower", label: "Scientific Manpower", aliases: ["scientific manpower", "वैज्ञानिक जनशक्ति"] },
-  { key: "ongoing-projects", label: "Ongoing Projects", aliases: ["ongoing project", "ongoing projects", "ongoing scientific projects", "brief details of ongoing projects", "चालू परियोजनाएं", "चालू परियोजनाएँ"] },
-  { key: "completed-projects", label: "Completed Projects", aliases: ["completed project", "completed projects", "completed involved projects", "completed/involved projects", "पूर्ण परियोजनाएं", "पूर्ण परियोजनाएँ"] },
+  { key: "ongoing-projects", label: "Ongoing Projects", aliases: ["ongoing project", "ongoing projects", "ongoing scientific projects", "brief details of ongoing projects", "चालू परियोजनाएं", "चालू परियोजनाएँ", "चल रही परियोजना", "चल रही परियोजनाएँ", "चल रही वैज्ञानिक परियोजनाएं", "चल रही वैज्ञानिक परियोजनाएँ", "संचालित परियोजनायें", "संचालित परियोजनाएँ"] },
+  { key: "completed-projects", label: "Completed Projects", aliases: ["completed project", "completed projects", "completed involved projects", "completed/involved projects", "पूर्ण परियोजनाएं", "पूर्ण परियोजनाएँ", "पूर्ण की गयी परियोजनायें", "पूर्ण की गई परियोजनाएँ", "पूर्ण/संलग्न परियोजनाएँ", "पूर्ण/संलग्न परियोजनाएं", "पूर्ण/सम्मिलित परियोजनाएँ", "पूर्ण / सम्मिलित परियोजनाएँ"] },
   { key: "technical-reports", label: "Technical Reports", aliases: ["technical reports", "technical reports and atlas", "technical reports and atlases", "list of technical reports", "list of technical reports disaster management plans atlases", "तकनीकी रिपोर्ट", "तकनीकि रिपोर्ट", "तकनीकी रिपोर्ट एवं एटलस"] },
   { key: "publications", label: "Publications", aliases: ["publication", "publications", "प्रकाशन"] },
   { key: "research-paper-published", label: "Research Paper Published", aliases: ["book chapters published from international publisher", "book/chapters published from international publisher", "list of research papers", "research paper published", "research papers published", "research paper presented published", "research paper presented/published", "शोध पत्र प्रकाशित", "शोध पत्र प्रस्तुत प्रकाशित"] },
-  { key: "research-papers", label: "Research Paper/ Articles", aliases: ["research paper", "research papers", "research paper articles", "research paper/articles", "research paper articals", "research paper/articals", "शोध पत्र / लेख", "शोध पत्र/लेख", "शोध पत्र / आलेख"] },
+  { key: "research-papers", label: "Research Paper/ Articles", aliases: ["research paper", "research papers", "research paper articles", "research paper/articles", "research paper articals", "research paper/articals", "शोध पत्र", "शोध पत्र / लेख", "शोध पत्र/लेख", "शोध पत्र / आलेख", "शोध प्रपत्र"] },
   { key: "map-photos", label: "Map/Photos", aliases: ["map photos", "map/photos", "map/ photos", "maps photos", "मानचित्र / तस्वीरें", "मानचित्र/तस्वीरें", "मानचित्र तस्वीरें", "नक्शे / तस्वीरें"] },
   { key: "software", label: "Software", aliases: ["software", "सॉफ्टवेयर", "सॉफ्टवेर"] },
   { key: "hardware", label: "Hardware", aliases: ["hardware", "हार्डवेयर"] },

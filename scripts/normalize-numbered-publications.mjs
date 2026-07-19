@@ -1,5 +1,9 @@
 import { JSDOM } from "jsdom";
 import { pool } from "../server/db.js";
+import {
+  canonicalDivisionSection,
+  divisionSectionFamily,
+} from "../src/data/divisionSectionLabels.js";
 
 const dryRun = process.argv.includes("--dry-run");
 const ignoredTags = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
@@ -62,6 +66,21 @@ const nearestHeading = (document, element) => {
     .at(-1);
 };
 
+const safeGroupLabel = (blockLabel, headingLabel) => {
+  const groupLabel = compactText(headingLabel);
+  if (!groupLabel) return "";
+  const blockSection = canonicalDivisionSection(blockLabel);
+  const groupSection = canonicalDivisionSection(groupLabel);
+  if (
+    blockSection &&
+    groupSection &&
+    divisionSectionFamily(blockSection) !== divisionSectionFamily(groupSection)
+  ) {
+    return "";
+  }
+  return groupLabel;
+};
+
 const trainingResearchItems = (document) => {
   const elements = Array.from(
     document.querySelectorAll("h1, h2, h3, h4, h5, h6, li")
@@ -82,7 +101,16 @@ const trainingResearchItems = (document) => {
 
 const normalizeBlock = (data, block, pageSlug) => {
   if (block.normalizedItemRows) {
-    return { block, changed: false };
+    let changed = false;
+    const blockLabel = compactText(block.value || block.label || "Research papers");
+    const children = (block.children || []).map((child) => {
+      if (!child.groupLabel || safeGroupLabel(blockLabel, child.groupLabel)) return child;
+      changed = true;
+      const cleanChild = { ...child };
+      delete cleanChild.groupLabel;
+      return cleanChild;
+    });
+    return { block: changed ? { ...block, children } : block, changed };
   }
 
   const dom = new JSDOM(`<!doctype html><body>${data.html || ""}</body>`);
@@ -121,7 +149,7 @@ const normalizeBlock = (data, block, pageSlug) => {
     const value = compactText(item.textContent);
     if (!value || punctuationOnlyPattern.test(value)) return [];
     const sourceRows = sourceKeys.map((key) => childByKey.get(key)).filter(Boolean);
-    const groupLabel = compactText(nearestHeading(document, item)?.textContent);
+    const groupLabel = safeGroupLabel(label, nearestHeading(document, item)?.textContent);
     const preview = value.length > 92 ? `${value.slice(0, 89)}...` : value;
     return [{
       key: sourceKeys[0],

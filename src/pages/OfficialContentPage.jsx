@@ -42,8 +42,15 @@ import { useLanguage } from "../hooks/useLanguage";
 import { scrollToTarget } from "../utils/scroll";
 import { hiTranslations } from "../data/translations";
 import { divisionHindiPhrases } from "../data/divisionHindiPhrases";
-import { isUnmirroredLegacyMedia } from "../data/officialMedia";
+import {
+  isUnmirroredLegacyMedia,
+  rewriteOfficialMedia,
+} from "../data/officialMedia";
 import { sectionOverrideKey } from "../data/contentUtils";
+import {
+  canonicalDivisionSection,
+  divisionSectionFamily,
+} from "../data/divisionSectionLabels";
 import {
   appendNewPageAssets,
   applyPageAssetFields,
@@ -508,6 +515,8 @@ const divisionCategoryDefinitions = [
       "चल रही परियोजनाएँ",
       "चल रही वैज्ञानिक परियोजनाएं",
       "चल रही वैज्ञानिक परियोजनाएँ",
+      "संचालित परियोजनायें",
+      "संचालित परियोजनाएँ",
     ],
   },
   {
@@ -520,6 +529,8 @@ const divisionCategoryDefinitions = [
       "completed/involved projects",
       "पूर्ण परियोजनाएं",
       "पूर्ण परियोजनाएँ",
+      "पूर्ण की गयी परियोजनायें",
+      "पूर्ण की गई परियोजनाएँ",
       "पूर्ण/संलग्न परियोजनाएँ",
       "पूर्ण/संलग्न परियोजनाएं",
       "पूर्ण/सम्मिलित परियोजनाएँ",
@@ -1194,7 +1205,9 @@ const filterHiddenPageProfiles = (page, profiles) => {
 const getPageProfiles = (page, scientistProfiles) => {
   const profiles = filterHiddenPageProfiles(page, Array.isArray(page.profiles)
     ? page.profiles
-    : extractProfileCards(page.html));
+    : extractProfileCards(
+        applyImportedPageBlocks(page.html, page.blocks, { insertNewAssets: false })
+      ));
 
   if (page.slug !== "scientific-manpower") {
     return dedupeProfileCards(profiles);
@@ -3947,7 +3960,11 @@ const enhanceRichContentHtml = (
   splitLongPlainParagraphs(parsedDocument);
 
   parsedDocument.body.querySelectorAll("a[href]").forEach((link) => {
-    const href = link.getAttribute("href")?.trim() || "";
+    const sourceHref = link.getAttribute("href")?.trim() || "";
+    const href = rewriteOfficialMedia(sourceHref);
+    if (href && href !== sourceHref) {
+      link.setAttribute("href", href);
+    }
     const isDownload =
       link.hasAttribute("download") ||
       /\.(?:pdf|docx?|xlsx?|pptx?|zip|csv|html?)(?:$|[?#])/i.test(href);
@@ -4895,7 +4912,8 @@ const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
   sharedMedia.setAttribute("data-rsac-shared-media", "true");
   missing.forEach((element) => {
     const figure = element.closest("figure");
-    sharedMedia.append((figure || element).cloneNode(true));
+    const linkedMedia = element.closest("a[href]");
+    sharedMedia.append((figure || linkedMedia || element).cloneNode(true));
   });
   localizedDocument.body.append(sharedMedia);
   return localizedDocument.body.innerHTML;
@@ -5008,8 +5026,11 @@ const mergeDivisionProfileSections = (
   const localizedProfiles = existingIndex >= 0
     ? sections[existingIndex].profiles || []
     : [];
-  const structuralProfiles = page.profileStructureHtml
-    ? extractProfileCards(page.profileStructureHtml).filter((profile) =>
+  const profileStructureHtml = page.useStructureProfiles
+    ? page.structureHtml
+    : page.profileStructureHtml;
+  const structuralProfiles = profileStructureHtml
+    ? extractProfileCards(profileStructureHtml).filter((profile) =>
         looksLikePersonName(getProfileName(profile))
       )
     : [];
@@ -5405,7 +5426,11 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
   const pageWithCmsRows = useMemo(() => ({
     ...page,
     html: applyImportedPageBlocks(
-      applyImportedPageAssets(page.html, page.sharedAssetBlocks, { applyLabels: false }),
+      applyImportedPageAssets(
+        page.html,
+        page.structureAssetBlocks || page.sharedAssetBlocks,
+        { applyLabels: false }
+      ),
       page.blocks
     ),
   }), [page]);
@@ -5596,6 +5621,22 @@ const importedBlockSourceLabel = (block) => {
   return childLabel.split(/\s*(?:\u2192|->)\s*/u)[0].trim() || block?.heading || block?.label || "";
 };
 
+const safeImportedGroupLabel = (child) => {
+  const groupLabel = String(child?.groupLabel || "").trim();
+  if (!groupLabel) return "";
+  const sourceLabel = String(child?.label || "").split(/\s*(?:\u2192|->)\s*/u)[0].trim();
+  const sourceSection = canonicalDivisionSection(sourceLabel);
+  const groupSection = canonicalDivisionSection(groupLabel);
+  if (
+    sourceSection &&
+    groupSection &&
+    divisionSectionFamily(sourceSection) !== divisionSectionFamily(groupSection)
+  ) {
+    return "";
+  }
+  return groupLabel;
+};
+
 const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
@@ -5665,8 +5706,8 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
     const item = source.item.cloneNode(true);
     if (compactText(item.textContent) !== compactText(value)) item.textContent = value;
     item.dataset.cmsChildKey = child.key || "";
-    if (!groupLabelsByList[source.listIndex] && child.groupLabel) {
-      groupLabelsByList[source.listIndex] = String(child.groupLabel).trim();
+    if (!groupLabelsByList[source.listIndex]) {
+      groupLabelsByList[source.listIndex] = safeImportedGroupLabel(child);
     }
     nextItemsByList[source.listIndex].push(item);
   });
@@ -5853,6 +5894,25 @@ const reorderDivisionSections = (sections, requestedKeys) => {
   );
 };
 
+const resolveDivisionSectionOrder = (labels, sections) =>
+  flexibleItems(labels)
+    .map((label) => {
+      const sourceKey = sectionOverrideKey(label);
+      let sectionIndex = sections.findIndex(
+        (section) => sectionOverrideKey(section.label) === sourceKey
+      );
+      if (sectionIndex < 0 && sourceKey.includes("research paper")) {
+        sectionIndex = sections.findIndex((section) =>
+          ["research-papers", "research-paper-published"].includes(section.key)
+        );
+      }
+      if (sectionIndex < 0 && /division|resources|school of geo/i.test(sourceKey)) {
+        sectionIndex = sections.findIndex((section) => section.key === "overview");
+      }
+      return sections[sectionIndex]?.key || "";
+    })
+    .filter(Boolean);
+
 const DivisionCategorizedContent = ({
   page,
   scientistProfiles,
@@ -5870,7 +5930,11 @@ const DivisionCategorizedContent = ({
       }));
     const preparedPage = {
       ...page,
-      html: applyImportedPageAssets(page.html, page.sharedAssetBlocks, { applyLabels: false }),
+      html: applyImportedPageAssets(
+        page.html,
+        page.structureAssetBlocks || page.sharedAssetBlocks,
+        { applyLabels: false }
+      ),
       structureHtml: applyImportedPageAssets(page.structureHtml, page.structureAssetBlocks),
     };
     const built = buildDivisionSections(
@@ -5914,11 +5978,38 @@ const DivisionCategorizedContent = ({
       return override ? { ...next, label: override } : next;
     });
     const labeledSectionKeys = new Set();
+    const routedNewItems = new Map();
+    const sectionFamilyIndex = (family) => nextSections.findIndex((section) =>
+      divisionSectionFamily(section.label) === family ||
+      divisionSectionFamily(String(section.key || "").replace(/-/g, " ")) === family
+    );
     editablePageBlocks
       .filter((block) => Array.isArray(block?.children) && !block.hidden)
       .forEach((block) => {
         const sourceLabel = block.sourceLabel || block.label || importedBlockSourceLabel(block);
         const sourceKey = sectionOverrideKey(sourceLabel);
+        const sourceFamily = divisionSectionFamily(sourceLabel);
+        const routedChildren = new Set();
+        block.children.forEach((child) => {
+          const isNew = child.isNew || String(child.key || "").startsWith("cms-");
+          const targetFamily = divisionSectionFamily(child.sectionKey);
+          const value = String(child.value || "").trim();
+          if (
+            !isNew ||
+            child.hidden ||
+            !value ||
+            !targetFamily ||
+            targetFamily === sourceFamily ||
+            sectionFamilyIndex(targetFamily) < 0
+          ) return;
+          const items = routedNewItems.get(targetFamily) || [];
+          items.push(value);
+          routedNewItems.set(targetFamily, items);
+          routedChildren.add(child);
+        });
+        const renderChildren = routedChildren.size
+          ? block.children.filter((child) => !routedChildren.has(child))
+          : block.children;
         let sectionIndex = nextSections.findIndex((section) => sectionOverrideKey(section.label) === sourceKey);
         if (sectionIndex < 0 && sourceKey.includes("research paper")) {
           sectionIndex = nextSections.findIndex((section) => ["research-papers", "research-paper-published"].includes(section.key));
@@ -5948,10 +6039,10 @@ const DivisionCategorizedContent = ({
           const editedHtml = block.editorMode === "numbered_list"
             ? applyImportedNumberedItems(
                 section.structureHtml || section.html,
-                block.children,
+                renderChildren,
                 headingOverridesBySource.get(sourceKey) || []
               )
-            : applyImportedContentFields(section.html, block.children);
+            : applyImportedContentFields(section.html, renderChildren);
           return {
             ...section,
             ...(applyVisibleLabel ? { label: visibleLabel } : {}),
@@ -5959,6 +6050,14 @@ const DivisionCategorizedContent = ({
           };
         });
       });
+    routedNewItems.forEach((items, family) => {
+      const targetIndex = sectionFamilyIndex(family);
+      if (targetIndex < 0) return;
+      nextSections = nextSections.map((section, index) => index === targetIndex
+        ? { ...section, html: appendExtraItemsToSection(section.html || "", [...items].reverse()) }
+        : section
+      );
+    });
     const managed = page.managedSectionItems || {};
     managedDivisionSectionDefinitions.forEach((definition) => {
       const items = managed[definition.key];
@@ -5977,7 +6076,11 @@ const DivisionCategorizedContent = ({
         html: appendManagedItemsToSection("", items, language),
       }, definition.afterKey);
     });
-    return reorderDivisionSections(nextSections, editorSectionOrder);
+    const requestedSectionOrder =
+      language === "hi" && page.structureSectionOrder?.length
+        ? resolveDivisionSectionOrder(page.structureSectionOrder, nextSections)
+        : editorSectionOrder;
+    return reorderDivisionSections(nextSections, requestedSectionOrder);
   }, [page, language, scientistProfiles, profileReferencePage]);
   const [activeSectionState, setActiveSectionState] = useState({
     pageSlug: page.slug,

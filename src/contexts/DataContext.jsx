@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../hooks/useLanguage";
-import { getCmsBootstrap, getCmsVersion } from "../data/customCmsClient";
+import {
+  clearCmsCache,
+  getCmsBootstrap,
+  getCmsVersion,
+  subscribeCmsUpdates,
+} from "../data/customCmsClient";
 import { setUiLabels } from "../data/uiLabels";
 import { DataContext } from "./DataContextCore";
 
 const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v1";
+const previewMessageType = "rsac-cms-preview:update";
+const cmsAdminOrigin = (() => {
+  try {
+    return new URL(import.meta.env.VITE_CMS_ADMIN_URL || "http://localhost:5174").origin;
+  } catch {
+    return "";
+  }
+})();
 const readPreviewToken = () => {
   if (typeof window === "undefined") return "";
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -21,7 +34,12 @@ const fontStacks = {
 
 const readCachedBootstrap = (language) => {
   try {
-    const cached = JSON.parse(window.sessionStorage.getItem(bootstrapCacheKey) || "null");
+    const localizedKey = `${bootstrapCacheKey}:${language}`;
+    const cached = JSON.parse(
+      window.sessionStorage.getItem(localizedKey) ||
+      window.sessionStorage.getItem(bootstrapCacheKey) ||
+      "null"
+    );
     return cached?.language === language ? cached : null;
   } catch {
     return null;
@@ -30,9 +48,18 @@ const readCachedBootstrap = (language) => {
 
 const cacheBootstrap = (value) => {
   try {
-    window.sessionStorage.setItem(bootstrapCacheKey, JSON.stringify(value));
+    window.sessionStorage.setItem(`${bootstrapCacheKey}:${value.language}`, JSON.stringify(value));
   } catch {
-    window.sessionStorage.removeItem(bootstrapCacheKey);
+    window.sessionStorage.removeItem(`${bootstrapCacheKey}:${value.language}`);
+  }
+};
+
+const scheduleBootstrapCache = (value) => {
+  const write = () => cacheBootstrap(value);
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(write, { timeout: 2000 });
+  } else {
+    window.setTimeout(write, 0);
   }
 };
 
@@ -63,7 +90,7 @@ export function DataProvider({ children }) {
     languageRef.current = language;
   }, [language]);
 
-  const load = useCallback(async ({ background = false } = {}) => {
+  const load = useCallback(async ({ background = false, refresh = true } = {}) => {
     const requestKey = `${language}:${previewToken || "live"}`;
     const existing = inFlightLoadsRef.current.get(requestKey);
     if (existing) return existing;
@@ -72,11 +99,13 @@ export function DataProvider({ children }) {
       if (!background) setIsLoading(true);
       setError("");
       try {
-        const next = await getCmsBootstrap(language, { refresh: true, previewToken });
+        const next = await getCmsBootstrap(language, { refresh, previewToken });
         if (languageRef.current !== language) return;
-        if (!previewToken) cacheBootstrap(next);
+        if (!previewToken) scheduleBootstrapCache(next);
         contentVersionRef.current = next.contentVersion || "";
-        setData(decorateBootstrap(next));
+        const decorated = decorateBootstrap(next);
+        dataRef.current = decorated;
+        setData(decorated);
       } catch (nextError) {
         if (languageRef.current !== language) return;
         setError(nextError.name === "AbortError" ? "The content server took too long to respond." : nextError.message);
@@ -96,12 +125,18 @@ export function DataProvider({ children }) {
     return request;
   }, [language, previewToken]);
 
-  const checkForUpdates = useCallback(async () => {
+  const checkForUpdates = useCallback(async ({ force = false } = {}) => {
     if (previewToken) return load();
     try {
+      if (force) {
+        clearCmsCache();
+        await load({ background: true, refresh: true });
+        return;
+      }
       const version = await getCmsVersion();
       if (version && version !== contentVersionRef.current) {
-        await load({ background: true });
+        clearCmsCache();
+        await load({ background: true, refresh: true });
       } else {
         setIsLoading(false);
       }
@@ -112,16 +147,39 @@ export function DataProvider({ children }) {
   }, [language, load, previewToken]);
 
   useEffect(() => {
-    const hasCurrentCachedData =
-      !previewToken &&
-      dataRef.current?.language === language &&
-      Boolean(contentVersionRef.current);
+    const cachedLanguage = previewToken ? null : readCachedBootstrap(language);
+    if (cachedLanguage && dataRef.current?.language !== language) {
+      const decorated = decorateBootstrap(cachedLanguage);
+      dataRef.current = decorated;
+      contentVersionRef.current = cachedLanguage.contentVersion || "";
+      setData(decorated);
+      setIsLoading(false);
+    }
+    const hasCurrentCachedData = !previewToken && Boolean(
+      (dataRef.current?.language === language && contentVersionRef.current) ||
+      cachedLanguage?.contentVersion
+    );
     const timeout = window.setTimeout(
-      () => (hasCurrentCachedData ? checkForUpdates() : load()),
+      () => (hasCurrentCachedData ? checkForUpdates() : load({ refresh: false })),
       0
     );
     return () => window.clearTimeout(timeout);
   }, [checkForUpdates, language, load, previewToken, retryKey]);
+
+  useEffect(() => {
+    if (previewToken || !data?.language) return undefined;
+    const alternateLanguage = data.language === "hi" ? "en" : "hi";
+    const prefetch = () => {
+      void getCmsBootstrap(alternateLanguage, { refresh: false }).catch(() => undefined);
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(prefetch, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+    const timeout = window.setTimeout(prefetch, 250);
+    return () => window.clearTimeout(timeout);
+  }, [data?.contentVersion, data?.language, previewToken]);
 
   useEffect(() => {
     if (previewToken) return undefined;
@@ -135,6 +193,47 @@ export function DataProvider({ children }) {
       window.clearInterval(interval);
     };
   }, [checkForUpdates, previewToken]);
+
+  useEffect(() => {
+    if (previewToken) return undefined;
+    return subscribeCmsUpdates(() => {
+      void checkForUpdates({ force: true });
+    });
+  }, [checkForUpdates, previewToken]);
+
+  useEffect(() => {
+    if (!previewToken) return undefined;
+    const refreshState = { running: false, revision: "" };
+
+    const refreshPreview = async () => {
+      if (refreshState.running) return;
+      refreshState.running = true;
+      try {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const expectedRevision = refreshState.revision;
+          await load({ background: true });
+          const loadedRevision = dataRef.current?.previewRevision || "";
+          if (!expectedRevision || loadedRevision >= expectedRevision) break;
+        }
+      } finally {
+        refreshState.running = false;
+        if ((dataRef.current?.previewRevision || "") < refreshState.revision) {
+          window.setTimeout(refreshPreview, 0);
+        }
+      }
+    };
+
+    const receivePreviewUpdate = (event) => {
+      const trustedOpener = window.opener && event.source === window.opener;
+      if (!trustedOpener && cmsAdminOrigin && event.origin !== cmsAdminOrigin) return;
+      if (event.data?.type !== previewMessageType || event.data?.token !== previewToken) return;
+      refreshState.revision = String(event.data.revision || "");
+      void refreshPreview();
+    };
+
+    window.addEventListener("message", receivePreviewUpdate);
+    return () => window.removeEventListener("message", receivePreviewUpdate);
+  }, [load, previewToken]);
 
   useEffect(() => {
     setUiLabels(data?.siteSettings?.interfaceLabels);
@@ -178,7 +277,22 @@ export function DataProvider({ children }) {
   }
 
   if (!contentMatchesLanguage) {
-    return <div className="min-h-screen bg-[#f7fbf8]" aria-busy="true"><span className="sr-only">Loading</span></div>;
+    return (
+      <main
+        className="grid min-h-screen place-items-center bg-[#f7fbf8] px-6 text-center text-[#102f46]"
+        aria-busy="true"
+      >
+        <div role="status" aria-live="polite">
+          <span
+            className="mx-auto block h-12 w-12 animate-spin rounded-full border-4 border-emerald-900/15 border-t-[#e77817] motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+          <p className="mt-5 text-base font-bold">
+            {language === "hi" ? "हिन्दी सामग्री लोड हो रही है..." : "Loading English content..."}
+          </p>
+        </div>
+      </main>
+    );
   }
 
   const exitPreviewUrl = `${window.location.pathname}${window.location.search}`;
