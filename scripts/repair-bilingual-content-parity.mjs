@@ -1,4 +1,5 @@
 import { config as loadEnv } from "dotenv";
+import { JSDOM } from "jsdom";
 import pg from "pg";
 import {
   applyPageTextFields,
@@ -28,6 +29,15 @@ const setChildLabel = (data, key, label) => {
   for (const block of data.blocks || []) {
     if (!Array.isArray(block.children)) continue;
     block.children = block.children.map((child) => child.key === key ? { ...child, label } : child);
+  }
+};
+
+const markStructuralChild = (data, key) => {
+  for (const block of data.blocks || []) {
+    if (!Array.isArray(block.children)) continue;
+    block.children = block.children.map((child) => child.key === key
+      ? { ...child, hidden: false, structural: true, editorVisible: false }
+      : child);
   }
 };
 
@@ -76,9 +86,141 @@ const repairTender = (dataEn) => {
 };
 
 const repairSoilLab = (dataEn, dataHi) => {
-  const heading = childByKey(dataHi, "text-0001")?.value || dataHi.title || "मिट्टी विश्लेषण लैब";
+  const heading = childByKey(dataHi, "text-0001")?.value || "मृदा विश्लेषण प्रयोगशाला";
+  const overview = (dataHi.blocks || [])[0];
+  if (overview) {
+    overview.label = heading;
+    overview.value = heading;
+  }
+  setChildValue(dataHi, "text-0001", heading);
   setChildValue(dataHi, "text-0002", heading);
+  setChildValue(dataHi, "text-0003", "तस्वीरें");
+  setChildValue(dataHi, "text-0005", heading);
+  for (const data of [dataEn, dataHi]) {
+    markStructuralChild(data, "text-0002");
+    markStructuralChild(data, "text-0003");
+  }
   rebuildHindiHtml(dataEn, dataHi);
+};
+
+const cipdmMedia = new Map([
+  ["asset-image-0003", { label: "Video poster: RSAC-UP Virtual 3D Campus", title: "RSAC-UP Virtual 3D Campus" }],
+  ["asset-image-0004", { label: "Video poster: Charbagh 3D Model", title: "Charbagh 3D Model" }],
+  ["asset-image-0005", { label: "Video poster: Badshahnagar 3D Model", title: "Badshahnagar 3D Model" }],
+  ["asset-image-0006", { label: "Video poster: Aishbagh 3D Model", title: "Aishbagh 3D Model" }],
+  ["asset-image-0007", { label: "Interactive model poster: Dam Analysis", title: "RSAC-UP 3D Model" }],
+  ["asset-link-0004", {
+    label: "Video: RSAC-UP Virtual 3D Campus",
+    title: "RSAC-UP Virtual 3D Campus",
+    text: "RSAC-UP Virtual 3D Campus",
+    value: "/official-media/legacy-rsac/rsac_MODEL_vIDEOS/rsac_build_02.mp4",
+  }],
+  ["asset-link-0005", {
+    label: "Video: Charbagh 3D Model",
+    title: "Charbagh 3D Model",
+    text: "Charbagh 3D Model",
+    value: "/official-media/legacy-rsac/rsac_MODEL_vIDEOS/CHARBAGH2.mp4",
+  }],
+  ["asset-link-0006", {
+    label: "Video: Badshahnagar 3D Model",
+    title: "Badshahnagar 3D Model",
+    text: "Badshahnagar 3D Model",
+    value: "/official-media/legacy-rsac/rsac_MODEL_vIDEOS/badshahnagar.mp4",
+  }],
+  ["asset-link-0007", {
+    label: "Video: Aishbagh 3D Model",
+    title: "Aishbagh 3D Model",
+    text: "Aishbagh 3D Model",
+    value: "/official-media/legacy-rsac/rsac_MODEL_vIDEOS/AISHBAGH2.mp4",
+  }],
+  ["asset-link-0008", {
+    label: "Interactive model: page-turning dam analysis",
+    title: "RSAC-UP 3D Model",
+    text: "RSAC-UP 3D Model",
+    value: "/official-media/legacy-rsac/dam/index.html",
+  }],
+]);
+
+const repairCipdm = (dataEn, dataHi) => {
+  const mapBlock = (dataEn.blocks || []).find((block) =>
+    String(block.value || block.label || "").toLowerCase().replace(/\s+/gu, "").includes("map/photos")
+  );
+  if (!mapBlock) throw new Error("CIPDM Map/Photos block is missing.");
+  mapBlock.children = (mapBlock.children || []).map((child) => {
+    if (child.key === "text-0205") return { ...child, value: "", hidden: true };
+    if (child.key === "text-0206") return { ...child, value: "Related Photos", hidden: false };
+    return child;
+  });
+  mapBlock.assets = (mapBlock.assets || []).map((asset) => ({
+    ...asset,
+    ...(cipdmMedia.get(asset.key) || {}),
+    sectionKey: asset.sectionKey || "map-photos",
+  }));
+
+  const hindiMapBlock = (dataHi.blocks || []).find((block) =>
+    (block.children || []).some((child) => child.key === "text-0186")
+  );
+  if (!hindiMapBlock) throw new Error("CIPDM Hindi Map/Photos block is missing.");
+  hindiMapBlock.children = (hindiMapBlock.children || []).map((child) => {
+    if (child.key === "text-0185") {
+      return {
+        ...child,
+        value: "कंप्यूटर इमेज प्रोसेसिंग डिवीजन",
+        hidden: false,
+      };
+    }
+    if (child.key === "text-0186") {
+      return {
+        ...child,
+        label: "मानचित्र / तस्वीरें → सम्बंधित लिंक्स",
+        value: "",
+        hidden: true,
+        sourceKeys: [...new Set([...(child.sourceKeys || []), "text-0205"])],
+      };
+    }
+    if (child.key === "text-0187") {
+      return {
+        ...child,
+        label: "मानचित्र / तस्वीरें → संबंधित तस्वीरें",
+        value: "संबंधित तस्वीरें",
+        hidden: false,
+        sourceKeys: [...new Set([...(child.sourceKeys || []), "text-0206"])],
+      };
+    }
+    return child;
+  });
+
+  const hindiOnlyVideoSources = new Set([
+    "http://geoportal.rsacup.org.in:8080/video_rsac/RSACUPVirtualTour.mp4",
+  ]);
+  for (const block of dataHi.blocks || []) {
+    if (!Array.isArray(block.assets)) continue;
+    block.assets = block.assets.filter((asset) => !hindiOnlyVideoSources.has(asset.sourceValue || asset.value));
+  }
+  const document = new JSDOM(String(dataHi.html || "")).window.document;
+  document.querySelectorAll("a[href]").forEach((anchor) => {
+    if (hindiOnlyVideoSources.has(anchor.getAttribute("href"))) anchor.remove();
+  });
+  dataHi.html = document.body.innerHTML;
+
+  for (const data of [dataEn, dataHi]) {
+    const pageDocument = new JSDOM(String(data.html || "")).window.document;
+    pageDocument.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((heading) => {
+      if (/^(?:related links|सम्बंधित लिंक्स|संबंधित लिंक्स)$/iu.test(heading.textContent.trim())) {
+        heading.remove();
+      }
+    });
+    data.html = pageDocument.body.innerHTML;
+  }
+};
+
+const repairGeoportalDisplay = (dataEn, dataHi) => {
+  if (!String(dataEn.eyebrowSize || "").trim()) {
+    dataEn.eyebrowSize = "large";
+  }
+  if (!String(dataHi.title || "").trim()) {
+    dataHi.title = "योजना, उपग्रह डेटा और भू-स्थानिक सेवा पहुंच";
+  }
 };
 
 const repairTrainingHostel = (dataEn, dataHi) => {
@@ -93,6 +235,8 @@ const repairs = new Map([
   ["public_info/tenders", (dataEn) => repairTender(dataEn)],
   ["pages/soil-analysis-lab1", repairSoilLab],
   ["pages/training-hostels", repairTrainingHostel],
+  ["pages/computer-image-processing-division", repairCipdm],
+  ["page_display_settings/planning-satellite-data-and-geospatial-service-access", repairGeoportalDisplay],
 ]);
 
 const client = new pg.Client({ connectionString: process.env.CMS_DATABASE_URL });
@@ -108,7 +252,9 @@ try {
         ('public_info','rti'),
         ('public_info','tenders'),
         ('pages','soil-analysis-lab1'),
-        ('pages','training-hostels')
+        ('pages','training-hostels'),
+        ('pages','computer-image-processing-division'),
+        ('page_display_settings','planning-satellite-data-and-geospatial-service-access')
       )
       FOR UPDATE`
   );

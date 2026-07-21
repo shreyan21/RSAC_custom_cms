@@ -69,7 +69,7 @@ const decorateBootstrap = (value) => value ? {
 } : null;
 
 export function DataProvider({ children }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [previewToken] = useState(readPreviewToken);
   const [data, setData] = useState(() =>
     decorateBootstrap(previewToken ? null : readCachedBootstrap(language))
@@ -268,9 +268,9 @@ export function DataProvider({ children }) {
     return (
       <main className="min-h-screen bg-slate-50 px-5 py-24 text-center text-slate-800" role="alert">
         <div className="mx-auto max-w-lg rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-bold">Website content unavailable</h1>
+          <h1 className="text-xl font-bold">{t("Website content unavailable")}</h1>
           <p className="mt-3 text-sm text-slate-600">{error}</p>
-          <button className="mt-6 rounded bg-[#0b5b8c] px-5 py-2.5 font-semibold text-white" type="button" onClick={() => setRetryKey((key) => key + 1)}>Try again</button>
+          <button className="mt-6 rounded bg-[#0b5b8c] px-5 py-2.5 font-semibold text-white" type="button" onClick={() => setRetryKey((key) => key + 1)}>{t("Try again")}</button>
         </div>
       </main>
     );
@@ -287,9 +287,7 @@ export function DataProvider({ children }) {
             className="mx-auto block h-12 w-12 animate-spin rounded-full border-4 border-emerald-900/15 border-t-[#e77817] motion-reduce:animate-none"
             aria-hidden="true"
           />
-          <p className="mt-5 text-base font-bold">
-            {language === "hi" ? "हिन्दी सामग्री लोड हो रही है..." : "Loading English content..."}
-          </p>
+          <p className="sr-only">{t("Loading content")}</p>
         </div>
       </main>
     );
@@ -306,12 +304,12 @@ export function DataProvider({ children }) {
           role="status"
           aria-live="polite"
         >
-          <span>CMS preview only. Live website is unchanged.</span>
+          <span>{t("CMS preview only. Live website is unchanged.")}</span>
           <a
             className="shrink-0 rounded-md bg-white px-3 py-2 font-bold text-[#102f46] no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             href={exitPreviewUrl}
           >
-            Exit preview
+            {t("Exit preview")}
           </a>
         </div>
       )}

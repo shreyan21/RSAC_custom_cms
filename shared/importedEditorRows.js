@@ -8,26 +8,6 @@ const normalizeEditorText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const mediaNavigationLabels = new Set([
-  "photo",
-  "photos",
-  "image",
-  "images",
-  "gallery",
-  "map photo",
-  "map photos",
-  "maps photos",
-  "photo gallery",
-  "चित्र",
-  "चित्रों",
-  "फोटो",
-  "फोटो गैलरी",
-  "तस्वीर",
-  "तस्वीरें",
-  "मानचित्र",
-  "मानचित्र तस्वीरें",
-].map(normalizeEditorText));
-
 const cleanBlockLabel = (value) =>
   String(value || "").replace(/^section\s*:\s*/iu, "").trim();
 
@@ -42,13 +22,6 @@ const pageTitles = (...pages) =>
     .flatMap((page) => [page?.title, page?.baseTitle])
     .map(normalizeEditorText)
     .filter(Boolean);
-
-const hasPageMedia = (...pages) => pages.some((page) =>
-  /<(?:img|video|iframe)\b/iu.test(String(page?.html || "")) ||
-  (page?.blocks || []).some((block) =>
-    (block?.assets || []).some((asset) => !asset?.hidden) || block?.assetOnly
-  )
-);
 
 const childKey = (child) => String(child?.key || "");
 
@@ -97,8 +70,7 @@ export const isImportedStructuralRow = ({
     if (values.some((value) => labels.has(value))) return true;
   }
 
-  return hasPageMedia(pageData, referencePageData) &&
-    values.some((value) => mediaNavigationLabels.has(value));
+  return false;
 };
 
 const matchCurrentChild = (children, used, referenceChild, referenceIndex) => {

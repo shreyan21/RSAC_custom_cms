@@ -28,10 +28,6 @@ import PageShell from "../components/layout/PageShell";
 import Lightbox from "../components/media/Lightbox";
 import BackButton from "../components/navigation/BackButton";
 import {
-  scientistProfiles as staticScientistProfiles,
-} from "../data/people";
-import { formerProfiles as staticFormerRoster } from "../data/formerProfiles";
-import {
   useRsacOfficialSections,
   useDivisions,
   useFormerProfiles,
@@ -40,13 +36,13 @@ import {
 } from "../hooks/useData";
 import { useLanguage } from "../hooks/useLanguage";
 import { scrollToTarget } from "../utils/scroll";
-import { hiTranslations } from "../data/translations";
-import { divisionHindiPhrases } from "../data/divisionHindiPhrases";
+import { getUiLabelOverride } from "../data/uiLabels";
 import {
   isUnmirroredLegacyMedia,
   rewriteOfficialMedia,
 } from "../data/officialMedia";
 import { sectionOverrideKey } from "../data/contentUtils";
+import { removeLegacyImportedTabStrips } from "../data/importedHtmlCleanup";
 import {
   canonicalDivisionSection,
   divisionSectionFamily,
@@ -56,42 +52,14 @@ import {
   applyPageAssetFields,
   flattenPageAssetFields,
 } from "../data/pageAssetFields";
+import {
+  applyPageTextFields,
+  flattenImportedPageTextFields,
+} from "../data/pageTextFields";
 import { SHOW_BREADCRUMBS } from "../config/uiConfig";
 
-// Translate the visible text of an English rich-content HTML string into Hindi,
-// node by node, using the official term map. The OfficialContentPage layout
-// engine is keyed to English markers, so division pages keep their ENGLISH html
-// (identical tabs/sections/cards); this pass swaps only the text that the
-// official map covers. Anything not in the map stays English (no invented Hindi).
-// Canonical form so a dictionary key (ASCII) matches a DOM text node (which has
-// real Unicode: non-breaking spaces, curly quotes, en/em dashes). Both the maps
-// and the runtime text are canonicalised the same way before lookup.
-const canonText = (s) =>
-  s
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[–—]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[:：]$/, "")
-    .trim();
-
-// One canonical-keyed lookup table built from the term map + division phrases.
-const hindiLookup = (() => {
-  const map = new Map();
-  for (const [en, hi] of Object.entries({ ...divisionHindiPhrases, ...hiTranslations })) {
-    if (en && hi) map.set(canonText(en), hi);
-  }
-  return map;
-})();
-
-// Translate a single UI string (tab label, profile name/value) via the same
-// canonical lookup used for body text. Returns the original if Hindi is off or
-// there is no entry.
-const localizeOfficialText = (text, language) =>
-  language === "hi" && typeof text === "string"
-    ? hindiLookup.get(canonText(text)) || text
-    : text;
+const localizeOfficialText = (text) =>
+  typeof text === "string" ? getUiLabelOverride(text) || text : text;
 
 const OfficialContentLoading = () => {
   const { t } = useLanguage();
@@ -112,34 +80,6 @@ const OfficialContentLoading = () => {
       </div>
     </PageShell>
   );
-};
-
-const translateRichTextHtml = (html) => {
-  if (!html || typeof DOMParser === "undefined") {
-    return html;
-  }
-
-  const parsed = new DOMParser().parseFromString(html, "text/html");
-  const walker = parsed.createTreeWalker(parsed.body, NodeFilter.SHOW_TEXT);
-  const textNodes = [];
-  while (walker.nextNode()) {
-    textNodes.push(walker.currentNode);
-  }
-
-  textNodes.forEach((node) => {
-    const raw = node.textContent;
-    if (!raw.trim()) {
-      return;
-    }
-    const hindi = hindiLookup.get(canonText(raw));
-    if (hindi) {
-      const lead = raw.match(/^\s*/)[0];
-      const tail = raw.match(/\s*$/)[0];
-      node.textContent = `${lead}${hindi}${tail}`;
-    }
-  });
-
-  return parsed.body.innerHTML;
 };
 
 const getPagePath = (section, page) => {
@@ -667,8 +607,7 @@ const normalizeEquivalentHonorifics = (value) =>
       .replace(/^(?:mrs\.?|smt)\s+/i, "smt ")
   );
 
-const getScientistProfileData = (scientistProfiles) =>
-  scientistProfiles?.length ? scientistProfiles : staticScientistProfiles;
+const getScientistProfileData = (scientistProfiles) => scientistProfiles || [];
 
 // Active-scientist identity by name, language-robust. The scientific-manpower
 // page is filtered to the active roster by name, but the two sides can disagree
@@ -686,14 +625,8 @@ const getActiveScientistNames = (scientistProfiles) => {
     }
   };
 
-  for (const profile of [
-    ...getScientistProfileData(scientistProfiles),
-    ...staticScientistProfiles,
-  ]) {
+  for (const profile of getScientistProfileData(scientistProfiles)) {
     add(profile.name);
-    if (hiTranslations[profile.name]) {
-      add(hiTranslations[profile.name]);
-    }
   }
 
   return names;
@@ -1000,16 +933,11 @@ const getActiveScientistEmployeeIds = (scientistProfiles) =>
   );
 
 const getKnownScientistProfile = (profile, scientistProfiles) => {
-  // Search the live roster AND the static English roster. On the Hindi page the
-  // live roster names are Devanagari while a scraped profile name is English (or
-  // vice-versa); matching one side alone misses people and drops their
-  // back-filled Deployment/Designation. (Mirrors getActiveScientistNames.)
-  const liveScientists = getScientistProfileData(scientistProfiles);
-  const scientists = [...liveScientists, ...staticScientistProfiles];
+  // Match the current localized CMS roster even when imported page headings
+  // use the other language or a different honorific.
+  const scientists = getScientistProfileData(scientistProfiles);
   const employeeId = getProfileEmployeeId(profile);
   const profileName = normalizeEquivalentHonorifics(getProfileName(profile));
-
-  const rawProfileName = normalizeName(getProfileName(profile));
 
   const matched = (
     (employeeId &&
@@ -1019,24 +947,14 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
     scientists.find(
       (scientist) =>
         normalizeEquivalentHonorifics(scientist.name) === profileName
-    ) ||
-    // Match a Devanagari heading (Hindi page) to the English roster via the
-    // official Hindi name so the card enriches with designation/deployment/ID.
-    scientists.find(
-      (scientist) =>
-        hiTranslations[scientist.name] &&
-        normalizeName(hiTranslations[scientist.name]) === rawProfileName
     )
   );
 
   if (!matched) return null;
 
-  // A name variant can match the static English roster first. Resolve that
-  // identity back to the live roster so Hindi cards receive the Hindi CMS
-  // values rather than English fallback text.
   const matchedEmployeeId = getProfileEmployeeId(matched);
   if (matchedEmployeeId && matchedEmployeeId !== "notlisted") {
-    return liveScientists.find(
+    return scientists.find(
       (scientist) => getProfileEmployeeId(scientist) === matchedEmployeeId
     ) || matched;
   }
@@ -1131,10 +1049,7 @@ const scientistProfilesMatch = (leftProfile, rightProfile) => {
     return true;
   }
 
-  return (
-    normalizeName(hiTranslations[leftName]) === normalizeName(rightName) ||
-    normalizeName(hiTranslations[rightName]) === normalizeName(leftName)
-  );
+  return false;
 };
 
 const isPlaceholderProfileImage = (value) =>
@@ -1158,8 +1073,6 @@ const getProfileIdentityKeys = (profile) => {
     if (!name || name === "Profile") continue;
     const normalized = normalizeEquivalentHonorifics(name);
     if (normalized) keys.add(`name:${normalized}`);
-    const translated = normalizeEquivalentHonorifics(hiTranslations[name]);
-    if (translated) keys.add(`name:${translated}`);
   }
 
   const image = getProfileImage(profile);
@@ -1296,9 +1209,6 @@ const getFormerProfileNameKeys = (profile) => {
       continue;
     }
     add(name);
-    if (hiTranslations[name]) {
-      add(hiTranslations[name]);
-    }
   }
 
   return keys;
@@ -1415,7 +1325,7 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
     if (!entry) {
       return {
         ...profile,
-        duration: getProfileDurationValue(profile) || "To be updated",
+        duration: getProfileDurationValue(profile),
       };
     }
 
@@ -1428,29 +1338,6 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
   // entirely (their CMS profile then silently vanished in Hindi). Append every
   // known roster person the page didn't render, with their CMS override
   // applied when one exists.
-  staticFormerRoster.forEach((rosterProfile) => {
-    const keys = getFormerProfileNameKeys(rosterProfile);
-
-    if (formerKeysOverlap(keys, seenKeys)) {
-      return;
-    }
-
-    markSeen(keys);
-    const entry = findOverrideEntry(keys);
-
-    if (entry) {
-      entry.matched = true;
-      markSeen(entry.keys);
-      mergedProfiles.push(applyFormerProfileOverride(rosterProfile, entry.override));
-      return;
-    }
-
-    mergedProfiles.push({
-      ...rosterProfile,
-      duration: getProfileDurationValue(rosterProfile) || "To be updated",
-    });
-  });
-
   // Genuinely new CMS-only people — not on the page and not in the roster.
   overrideEntries.forEach((entry) => {
     if (entry.matched || formerKeysOverlap(entry.keys, seenKeys)) {
@@ -1460,7 +1347,7 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
     markSeen(entry.keys);
     mergedProfiles.push({
       ...entry.override,
-      duration: getProfileDurationValue(entry.override) || "To be updated",
+      duration: getProfileDurationValue(entry.override),
     });
   });
 
@@ -1751,7 +1638,7 @@ const markProfileContainers = (document) => {
 };
 
 const pruneEmptyImportedWrappers = (document) => {
-  Array.from(document.body.querySelectorAll("div, p, span, strong"))
+  Array.from(document.body.querySelectorAll("div, p, span, strong, h1, h2, h3, h4, h5, h6"))
     .reverse()
     .forEach((element) => {
       if (
@@ -2494,9 +2381,7 @@ const fillSerialNumbersInDocument = (document, sectionKey) => {
     }
 
     const serialHeaderCell = headerRow.children[serialIndex];
-    serialHeaderCell.textContent = /[\u0900-\u097f]/u.test(serialHeaderCell.textContent || "")
-      ? "क्र. सं."
-      : "S.No.";
+    serialHeaderCell.textContent = localizeOfficialText("S.No.");
 
     let serial = 1;
     rows.slice(rows.indexOf(headerRow) + 1).forEach((row) => {
@@ -2655,17 +2540,7 @@ const moveSectionRange = (
   );
 };
 
-const relabelSections = (sections, labelsByKey) =>
-  sections.map((section) =>
-    labelsByKey[section.key]
-      ? {
-          ...section,
-          label: labelsByKey[section.key],
-        }
-      : section
-  );
-
-const getReadableMediaTitle = (value) => {
+const getReadableMediaTitle = (value, language = "en") => {
   const text = compactText(value);
 
   if (!text) {
@@ -2677,10 +2552,14 @@ const getReadableMediaTitle = (value) => {
     .map((part) => compactText(part))
     .filter(Boolean);
 
-  const title = parts[parts.length - 1] || text;
+  const hindiTitle = parts.find((part) => /[\u0900-\u097f]/u.test(part));
+  const englishTitle = [...parts].reverse().find((part) => /[A-Za-z]/u.test(part));
+  const title = language === "hi"
+    ? hindiTitle || localizeOfficialText(parts[parts.length - 1] || text, language)
+    : englishTitle || parts[parts.length - 1] || text;
 
   if (/^fields?\s+photos$/i.test(title)) {
-    return "Field Outputs";
+    return localizeOfficialText("Field Outputs");
   }
 
   return title;
@@ -3185,6 +3064,10 @@ const fillSerialNumberTables = (sections) =>
 
 const normalizeDivisionSections = (page, sections) => {
   let normalized = sections;
+  const cmsSectionLabels = new Map(
+    sections.map((section) => [section.key, section.label]).filter(([, label]) => label)
+  );
+  const sectionLabel = (key) => cmsSectionLabels.get(key) || "";
   const allContentKeys = [
     "overview",
     "ongoing-projects",
@@ -3207,9 +3090,9 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionTail(normalized, {
       sourceKeys: ["overview"],
       destinationKey: "map-photos",
-      destinationLabel: "Map/Photos",
+      destinationLabel: sectionLabel("map-photos"),
       marker: /Related Photos/i,
-      heading: "Map/Photos",
+      heading: sectionLabel("map-photos"),
       afterKey: "research-papers",
     });
   }
@@ -3218,9 +3101,9 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionTail(normalized, {
       sourceKeys: allContentKeys.filter((key) => key !== "map-photos"),
       destinationKey: "map-photos",
-      destinationLabel: "Map/Photos",
+      destinationLabel: sectionLabel("map-photos"),
       marker: /Related Links/i,
-      heading: "Map/Photos",
+      heading: sectionLabel("map-photos"),
       afterKey: "research-papers",
     });
   }
@@ -3229,10 +3112,10 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["overview", "ongoing-projects"],
       destinationKey: "completed-projects",
-      destinationLabel: "Completed Projects",
+      destinationLabel: sectionLabel("completed-projects"),
       startMarker: /Generation of Meso Level/i,
       endMarker: /LIST OF TECHNICAL REPORTS/i,
-      heading: "Completed Projects",
+      heading: sectionLabel("completed-projects"),
       afterKey: "ongoing-projects",
     });
     normalized = moveMediaTail(normalized, {
@@ -3249,16 +3132,13 @@ const normalizeDivisionSections = (page, sections) => {
 
   if (page.slug === "forest-resources-ecology-division") {
     normalized = replaceHeadingsInSection(normalized, "map-photos", [
-      { matcher: /^Fields Photos$/i, label: "Field Outputs" },
-      { matcher: /^Field Photos$/i, label: "Field Outputs" },
+      { matcher: /^Fields Photos$/i, label: localizeOfficialText("Field Outputs") },
+      { matcher: /^Field Photos$/i, label: localizeOfficialText("Field Outputs") },
     ]);
   }
 
   if (page.slug === "groundwater-resources-division1") {
-    const isHindiPage = /[\u0900-\u097f]/u.test(page.title || "");
-    const reportSectionLabel = isHindiPage
-      ? "प्रकाशन एवं तकनीकी रिपोर्ट"
-      : "Publications and Technical Reports";
+    const reportSectionLabel = sectionLabel("publications");
 
     normalized = moveSectionRange(normalized, {
       sourceKeys: [
@@ -3276,7 +3156,7 @@ const normalizeDivisionSections = (page, sections) => {
           compactText(block.textContent)
         ),
       endMarker: /Rain Water Harvesting Project/i,
-      heading: isHindiPage ? "प्रकाशन" : "Publications",
+      heading: reportSectionLabel,
       afterKey: "completed-projects",
     });
     normalized = moveSectionTail(normalized, {
@@ -3289,7 +3169,7 @@ const normalizeDivisionSections = (page, sections) => {
       destinationKey: "publications",
       destinationLabel: reportSectionLabel,
       marker: /Rain Water Harvesting Project/i,
-      heading: "Technical Reports",
+      heading: sectionLabel("technical-reports"),
       afterKey: "publications",
     });
     normalized = moveMediaTail(normalized, {
@@ -3301,11 +3181,6 @@ const normalizeDivisionSections = (page, sections) => {
       marker:
         /Some results of ground water targeting|Rain Water Harvesting Project/i,
     });
-    normalized = relabelSections(normalized, {
-      publications: reportSectionLabel,
-      "research-papers": "Research Papers",
-      "map-photos": "Map/Photos",
-    });
   }
 
   if (page.slug === "geo-spatial-data-bank-division1") {
@@ -3316,37 +3191,37 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["overview", "data-bank", "completed-projects"],
       destinationKey: "ongoing-projects",
-      destinationLabel: "Ongoing Projects",
+      destinationLabel: sectionLabel("ongoing-projects"),
       startMarker: /Ongoing Scientific Projects/i,
       endMarker: /Completed Projects/i,
-      heading: "Ongoing Projects",
+      heading: sectionLabel("ongoing-projects"),
       afterKey: "data-bank",
     });
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["overview", "data-bank"],
       destinationKey: "completed-projects",
-      destinationLabel: "Completed Projects",
+      destinationLabel: sectionLabel("completed-projects"),
       startMarker: /Completed Projects/i,
       endMarker: /Somendra Singh|Ram Chandra\s*\(2019\)/i,
-      heading: "Completed Projects",
+      heading: sectionLabel("completed-projects"),
       afterKey: "ongoing-projects",
     });
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["overview", "data-bank", "completed-projects"],
       destinationKey: "research-papers",
-      destinationLabel: "Research Papers",
+      destinationLabel: sectionLabel("research-papers"),
       startMarker: /Somendra Singh/i,
       endMarker: /Ram Chandra\s*\(\s*2019\s*\).*Rejuvenation and Revival/i,
-      heading: "Research Papers",
+      heading: sectionLabel("research-papers"),
       afterKey: "completed-projects",
     });
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["overview", "data-bank", "research-papers"],
       destinationKey: "technical-reports",
-      destinationLabel: "Technical Reports and Atlas",
+      destinationLabel: sectionLabel("technical-reports"),
       startMarker: /Ram Chandra\s*\(\s*2019\s*\).*Rejuvenation and Revival/i,
       endMarker: (block) => Boolean(block.querySelector("img[src]")),
-      heading: "Technical Reports and Atlas",
+      heading: sectionLabel("technical-reports"),
       afterKey: "research-papers",
     });
     normalized = moveMediaTail(normalized, {
@@ -3364,7 +3239,7 @@ const normalizeDivisionSections = (page, sections) => {
       const facilitiesHtml = extractHtmlAfterMarker(page.html, {
         startMarker: /Resources\s*\/\s*Facilities Available/i,
         endMarker: (block) => Boolean(block.querySelector("img[src]")),
-        heading: "Facilities Available",
+        heading: localizeOfficialText("Facilities Available"),
       });
 
       if (htmlHasContent(facilitiesHtml)) {
@@ -3377,7 +3252,7 @@ const normalizeDivisionSections = (page, sections) => {
           normalized,
           {
             key: "overview",
-            label: overviewSection?.label || "Geo-Spatial Data Bank Division",
+            label: overviewSection?.label || sectionLabel("overview"),
             html: facilitiesHtml,
           },
           "overview"
@@ -3386,9 +3261,9 @@ const normalizeDivisionSections = (page, sections) => {
         normalized = moveSectionTail(normalized, {
           sourceKeys: ["data-bank", "completed-projects"],
           destinationKey: "overview",
-          destinationLabel: overviewSection?.label || "Geo-Spatial Data Bank Division",
+          destinationLabel: overviewSection?.label || sectionLabel("overview"),
           marker: /Facilities Available|Databank with different types of maps/i,
-          heading: "Facilities Available",
+          heading: localizeOfficialText("Facilities Available"),
           afterKey: "overview",
         });
       }
@@ -3402,13 +3277,6 @@ const normalizeDivisionSections = (page, sections) => {
       marker: /Facilities Available|Databank with different types of maps/i,
     });
     normalized = trimMediaTail(normalized, "technical-reports");
-    normalized = relabelSections(normalized, {
-      "ongoing-projects": "Ongoing Projects",
-      "completed-projects": "Completed Projects",
-      "research-papers": "Research Papers",
-      "technical-reports": "Technical Reports and Atlas",
-      "map-photos": "Map/Photos",
-    });
   }
 
   if (page.slug === "landuse-amp;-urban-survey-division1") {
@@ -3420,10 +3288,10 @@ const normalizeDivisionSections = (page, sections) => {
         "map-photos",
       ],
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Paper Published",
+      destinationLabel: sectionLabel("research-paper-published"),
       startMarker: /Book\/Chapters Published from International Publisher/i,
       endMarker: (block) => Boolean(block.querySelector("img[src]")),
-      heading: "Research Paper Published",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = sectionHasMedia(
@@ -3436,7 +3304,7 @@ const normalizeDivisionSections = (page, sections) => {
       : moveWholeSection(normalized, {
           sourceKey: "research-papers",
           destinationKey: "research-paper-published",
-          destinationLabel: "Research Paper Published",
+          destinationLabel: sectionLabel("research-paper-published"),
           afterKey: "technical-reports",
         });
     normalized = moveMediaTail(normalized, {
@@ -3446,13 +3314,9 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = movePreMediaToSection(normalized, {
       sourceKey: "map-photos",
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Paper Published",
-      heading: "Research Paper Published",
+      destinationLabel: sectionLabel("research-paper-published"),
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
-    });
-    normalized = relabelSections(normalized, {
-      "research-paper-published": "Research Paper Published",
-      "map-photos": "Map/Photos",
     });
     normalized = normalizePublicationCategories(
       normalized,
@@ -3495,10 +3359,10 @@ const normalizeDivisionSections = (page, sections) => {
         "map-photos",
       ],
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
       startMarker: /Singh Kaushlendra,\s*Yadav|Assessment of soil organic carbon status/i,
       endMarker: (block) => Boolean(block.querySelector("img[src]")),
-      heading: "Research Papers Published",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = moveMediaTail(normalized, {
@@ -3512,26 +3376,22 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionTail(normalized, {
       sourceKeys: ["map-photos"],
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
       marker: /Singh Kaushlendra,\s*Yadav|Assessment of soil organic carbon status/i,
-      heading: "Research Papers Published",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = movePreMediaToSection(normalized, {
       sourceKey: "map-photos",
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
-      heading: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = trimSectionTail(normalized, {
       sectionKey: "map-photos",
       marker:
         /Research Papers? Published|Singh Kaushlendra,\s*Yadav|Assessment of soil organic carbon status/i,
-    });
-    normalized = relabelSections(normalized, {
-      "research-paper-published": "Research Papers Published",
-      "map-photos": "Map/Photos",
     });
   }
 
@@ -3544,10 +3404,10 @@ const normalizeDivisionSections = (page, sections) => {
         "map-photos",
       ],
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
       startMarker: /Paper on .*3-D Reconstruction|3-D Reconstruction Of Heritage Site/i,
       endMarker: (block) => Boolean(block.querySelector("img[src]")),
-      heading: "Research Papers Published",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = moveMediaTail(normalized, {
@@ -3561,16 +3421,16 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveSectionTail(normalized, {
       sourceKeys: ["map-photos"],
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
       marker: /Paper on .*3-D Reconstruction|3-D Reconstruction Of Heritage Site/i,
-      heading: "Research Papers Published",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = movePreMediaToSection(normalized, {
       sourceKey: "map-photos",
       destinationKey: "research-paper-published",
-      destinationLabel: "Research Papers Published",
-      heading: "Research Papers Published",
+      destinationLabel: sectionLabel("research-paper-published"),
+      heading: sectionLabel("research-paper-published"),
       afterKey: "technical-reports",
     });
     normalized = trimSectionTail(normalized, {
@@ -3578,30 +3438,26 @@ const normalizeDivisionSections = (page, sections) => {
       marker:
         /Research Papers? Published|Paper on .*3-D Reconstruction|3-D Reconstruction Of Heritage Site/i,
     });
-    normalized = relabelSections(normalized, {
-      "research-paper-published": "Research Papers Published",
-      "map-photos": "Map/Photos",
-    });
   }
 
   if (/^training-division-?$/.test(page.slug)) {
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["training-programmes"],
       destinationKey: "overview",
-      destinationLabel: "Training Division",
+      destinationLabel: sectionLabel("overview"),
       startMarker: /Completed Training Programme in last 05 year/i,
       endMarker: /Calendar of Training Programmes/i,
-      heading: "Completed Training Programme in last 05 year",
+      heading: localizeOfficialText("Completed Training Programme in last 05 year"),
       afterKey: "overview",
     });
     normalized = moveSectionRange(normalized, {
       sourceKeys: ["scientific-manpower", ...allContentKeys],
       destinationKey: "research-paper-published",
-      destinationLabel: "List of Research Papers",
+      destinationLabel: sectionLabel("research-paper-published"),
       startMarker:
         /List of Research Papers|Ashwani K\.\s*Srivastava|Detection of change in cropping pattern/i,
       endMarker: /LIST OF TECHNICAL REPORTS/i,
-      heading: "List of Research Papers",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "scientific-manpower",
     });
     normalized = moveSectionTail(normalized, {
@@ -3614,10 +3470,10 @@ const normalizeDivisionSections = (page, sections) => {
         "scientific-manpower",
       ],
       destinationKey: "research-paper-published",
-      destinationLabel: "List of Research Papers",
+      destinationLabel: sectionLabel("research-paper-published"),
       marker:
         /List of Research Papers|Ashwani K\.\s*Srivastava|Detection of change in cropping pattern/i,
-      heading: "List of Research Papers",
+      heading: sectionLabel("research-paper-published"),
       afterKey: "scientific-manpower",
     });
     if (
@@ -3632,19 +3488,19 @@ const normalizeDivisionSections = (page, sections) => {
             /<h[1-6][^>]*>\s*List of Research Papers\s*<\/h[1-6]>/i,
           endMarker:
             /<h[1-6][^>]*>\s*LIST OF TECHNICAL REPORTS\s*<\/h[1-6]>/i,
-          heading: "List of Research Papers",
+          heading: sectionLabel("research-paper-published"),
         }) ||
         extractHtmlAfterMarker(page.html, {
           startMarker: /List of Research Papers/i,
           endMarker: /LIST OF TECHNICAL REPORTS/i,
-          heading: "List of Research Papers",
+          heading: sectionLabel("research-paper-published"),
         });
 
       normalized = upsertSection(
         normalized,
         {
           key: "research-paper-published",
-          label: "List of Research Papers",
+          label: sectionLabel("research-paper-published"),
           html: researchPapersHtml,
         },
         "scientific-manpower"
@@ -3655,19 +3511,19 @@ const normalizeDivisionSections = (page, sections) => {
         normalized,
         sectionKey,
         /TRAINING PROGRAMMES CONDUCTED DURING THE PERIOD BETWEEN 2016-2021/gi,
-        "Completed Training Programme in last 05 year"
+        localizeOfficialText("Completed Training Programme in last 05 year")
       );
       normalized = replaceTextInSection(
         normalized,
         sectionKey,
         /TANTATIVE PROPOSED TRAINING PROGRAMMES/gi,
-        "Calendar of Training Programmes in the year 2021-22"
+        localizeOfficialText("Calendar of Training Programmes in the year 2021-22")
       );
       normalized = replaceTextInSection(
         normalized,
         sectionKey,
         /Calendar of Training Programmes for the Year 2021-22/gi,
-        "Calendar of Training Programmes in the year 2021-22"
+        localizeOfficialText("Calendar of Training Programmes in the year 2021-22")
       );
     });
     // The Hindi scrape lost the tab-panel markup around the photo gallery, so
@@ -3678,18 +3534,6 @@ const normalizeDivisionSections = (page, sections) => {
     normalized = moveMediaTail(normalized, {
       sourceKeys: ["overview"],
       afterKey: "training-hostel",
-    });
-    normalized = relabelSections(normalized, {
-      "research-paper-published": "List of Research Papers",
-      "training-programmes": "Training Programmes",
-      "training-hostel-photos": "Photos",
-    });
-  }
-
-  if (page.slug === "school-of-geo-informatics-division1") {
-    normalized = relabelSections(normalized, {
-      overview: "School of Geo-Informatics",
-      mtech: "School of Geo-Informatics",
     });
   }
 
@@ -3897,25 +3741,6 @@ const normalizeRichContentTables = (document) => {
   });
 };
 
-const cipdmVideoTitlesByPoster = {
-  "/official-media/siteContent/2021121511494624503d.jpg": {
-    en: "RSAC-UP Virtual 3D Campus",
-    hi: "आरएसएसी-यूपी वर्चुअल 3डी परिसर",
-  },
-  "/official-media/siteContent/202311071735322233CHARBAGH.jpg": {
-    en: "Charbagh 3D Model",
-    hi: "चारबाग 3डी मॉडल",
-  },
-  "/official-media/siteContent/202311071735322233BADSHAHNAGAR.jpg": {
-    en: "Badshahnagar 3D Model",
-    hi: "बादशाहनगर 3डी मॉडल",
-  },
-  "/official-media/siteContent/202311071734557743AISHBAGH.jpg": {
-    en: "Aishbagh 3D Model",
-    hi: "ऐशबाग 3डी मॉडल",
-  },
-};
-
 const enhanceRichContentHtml = (
   html,
   sectionKey,
@@ -3926,6 +3751,10 @@ const enhanceRichContentHtml = (
   }
 
   const parsedDocument = new DOMParser().parseFromString(html, "text/html");
+
+  // The legacy source embeds a second tab strip inside the article body.
+  // React already renders the accessible section tabs for these pages.
+  removeLegacyImportedTabStrips(parsedDocument);
 
   // Scraped citations wrap stray separators in <strong>/<em> — a bold "," or ":"
   // sitting between author names — which reads as a stray comma on the page.
@@ -3991,7 +3820,8 @@ const enhanceRichContentHtml = (
   parsedDocument.body.querySelectorAll("img[src]").forEach((image) => {
     const existingLink = image.closest("a[href]");
     const title = getReadableMediaTitle(
-      image.getAttribute("title") || image.getAttribute("alt") || "image"
+      image.getAttribute("title") || image.getAttribute("alt") || "image",
+      language
     );
 
     if (existingLink) {
@@ -4008,7 +3838,7 @@ const enhanceRichContentHtml = (
     link.setAttribute("target", "_blank");
     link.setAttribute("rel", "noopener noreferrer");
     link.setAttribute("class", "rsac-media-link");
-    link.setAttribute("aria-label", `Open ${title} in new tab`);
+    link.setAttribute("aria-label", `${localizeOfficialText("Open in new tab")}: ${title}`);
     link.setAttribute("title", title);
 
     image.replaceWith(link);
@@ -4031,7 +3861,8 @@ const enhanceRichContentHtml = (
       link.getAttribute("title") ||
         image?.getAttribute("title") ||
         image?.getAttribute("alt") ||
-        ""
+        "",
+      language
     );
 
     if (/\.(?:mp4|m4v|webm|ogv|mov)(?:$|[?#])/i.test(href)) {
@@ -4050,8 +3881,7 @@ const enhanceRichContentHtml = (
       if (imageSource && imageSource !== href) {
         video.setAttribute("poster", imageSource);
       }
-      const localizedVideoTitle =
-        cipdmVideoTitlesByPoster[imageSource]?.[language] || title;
+      const localizedVideoTitle = title;
       if (localizedVideoTitle) {
         video.setAttribute("title", localizedVideoTitle);
         video.setAttribute("aria-label", localizedVideoTitle);
@@ -4087,6 +3917,13 @@ const enhanceRichContentHtml = (
         caption?.textContent || link.getAttribute("title") || ""
       );
       if (/[\u0900-\u097f]/u.test(currentLabel)) return;
+      if (link.classList.contains("rsac-media-link--preview") && currentLabel) {
+        if (caption) caption.textContent = currentLabel;
+        link.setAttribute("title", currentLabel);
+        link.setAttribute("aria-label", `${currentLabel} खोलें`);
+        link.querySelector("img")?.setAttribute("alt", currentLabel);
+        return;
+      }
 
       const localizedLabel = `${pageTitle} - चित्र ${index + 1}`;
       if (caption) caption.textContent = localizedLabel;
@@ -4278,7 +4115,7 @@ const OfficialHtmlContent = ({
       sectionKey,
       { pageTitle, language }
     );
-    return language === "hi" ? translateRichTextHtml(built) : built;
+    return built;
   }, [html, pageTitle, baseTitle, sectionKey, stripProfiles, stripMediaHeadings, language]);
 
   // Open Map/Photos (and any body image) in the shared Lightbox with prev/next
@@ -4882,7 +4719,7 @@ const buildDivisionSectionsFromHtml = (page) => {
 
 const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
   if (typeof DOMParser === "undefined" || !structuralHtml) {
-    return localizedHtml || structuralHtml || "";
+    return localizedHtml || "";
   }
 
   const localizedDocument = new DOMParser().parseFromString(localizedHtml || "", "text/html");
@@ -4906,20 +4743,21 @@ const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
     return identity && !localizedSources.has(identity);
   });
 
-  if (!missing.length) return localizedHtml || structuralHtml;
+  if (!missing.length) return localizedHtml || "";
 
   const sharedMedia = localizedDocument.createElement("div");
   sharedMedia.setAttribute("data-rsac-shared-media", "true");
   missing.forEach((element) => {
-    const figure = element.closest("figure");
-    const linkedMedia = element.closest("a[href]");
-    sharedMedia.append((figure || linkedMedia || element).cloneNode(true));
+    sharedMedia.append(element.cloneNode(true));
   });
   localizedDocument.body.append(sharedMedia);
   return localizedDocument.body.innerHTML;
 };
 
 const mediaSectionKeys = new Set(["map-photos", "training-hostel-photos"]);
+
+const mergeMediaSectionLayout = (localizedHtml, structuralHtml) =>
+  mergeMissingSectionMedia(localizedHtml, structuralHtml);
 
 const comparableSectionText = (value) =>
   compactText(value)
@@ -5017,8 +4855,7 @@ const scientistProfilesEquivalent = (left, right, scientistProfiles) => {
 const mergeDivisionProfileSections = (
   sections,
   page,
-  scientistProfiles,
-  profileReferencePage
+  scientistProfiles
 ) => {
   const existingIndex = sections.findIndex(
     (section) => section.type === "profiles"
@@ -5034,9 +4871,6 @@ const mergeDivisionProfileSections = (
         looksLikePersonName(getProfileName(profile))
       )
     : [];
-  const referenceProfiles = profileReferencePage
-    ? getPageProfiles(profileReferencePage, scientistProfiles)
-    : [];
   const intendedProfiles = structuralProfiles.length
     ? structuralProfiles
     : localizedProfiles;
@@ -5048,29 +4882,10 @@ const mergeDivisionProfileSections = (
       const localizedProfile = localizedProfiles.find((candidate) =>
         scientistProfilesEquivalent(candidate, sourceProfile, scientistProfiles)
       );
-      const referenceProfile = referenceProfiles.find((candidate) =>
-        scientistProfilesEquivalent(candidate, sourceProfile, scientistProfiles)
-      );
       const knownProfile = getKnownScientistProfile(sourceProfile, scientistProfiles);
-
-      // profileStructureHtml is English and exists only to identify which
-      // people belong in a Hindi division. Never expose an unmatched English
-      // fallback card on the Hindi website.
-      if (
-        structuralProfiles.length &&
-        !localizedProfile &&
-        !referenceProfile &&
-        !knownProfile
-      ) {
-        return null;
-      }
-
-      const baseProfile = localizedProfile || referenceProfile || knownProfile || sourceProfile;
-      return mergeKnownScientistDetails(baseProfile, scientistProfiles, [
-        referenceProfile,
-        localizedProfile,
-        sourceProfile,
-      ]);
+      const baseProfile = localizedProfile || knownProfile;
+      if (!baseProfile) return null;
+      return mergeKnownScientistDetails(baseProfile, scientistProfiles, [localizedProfile]);
     })
     .filter(Boolean);
   const profiles = dedupeProfileCards(completedProfiles);
@@ -5096,8 +4911,7 @@ const mergeDivisionProfileSections = (
 
 const buildDivisionSections = (
   page,
-  scientistProfiles,
-  profileReferencePage
+  scientistProfiles
 ) => {
   const localizedSections = buildDivisionSectionsFromHtml(page);
 
@@ -5106,8 +4920,7 @@ const buildDivisionSections = (
       mergeDivisionProfileSections(
         localizedSections,
         page,
-        scientistProfiles,
-        profileReferencePage
+        scientistProfiles
       )
     );
   }
@@ -5130,26 +4943,25 @@ const buildDivisionSections = (
       );
     }
 
-    if (!localized) {
-      return section;
-    }
+    if (!localized) return null;
     usedLocalizedKeys.add(localized.key);
 
     return {
       ...section,
       ...localized,
       key: section.key,
-      html: mergeMissingSectionMedia(localized.html, section.html),
+      html: mediaSectionKeys.has(section.key)
+        ? mergeMediaSectionLayout(localized.html, section.html)
+        : mergeMissingSectionMedia(localized.html, section.html),
       structureHtml: section.html,
     };
-  });
+  }).filter(Boolean);
 
   return cleanRepeatedMediaSectionText(
     mergeDivisionProfileSections(
       mergedSections,
       page,
-      scientistProfiles,
-      profileReferencePage
+      scientistProfiles
     )
   );
 };
@@ -5225,7 +5037,7 @@ const OfficialProfileCard = ({
           }`}>
             {employeeId && (
               <span className="absolute left-2 top-2 z-10 rounded-md bg-white/92 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0b6fa4] shadow-sm">
-                {language === "hi" ? "आईडी" : "ID"}: {employeeId.value}
+                {t("ID")}: {employeeId.value}
               </span>
             )}
 
@@ -5288,7 +5100,7 @@ const OfficialProfileCard = ({
           className="rsac-card-scroll profile-flip-face profile-flip-back absolute inset-0 overflow-y-auto rounded-lg border border-emerald-900/10 bg-[#082032] p-3.5 text-white shadow-[0_14px_38px_rgba(18,50,74,0.12)]"
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-200">
-            {cards?.profileDetails || "Profile Details"}
+            {cards?.profileDetails || t("Profile Details")}
           </p>
 
           <h3 className="mt-3 text-base font-extrabold leading-snug text-white">
@@ -5435,14 +5247,14 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
     ),
   }), [page]);
   const linkBlock = pageLinks.length
-    ? [{ type: "links", heading: "Related links", items: pageLinks }]
+    ? [{ type: "links", heading: t("Related links"), items: pageLinks }]
     : [];
 
   return (
     <div>
       {profiles.length > 0 && (
         <nav
-          aria-label={`${page.title} quick sections`}
+          aria-label={`${page.title} ${t("quick sections")}`}
           className="mb-4 flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-2"
         >
           <a
@@ -5558,7 +5370,7 @@ const managedDivisionSectionDefinitions = [
   { key: "training-hostel", label: "Training Hostel", aliases: ["training-hostel"], afterKey: "training-programmes" },
 ];
 
-const managedItemMarkup = (item, language) => {
+const managedItemMarkup = (item) => {
   const lines = [
     item.authors,
     item.publicationName,
@@ -5566,15 +5378,15 @@ const managedItemMarkup = (item, language) => {
     item.details,
   ].filter(Boolean).map((value) => `<span>${escapeExtraItemHtml(value)}</span>`);
   const links = [
-    item.documentUrl && `<a href="${escapeExtraItemHtml(item.documentUrl)}">${language === "hi" ? "दस्तावेज़ देखें" : "View document"}</a>`,
-    item.externalUrl && `<a href="${escapeExtraItemHtml(item.externalUrl)}" target="_blank" rel="noopener noreferrer">${language === "hi" ? "वेबपृष्ठ खोलें" : "Open webpage"}</a>`,
+    item.documentUrl && `<a href="${escapeExtraItemHtml(item.documentUrl)}">${escapeExtraItemHtml(localizeOfficialText("View document"))}</a>`,
+    item.externalUrl && `<a href="${escapeExtraItemHtml(item.externalUrl)}" target="_blank" rel="noopener noreferrer">${escapeExtraItemHtml(localizeOfficialText("Open webpage"))}</a>`,
   ].filter(Boolean).join(" | ");
   return `<strong>${escapeExtraItemHtml(item.title)}</strong>${lines.length ? `<div>${lines.join("<br>")}</div>` : ""}${links ? `<div>${links}</div>` : ""}`;
 };
 
-const appendManagedItemsToSection = (html, items, language) => {
+const appendManagedItemsToSection = (html, items) => {
   if (!items?.length) return html || "";
-  const itemBodies = items.map((item) => managedItemMarkup(item, language));
+  const itemBodies = items.map((item) => managedItemMarkup(item));
   const liMarkup = itemBodies.map((body) => `<li data-rsac-added-item="true" data-rsac-managed-item="true">${body}</li>`).join("");
   if (typeof DOMParser === "undefined") return `<ol class="rsac-numbered-list">${liMarkup}</ol>${html || ""}`;
 
@@ -5594,7 +5406,7 @@ const appendManagedItemsToSection = (html, items, language) => {
       let serialIndex = Array.from(headerRow.children).findIndex((cell) => isSerialNumberHeader(cell.textContent));
       if (serialIndex < 0) {
         const header = parsed.createElement("th");
-        header.textContent = language === "hi" ? "क्र. सं." : "S.No.";
+        header.textContent = localizeOfficialText("S.No.");
         headerRow.prepend(header);
         rows.filter((row) => row !== headerRow).forEach((row) => row.prepend(parsed.createElement("td")));
         serialIndex = 0;
@@ -5767,8 +5579,14 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
 
     const nodes = textNodes();
     const valueKey = compactText(value).toLowerCase();
-    const labelParts = String(child.label || "").split(/\s*(?:\u2192|->)\s*/u);
-    const previewLabel = labelParts.slice(1).join(" ");
+    const rawLabel = String(child.label || "");
+    const labelParts = rawLabel.split(/\s*(?:\u2192|->)\s*/u);
+    const sectionLabel = /^section\s*:/iu.test(rawLabel)
+      ? rawLabel.replace(/^section\s*:\s*/iu, "")
+      : "";
+    const previewLabel = labelParts.length > 1
+      ? labelParts.slice(1).join(" ")
+      : sectionLabel;
     const previewWasTruncated = /(?:\u2026|\.{3})$/u.test(previewLabel.trim());
     const previewKey = compactText(previewLabel.replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
     const exactNode = valueKey ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === valueKey) : null;
@@ -5837,27 +5655,49 @@ const applyImportedBlockHeading = (html, block) => {
   return parsed.body.innerHTML;
 };
 
+const controlsImportedSectionLabel = (block) =>
+  block?.controlsSectionLabel !== false ||
+  (
+    block?.assetOnly === true &&
+    canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos"
+  );
+
 const applyImportedPageAssets = (html, blocks, options) =>
   applyPageAssetFields(html, flattenPageAssetFields(blocks), options);
 
 const applyImportedPageBlocks = (html, blocks, { insertNewAssets = true } = {}) => {
   const editableBlocks = flexibleItems(blocks).filter((block) =>
-    !block.hidden && (Array.isArray(block.children) || block.key)
+    Array.isArray(block.children) || block.key
   );
-  const assetFields = flattenPageAssetFields(editableBlocks);
+  const visibleBlocks = editableBlocks.filter((block) => !block.hidden);
+  const assetFields = flattenPageAssetFields(visibleBlocks);
   if (!editableBlocks.length && !assetFields.length) return html || "";
-  let nextHtml = applyPageAssetFields(html || "", assetFields);
+  const textFields = flattenImportedPageTextFields(editableBlocks);
+  let nextHtml = applyPageTextFields(html || "", textFields);
+  nextHtml = applyPageAssetFields(nextHtml, assetFields);
   editableBlocks.forEach((block) => {
-    if (block.controlsSectionLabel !== false) {
-      nextHtml = applyImportedBlockHeading(nextHtml, block);
+    if (controlsImportedSectionLabel(block) && !/^text-\d+$/u.test(String(block.key || ""))) {
+      nextHtml = applyImportedBlockHeading(
+        nextHtml,
+        block.hidden ? { ...block, value: "" } : block
+      );
     }
-    nextHtml = applyImportedContentFields(nextHtml, block.children, { insertNew: false });
+    const unkeyedChildren = flexibleItems(block.children)
+      .filter((child) => !child?.key && !child?.isNew)
+      .map((child) => block.hidden ? { ...child, hidden: true } : child);
+    if (unkeyedChildren.length) {
+      nextHtml = applyImportedContentFields(nextHtml, unkeyedChildren, { insertNew: false });
+    }
   });
   if (typeof DOMParser === "undefined") return nextHtml;
 
   const parsed = new DOMParser().parseFromString(nextHtml, "text/html");
-  editableBlocks.forEach((block) => {
-    const newChildren = block.children.filter((child) => (child.isNew || String(child.key || "").startsWith("cms-")) && !child.hidden && String(child.value || "").trim());
+  visibleBlocks.forEach((block) => {
+    const newChildren = flexibleItems(block.children).filter((child) =>
+      (child.isNew || String(child.key || "").startsWith("cms-")) &&
+      !child.hidden &&
+      String(child.value || "").trim()
+    );
     if (!newChildren.length) return;
     const labelKey = compactText(importedBlockSourceLabel(block).replace(/^section\s*:\s*/i, "")).toLowerCase();
     const candidates = Array.from(parsed.body.querySelectorAll("h1, h2, h3, h4, h5, h6, p, strong"));
@@ -5916,7 +5756,6 @@ const resolveDivisionSectionOrder = (labels, sections) =>
 const DivisionCategorizedContent = ({
   page,
   scientistProfiles,
-  profileReferencePage,
 }) => {
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
@@ -5942,8 +5781,7 @@ const DivisionCategorizedContent = ({
         ...preparedPage,
         html: applyImportedPageBlocks(preparedPage.html, ordinaryBlocks, { insertNewAssets: false }),
       },
-      scientistProfiles,
-      profileReferencePage
+      scientistProfiles
     );
     // Editor tab renames: content_fields section-header rows are synthetic
     // (no html text node), so a renamed header reaches the page as a
@@ -6021,9 +5859,9 @@ const DivisionCategorizedContent = ({
         const sectionKey = nextSections[sectionIndex].key;
         editorSectionOrder.push(sectionKey);
         if (nextSections[sectionIndex].type !== "html") return;
-        const visibleLabel = block.controlsSectionLabel === false
-          ? ""
-          : String(block.value || "").trim();
+        const visibleLabel = controlsImportedSectionLabel(block)
+          ? String(block.value || "").trim()
+          : "";
         const existingLabel = String(nextSections[sectionIndex].label || "");
         const combinedPublicationLabelPattern =
           /(?:publications?.*technical\s+reports?|प्रकाशन.*तकनीकी\s+रिपोर्ट)/iu;
@@ -6065,7 +5903,7 @@ const DivisionCategorizedContent = ({
       const existingIndex = findSectionIndex(nextSections, definition.aliases);
       if (existingIndex >= 0 && nextSections[existingIndex].type === "html") {
         nextSections = nextSections.map((section, index) => index === existingIndex
-          ? { ...section, html: appendManagedItemsToSection(section.html, items, language) }
+          ? { ...section, html: appendManagedItemsToSection(section.html, items) }
           : section);
         return;
       }
@@ -6073,7 +5911,7 @@ const DivisionCategorizedContent = ({
         key: definition.key,
         label: definition.label,
         type: "html",
-        html: appendManagedItemsToSection("", items, language),
+        html: appendManagedItemsToSection("", items),
       }, definition.afterKey);
     });
     const requestedSectionOrder =
@@ -6081,7 +5919,7 @@ const DivisionCategorizedContent = ({
         ? resolveDivisionSectionOrder(page.structureSectionOrder, nextSections)
         : editorSectionOrder;
     return reorderDivisionSections(nextSections, requestedSectionOrder);
-  }, [page, language, scientistProfiles, profileReferencePage]);
+  }, [page, language, scientistProfiles]);
   const [activeSectionState, setActiveSectionState] = useState({
     pageSlug: page.slug,
     key: sections[0]?.key || "",
@@ -6167,7 +6005,7 @@ const DivisionCategorizedContent = ({
     >
       {sections.length > 1 && (
         <nav
-          aria-label={`${page.title} sections`}
+          aria-label={`${page.title} ${t("sections")}`}
           className="rsac-section-tabs h-fit min-w-0 max-w-full rounded-lg border border-slate-200 bg-white p-2 shadow-[0_14px_38px_rgba(18,50,74,0.055)] lg:sticky lg:top-36"
         >
           <div
@@ -6583,10 +6421,6 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
   const { slug } = useParams();
   const section = officialSections.find((item) => item.key === sectionKey);
   const page = section?.pages.find((item) => item.slug === slug);
-  const profileReferencePage = officialSections
-    .find((item) => item.key === "about-us")
-    ?.pages.find((item) => item.slug === "scientific-manpower");
-
   if (!section) {
     if (!officialSections.length) {
       return <OfficialContentLoading />;
@@ -6623,7 +6457,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
       actions={
         <BackButton
           fallback={`/${section.route}`}
-          label={section.title ? `Back to ${section.title}` : t("Back")}
+          label={section.title ? `${t("Back")} ${section.title}` : t("Back")}
         />
       }
     >
@@ -6654,7 +6488,6 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
             <DivisionCategorizedContent
               page={page}
               scientistProfiles={scientistProfiles}
-              profileReferencePage={profileReferencePage}
             />
           ) : staticProfilePageSlugs.has(page.slug) ? (
             <OfficialStaticProfileGrid

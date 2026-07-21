@@ -183,7 +183,7 @@ export const collections = [
     id: "flood_reports",
     label: "Flood Reports",
     description: "Daily flood reports and coverage.",
-    fields: [text("title", "Title", { required: true }), plain("date", "Date", { type: "date" }), text("dateLabel", "Date label"), text("category", "Category"), text("coverage", "Coverage"), textarea("meta", "Details"), { name: "url", label: "Upload flood report / file", type: "media", localized: false }],
+    fields: [text("title", "Title", { required: true }), plain("date", "Date", { type: "date" }), text("dateLabel", "Date label"), text("category", "Category"), text("coverage", "Coverage"), textarea("meta", "Details"), { name: "url", label: "Upload flood report / file", type: "media", localized: false }, { name: "archiveOnly", label: "Show only inside its year archive", type: "boolean", localized: false, booleanLabel: "Archive report" }],
   },
   {
     id: "mobile_apps",
@@ -258,6 +258,7 @@ export const collections = [
       { name: "hideEyebrow", label: "Hide small heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "hideTitle", label: "Hide main heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "hideIntro", label: "Hide subheading / introduction", type: "boolean", localized: false, booleanLabel: "Hidden" },
+      { name: "eyebrowSize", label: "Small heading / flag size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
       { name: "headingSize", label: "Heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
       { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
       { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
@@ -289,7 +290,7 @@ export const collections = [
     id: "hero_banners",
     label: "Hero Banners / Videos",
     description: "Homepage hero media and titles.",
-    fields: [text("title", "Title", { required: true }), plain("fileName", "File name"), { name: "video", label: "Video", type: "media", localized: false }, { name: "poster", label: "Poster image", type: "media", localized: false }, { name: "active", label: "Active", type: "boolean", localized: false }],
+    fields: [text("title", "Title", { required: true }), plain("fileName", "File name"), { name: "video", label: "Video", type: "media", localized: false }, { name: "videoLarge", label: "Large-screen video (optional)", type: "media", localized: false }, { name: "poster", label: "Poster image", type: "media", localized: false }, { name: "active", label: "Active", type: "boolean", localized: false }],
   },
   {
     id: "logos",

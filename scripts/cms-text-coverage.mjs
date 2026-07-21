@@ -1,6 +1,11 @@
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
-import { extractPageStructuralTextKeys, extractPageTextFields } from "../src/data/pageTextFields.js";
+import {
+  applyPageTextFields,
+  extractPageStructuralTextKeys,
+  extractPageTextFields,
+  flattenImportedPageTextFields,
+} from "../src/data/pageTextFields.js";
 import { collectDivisionSectionKeys } from "./lib/division-sections.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
@@ -9,33 +14,29 @@ if (!process.env.CMS_DATABASE_URL) {
 }
 
 const punctuationOnly = /^[\s&,.;:'"`\u0964|/()[\]{}<>\-\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u00b7]+$/u;
-const canonical = (value) => String(value || "")
-  .replace(/^section\s*:\s*/iu, "")
-  .replace(/\s+/g, " ")
-  .trim()
-  .toLocaleLowerCase("en");
-
 const representedText = (data) => {
-  const keys = new Set();
-  const labels = new Set([
-    canonical(data.title),
-    canonical(data.eyebrow),
-    canonical(data.summary),
-  ].filter(Boolean));
+  const editableKeys = new Set();
+  const structuralKeys = new Set();
 
   for (const block of data.blocks || []) {
-    if (block.key) keys.add(block.key);
-    [block.sourceLabel, block.label, block.value, block.heading]
-      .map(canonical)
-      .filter(Boolean)
-      .forEach((label) => labels.add(label));
+    if (block.key) {
+      if (
+        block.editorVisible === false ||
+        block.structural ||
+        block.controlsSectionLabel === false
+      ) structuralKeys.add(block.key);
+      else editableKeys.add(block.key);
+    }
     for (const child of block.children || []) {
-      if (child.key) keys.add(child.key);
-      for (const sourceKey of child.sourceKeys || []) keys.add(sourceKey);
+      const target = child.editorVisible === false || child.structural
+        ? structuralKeys
+        : editableKeys;
+      if (child.key) target.add(child.key);
+      for (const sourceKey of child.sourceKeys || []) target.add(sourceKey);
     }
   }
 
-  return { keys, labels };
+  return { editableKeys, structuralKeys };
 };
 
 const client = new pg.Client({ connectionString: process.env.CMS_DATABASE_URL });
@@ -55,11 +56,12 @@ try {
   for (const row of rows) {
     for (const [language, data] of [["English", row.data_en], ["Hindi", row.data_hi]]) {
       if (!data?.html) continue;
-      const { keys, labels } = representedText(data);
+      const { editableKeys, structuralKeys: cmsStructuralKeys } = representedText(data);
       const usesCategorizedContent = row.data_en?.sectionKey === "divisions" || /^training-division-?$/u.test(row.entry_key);
-      const structuralKeys = usesCategorizedContent
-        ? extractPageStructuralTextKeys(data.html)
-        : new Set();
+      const structuralKeys = new Set([
+        ...extractPageStructuralTextKeys(data.html),
+        ...cmsStructuralKeys,
+      ]);
       const categorizedSections = usesCategorizedContent
         ? collectDivisionSectionKeys(data.html, data.title, row.entry_key)
         : null;
@@ -75,10 +77,45 @@ try {
           punctuationOnly.test(value) ||
           (visibleKeys && !visibleKeys.has(field.key))
         ) return false;
-        return !keys.has(field.key) && !labels.has(canonical(value)) && !structuralKeys.has(field.key);
+        return !editableKeys.has(field.key) && !structuralKeys.has(field.key);
       });
       if (missing.length) {
         failures.push(`${language} ${row.entry_key}: ${missing.slice(0, 4).map((field) => field.value).join(" | ")}`);
+      }
+
+      const sourceByKey = new Map(fields.map((field) => [field.key, field.value]));
+      const blankedSourceCounts = new Map();
+      flattenImportedPageTextFields(data.blocks)
+        .filter((field) => field.key && String(field.value || "") === "")
+        .forEach((field) => {
+          const sourceValue = sourceByKey.get(field.key);
+          if (!sourceValue) return;
+          blankedSourceCounts.set(
+            sourceValue,
+            (blankedSourceCounts.get(sourceValue) || 0) + 1
+          );
+        });
+      if (blankedSourceCounts.size) {
+        const originalCounts = new Map();
+        fields.forEach((field) => originalCounts.set(
+          field.value,
+          (originalCounts.get(field.value) || 0) + 1
+        ));
+        const renderedCounts = new Map();
+        extractPageTextFields(
+          applyPageTextFields(data.html, flattenImportedPageTextFields(data.blocks))
+        ).forEach((field) => renderedCounts.set(
+          field.value,
+          (renderedCounts.get(field.value) || 0) + 1
+        ));
+        const survivors = [...blankedSourceCounts].filter(([value, blankedCount]) =>
+          (renderedCounts.get(value) || 0) > (originalCounts.get(value) || 0) - blankedCount
+        );
+        if (survivors.length) {
+          failures.push(
+            `${language} ${row.entry_key}: blank CMS fields left source text visible (${survivors.slice(0, 3).map(([value]) => value).join(" | ")})`
+          );
+        }
       }
     }
   }

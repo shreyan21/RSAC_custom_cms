@@ -391,6 +391,8 @@ export const siteSettings = {
     ],
     statutoryLinks: [],
     webInformationManagerLabel: "Web Information Manager",
+    allRightsReserved: "All Rights Reserved.",
+    lastUpdatedLabel: "Last updated:",
   },
   search: {
     title: "Search RSAC-UP",

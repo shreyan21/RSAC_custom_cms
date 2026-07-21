@@ -1,7 +1,9 @@
 import { useSiteSettings } from "../../hooks/useData";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const MenuButton = ({ isOpen, setIsOpen }) => {
   const { ui } = useSiteSettings();
+  const { t } = useLanguage();
   const tone = isOpen ? "text-white" : "text-[#12324a]";
   const lineTone = isOpen ? "bg-white" : "bg-[#12324a]";
   const surface = isOpen
@@ -13,7 +15,7 @@ const MenuButton = ({ isOpen, setIsOpen }) => {
       id="main-menu-toggle"
       onClick={() => setIsOpen(!isOpen)}
       aria-label={
-        isOpen ? ui?.closeMenu || "Close menu" : ui?.openMenu || "Open menu"
+        isOpen ? ui?.closeMenu || t("Close menu") : ui?.openMenu || t("Open menu")
       }
       aria-controls="main-menu-dialog"
       aria-expanded={isOpen}

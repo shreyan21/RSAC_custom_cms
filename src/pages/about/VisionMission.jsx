@@ -1,7 +1,6 @@
 import { Compass, ListChecks, Layers, Workflow } from "lucide-react";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
-import { deepMerge } from "../../data/contentUtils";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 
@@ -306,12 +305,9 @@ export const visionMissionContent = {
 };
 
 const VisionMission = () => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const { pageContent } = useSiteSettings();
-  const fallback = isHindi
-    ? visionMissionContent.hi
-    : visionMissionContent.en;
-  const c = deepMerge(fallback, pageContent?.visionMission || {});
+  const c = pageContent?.visionMission || {};
 
   return (
     <PageShell
@@ -319,8 +315,8 @@ const VisionMission = () => {
       title={c.title}
       intro={c.intro}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
-        { label: isHindi ? "हमारे बारे में" : "About Us", to: "/about-us" },
+        { label: t("Home"), to: "/" },
+        { label: t("About Us"), to: "/about-us" },
         { label: c.title },
       ]}
       actions={<BackButton fallback="/" label={c.back} />}
@@ -328,7 +324,7 @@ const VisionMission = () => {
       <div className="space-y-10">
         {/* Vision & Mission */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {c.cards.map((card) => (
+          {(c.cards || []).map((card) => (
             <article
               key={card.label}
               className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_16px_50px_rgba(18,50,74,0.06)] md:p-8"
@@ -356,7 +352,7 @@ const VisionMission = () => {
             {c.objectivesHeading}
           </h2>
           <ol className="mt-5 grid gap-3 sm:grid-cols-2">
-            {c.objectives.map((item, i) => (
+            {(c.objectives || []).map((item, i) => (
               <li
                 key={item}
                 className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(18,50,74,0.04)]"
@@ -378,7 +374,7 @@ const VisionMission = () => {
               {c.approachHeading}
             </h2>
             <ul className="mt-5 space-y-3">
-              {c.approach.map((item) => (
+            {(c.approach || []).map((item) => (
                 <li key={item} className="flex gap-3 text-sm leading-relaxed text-slate-700">
                   <span
                     aria-hidden="true"
@@ -398,7 +394,7 @@ const VisionMission = () => {
               {c.implementationIntro}
             </p>
             <ul className="mt-4 space-y-3">
-              {c.implementation.map((item) => (
+            {(c.implementation || []).map((item) => (
                 <li key={item} className="flex gap-3 text-sm leading-relaxed text-slate-700">
                   <span
                     aria-hidden="true"
@@ -419,14 +415,14 @@ const VisionMission = () => {
           </h2>
           <p className="mt-3 max-w-3xl leading-relaxed text-slate-700">{c.sphereIntro}</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {c.sphere.map((group) => (
+          {(c.sphere || []).map((group) => (
               <article
                 key={group.name}
                 className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(18,50,74,0.06)]"
               >
                 <h3 className="text-lg font-extrabold text-[#0b5f38]">{group.name}</h3>
                 <ul className="mt-3 space-y-2">
-                  {group.items.map((item) => (
+                  {(group.items || []).map((item) => (
                     <li
                       key={item}
                       className="flex gap-2.5 text-sm leading-relaxed text-slate-700"

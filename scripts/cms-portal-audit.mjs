@@ -3,6 +3,7 @@ import pg from "pg";
 import { cmsGroups } from "../admin/src/cmsGroups.js";
 import { collections } from "../shared/cmsCollections.js";
 import { validateEntryPayload } from "../server/contentValidation.js";
+import { canonicalDivisionSection } from "../src/data/divisionSectionLabels.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 
@@ -179,6 +180,14 @@ try {
               if (!isObject(block)) problems.push(`${label} ${language} block ${index + 1} is not an object.`);
               else if (!String(block.type || "").trim() && !Array.isArray(block.children) && !block.editorMode) {
                 problems.push(`${label} ${language} block ${index + 1} has no editor format.`);
+              }
+              if (
+                isObject(block) &&
+                block.assetOnly === true &&
+                canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos" &&
+                block.controlsSectionLabel === false
+              ) {
+                problems.push(`${label} ${language} Map/Photos heading is hidden from the CMS editor.`);
               }
             });
           }

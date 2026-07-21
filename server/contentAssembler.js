@@ -405,7 +405,9 @@ export const assembleBootstrap = (rows, language = "en") => {
     if (supporting?.image) siteSettings.branding.governmentLogo = supporting.image;
   }
   const heroVideos = list("hero_banners").filter((item) => item.active !== false);
-  const floodReports = list("flood_reports");
+  // Archive reports remain editable in the CMS but load only when a visitor
+  // opens a specific year, keeping the site-wide bootstrap lightweight.
+  const floodReports = list("flood_reports").filter((report) => !report.archiveOnly);
 
   return {
     language,

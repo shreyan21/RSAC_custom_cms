@@ -33,7 +33,7 @@ const hostOf = (href) => {
 };
 
 export function DialogProvider({ children }) {
-  const { isHindi, setLanguage, language } = useLanguage();
+  const { setLanguage, language, t } = useLanguage();
   const [externalTarget, setExternalTarget] = useState(null); // { url, label, target }
   const [pendingLang, setPendingLang] = useState(null); // "hi" | null
   const [doc, setDoc] = useState(null); // { url, title }
@@ -125,39 +125,20 @@ export function DialogProvider({ children }) {
     [requestLanguageChange, openDocument]
   );
 
-  const txt = isHindi
-    ? {
-        leaveTitle: "आप यह वेबसाइट छोड़ रहे हैं",
-        leaveBody:
-          "आप एक बाहरी वेबसाइट खोलने जा रहे हैं जो आरएसएसी-यूपी द्वारा संचालित नहीं है। इसकी सामग्री, गोपनीयता नीति और उपलब्धता संबंधित बाहरी संस्था की ज़िम्मेदारी है।",
-        leaveDest: "गंतव्य",
-        leaveConfirm: "जारी रखें",
-        cancel: "रद्द करें",
-        close: "बंद करें",
-        langTitle: "वेबसाइट हिंदी में बदलें",
-        langBody:
-          "आप इस वेबसाइट को हिंदी में देखने जा रहे हैं। मुख्य नेविगेशन और सामग्री का अनुवाद किया गया है; कुछ आधिकारिक दस्तावेज़ और अभिलेख अब भी अंग्रेज़ी में दिख सकते हैं।",
-        langConfirm: "हिंदी में बदलें",
-        langCancel: "अंग्रेज़ी में रहें",
-        openNewTab: "नई विंडो में खोलें",
-        viewerNote: "यह दस्तावेज़ इसी वेबसाइट के भीतर खोला गया है।",
-      }
-    : {
-        leaveTitle: "You are leaving this website",
-        leaveBody:
-          "You are about to open an external website that is not maintained by RSAC-UP. Its content, privacy practices, and availability are the responsibility of the external provider.",
-        leaveDest: "Destination",
-        leaveConfirm: "Continue",
-        cancel: "Cancel",
-        close: "Close",
-        langTitle: "Switch website to Hindi",
-        langBody:
-          "You are about to view this website in Hindi (हिंदी). Core navigation and content are translated; some official documents and records may still appear in English.",
-        langConfirm: "Switch to Hindi",
-        langCancel: "Stay in English",
-        openNewTab: "Open in new tab",
-        viewerNote: "This document is opened within this website.",
-      };
+  const txt = {
+    leaveTitle: t("You are leaving this website"),
+    leaveBody: t("You are about to open an external website that is not maintained by RSAC-UP. Its content, privacy practices, and availability are the responsibility of the external provider."),
+    leaveDest: t("Destination"),
+    leaveConfirm: t("Continue"),
+    cancel: t("Cancel"),
+    close: t("Close"),
+    langTitle: t("Switch website to Hindi"),
+    langBody: t("You are about to view this website in Hindi. Core navigation and content are translated; some official documents and records may still appear in English."),
+    langConfirm: t("Switch to Hindi"),
+    langCancel: t("Stay in English"),
+    openNewTab: t("Open in new tab"),
+    viewerNote: t("This document is opened within this website."),
+  };
 
   const overlay = (node) =>
     createPortal(
@@ -293,13 +274,13 @@ export function DialogProvider({ children }) {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={doc.title || "Document"}
+            aria-label={doc.title || t("Document")}
             className="relative flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_34px_100px_rgba(4,18,32,0.34)]"
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-[#f7fbfe] px-4 py-3 sm:px-5">
               <div className="min-w-0">
                 <h2 className="truncate text-base font-extrabold text-[#102f46]">
-                  {doc.title || "Document"}
+                  {doc.title || t("Document")}
                 </h2>
                 <p className="truncate text-xs font-semibold text-slate-500">
                   {txt.viewerNote}
@@ -328,7 +309,7 @@ export function DialogProvider({ children }) {
             </div>
             <iframe
               src={doc.url}
-              title={doc.title || "Document"}
+              title={doc.title || t("Document")}
               className="h-full w-full flex-1 bg-slate-100"
             />
           </div>

@@ -311,9 +311,19 @@ app.get("/api/content/:collection", async (req, res, next) => {
   try {
     if (!getCollection(req.params.collection)) return res.status(404).json({ error: "Unknown collection" });
     const language = req.query.lang === "hi" ? "hi" : "en";
+    const year = String(req.query.year || "").trim();
+    if (year && (req.params.collection !== "flood_reports" || !/^\d{4}$/.test(year))) {
+      return res.status(400).json({ error: "Invalid content filter" });
+    }
+    const values = [req.params.collection];
+    const yearFilter = year ? " AND data_en->>'date' LIKE $2" : "";
+    if (year) values.push(`${year}%`);
     const { rows } = await pool.query(
-      "SELECT id, entry_key, sort_order, data_en, data_hi, version, updated_at FROM cms_entries WHERE collection=$1 AND status='published' ORDER BY sort_order, entry_key",
-      [req.params.collection]
+      `SELECT id, entry_key, sort_order, data_en, data_hi, version, updated_at
+         FROM cms_entries
+        WHERE collection=$1 AND status='published'${yearFilter}
+        ORDER BY sort_order, entry_key`,
+      values
     );
     const localized = rows.map((row) => ({
       id: row.id,

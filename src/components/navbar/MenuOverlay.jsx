@@ -264,7 +264,7 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
       ref={navigationRef}
       role="dialog"
       aria-modal="true"
-      aria-label={ui?.menuHeading || "Main menu"}
+      aria-label={ui?.menuHeading || t("Main menu")}
       data-lenis-prevent
       className="rsac-menu-overlay rsac-mega-menu fixed inset-0 z-[180] h-[100dvh] overflow-y-auto bg-[#050d1c] text-white lg:overflow-hidden"
     >
@@ -301,15 +301,15 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
             to="/"
             onClick={closeMenu}
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-orange-100 transition duration-150 hover:text-orange-200 active:scale-90 active:bg-white/10 active:text-orange-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-200"
-            aria-label={t("Home") || "Go to homepage"}
-            title={t("Home") || "Go to homepage"}
+            aria-label={t("Home")}
+            title={t("Home")}
           >
             <Home className="h-6 w-6" aria-hidden="true" />
           </Link>
         </header>
 
         <nav
-          aria-label={ui?.menuHeading || "Main navigation"}
+          aria-label={ui?.menuHeading || t("Main navigation")}
           className="grid flex-1 gap-8 py-8 lg:min-h-0 lg:grid-cols-[minmax(300px,0.82fr)_minmax(440px,1.18fr)] lg:gap-14 lg:py-10 xl:grid-cols-[minmax(360px,0.8fr)_minmax(520px,1.2fr)] xl:gap-20"
         >
           <div className="lg:min-h-0 lg:overflow-y-auto lg:pr-5">
@@ -410,10 +410,10 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
         </nav>
 
         <footer className="hidden shrink-0 items-center justify-between border-t border-white/16 py-4 text-xs text-white/48 lg:flex">
-          <span>{ui?.menuKeyboardHint || "Use arrow keys to move through sections."}</span>
+          <span>{ui?.menuKeyboardHint || t("Use arrow keys to move through sections.")}</span>
           <span className="inline-flex items-center gap-2">
             <Orbit className="h-4 w-4 text-orange-200" aria-hidden="true" />
-            {ui?.menuDestinations || "Remote sensing, GIS and public services"}
+            {ui?.menuDestinations || t("Remote sensing, GIS and public services")}
           </span>
         </footer>
       </div>

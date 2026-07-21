@@ -92,6 +92,8 @@ Desktop.ini
 !src/assets/videos/*.mp4
 !public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/
 !public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/*.mp4
+!public/cms-media/migrated/rsac-earth-studio-up.mp4
+!public/cms-media/migrated/rsac-earth-studio-up-1920.mp4
 
 # Intentionally committed and therefore NOT ignored:
 # - server/seed-data.generated.json (starter CMS content)

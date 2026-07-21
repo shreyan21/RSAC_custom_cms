@@ -3,35 +3,18 @@ import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
 import { useDownloads, useSiteSettings } from "../../hooks/useData";
 import { useDialog } from "../../hooks/useDialog";
-import { useLanguage } from "../../hooks/useLanguage";
 
 const DownloadsPage = () => {
   const downloads = useDownloads();
   const { pageContent } = useSiteSettings();
-  const { isHindi } = useLanguage();
   const { openDocument } = useDialog();
   const content = pageContent?.downloads || {};
-  const text = isHindi
-    ? {
-        eyebrow: "सार्वजनिक सूचना",
-        title: "डाउनलोड",
-        intro: "आरएसएसी-यूपी के सार्वजनिक दस्तावेज और डाउनलोड।",
-        empty: "अभी कोई डाउनलोड उपलब्ध नहीं है।",
-        open: "दस्तावेज खोलें",
-      }
-    : {
-        eyebrow: "Public information",
-        title: "Downloads",
-        intro: "Public documents and downloads from RSAC-UP.",
-        empty: "No downloads are available at present.",
-        open: "Open document",
-      };
 
   return (
     <PageShell
-      eyebrow={content.eyebrow || text.eyebrow}
-      title={content.title || text.title}
-      intro={content.intro || text.intro}
+      eyebrow={content.eyebrow}
+      title={content.title}
+      intro={content.intro}
       actions={<BackButton fallback="/" label={content.backLabel} />}
     >
       {downloads.length ? (
@@ -73,7 +56,7 @@ const DownloadsPage = () => {
                   className="mt-auto inline-flex min-h-10 w-fit items-center gap-2 rounded-lg bg-[#0f6f42] px-3.5 py-2 text-sm font-bold text-white transition hover:bg-[#0b5f38] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f6f42]"
                 >
                   <Download className="h-4 w-4" aria-hidden="true" />
-                  {text.open}
+                  {content.openLabel}
                 </button>
               )}
             </article>
@@ -81,7 +64,7 @@ const DownloadsPage = () => {
         </div>
       ) : (
         <p className="rounded-lg border border-slate-200 bg-white px-5 py-8 text-center text-sm font-semibold text-slate-600">
-          {text.empty}
+          {content.emptyText}
         </p>
       )}
     </PageShell>

@@ -45,41 +45,8 @@ const isScientistCard = (profile) => {
   );
 };
 
-const localizeProfileValue = (value, t, isHindi) => {
-  if (!isHindi || value === null || value === undefined) {
-    return value || "";
-  }
-
-  const text = String(value);
-  const translated = t(text);
-  if (translated !== text) {
-    return translated;
-  }
-
-  return text
-    .replace(/^More than (\d+) years$/i, "$1 वर्ष से अधिक")
-    .replace(/^\+?(\d+)\+? years$/i, "$1 वर्ष")
-    .replace(/^(\d+) publications and (\d+) reports$/i, "$1 प्रकाशन और $2 रिपोर्ट")
-    .replace(
-      /^(\d+) research papers and (\d+) technical reports$/i,
-      "$1 शोध पत्र और $2 तकनीकी रिपोर्ट"
-    )
-    .replace(
-      /^(\d+) research papers, (\d+) technical reports, (\d+) atlases$/i,
-      "$1 शोध पत्र, $2 तकनीकी रिपोर्ट, $3 एटलस"
-    )
-    .replace(
-      /^(\d+) research papers in national and international journals$/i,
-      "$1 राष्ट्रीय और अंतरराष्ट्रीय पत्रिकाओं में शोध पत्र"
-    )
-    .replace(
-      /^(\d+) research papers\/articles and (\d+) books$/i,
-      "$1 शोध पत्र/लेख और $2 पुस्तकें"
-    )
-    .replace(/^(\d+) research papers and (\d+) reports$/i, "$1 शोध पत्र और $2 रिपोर्ट")
-    .replace(/^Not listed$/i, "सूचीबद्ध नहीं")
-    .replace(/^-$/i, "सूचीबद्ध नहीं");
-};
+const localizeProfileValue = (value, t) =>
+  value === null || value === undefined ? "" : t(String(value));
 
 const renderDetail = (detail, t, isHindi) =>
   typeof detail === "string"
@@ -161,8 +128,8 @@ const ProfileFlipCard = ({
       <div className="flex min-h-0 flex-1 flex-col p-4">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0b6fa4]">
           {employeeId
-            ? `${isHindi ? "आईडी" : "ID"}: ${employeeId}`
-            : t(profile.category) || cards?.profileFallback || "Profile"}
+            ? `${t("ID")}: ${employeeId}`
+            : t(profile.category) || cards?.profileFallback || t("Profile")}
         </p>
 
         <h2 className="mt-2 text-base font-extrabold leading-snug text-[#102f46]">
@@ -199,7 +166,7 @@ const ProfileFlipCard = ({
           className="rsac-card-scroll profile-flip-face profile-flip-back absolute inset-0 flex flex-col overflow-y-auto rounded-lg border border-emerald-900/10 bg-[#082032] p-4 text-white shadow-[0_18px_55px_rgba(18,50,74,0.12)]"
         >
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-200">
-            {cards?.additionalInformation || "Additional Information"}
+            {cards?.additionalInformation || t("Additional Information")}
           </p>
 
           <h3 className="mt-3 text-base font-extrabold leading-snug text-white">

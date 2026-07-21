@@ -4,20 +4,14 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useGalleryItems, useSiteSettings } from "../../hooks/useData";
 import MaskReveal from "../motion/MaskReveal";
-import { gallerySection } from "../../data/gallery";
 
 const HomeGalleryPreview = () => {
-  const { isHindi, t } = useLanguage();
+  const { t } = useLanguage();
   const galleryImages = useGalleryItems();
   const { pageContent } = useSiteSettings();
   const shouldReduceMotion = useReducedMotion();
   const preview = galleryImages.slice(0, 8);
-  const g = pageContent?.gallery || {
-    eyebrow: isHindi ? gallerySection.eyebrowHi : gallerySection.eyebrow,
-    title: isHindi ? gallerySection.titleHi : gallerySection.title,
-    actionLabel: isHindi ? "सभी तस्वीरें देखें" : "View all photos",
-    imageAlt: isHindi ? "गैलरी चित्र" : "Gallery image",
-  };
+  const g = pageContent?.gallery || {};
 
   if (!preview.length) {
     return null;

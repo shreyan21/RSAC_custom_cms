@@ -18,70 +18,39 @@ const initialForm = {
 };
 
 const FeedbackForm = () => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   // false | "cms" (stored successfully)
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const L = isHindi
-    ? {
-        title: "प्रतिक्रिया फॉर्म",
-        intro:
-          "वेबसाइट पर अपनी टिप्पणी एवं प्रतिक्रिया भेजने हेतु नीचे दिया फॉर्म भरें। आपके सुझाव हमारे लिए बहुमूल्य हैं। संपर्क विवरण देने पर हम आपके प्रश्नों का उत्तर दे सकेंगे।",
-        mandatory: "* चिह्नित फ़ील्ड अनिवार्य हैं।",
-        name: "नाम",
-        email: "ईमेल आईडी",
-        address: "डाक पता",
-        country: "देश",
-        state: "राज्य",
-        district: "जनपद",
-        phone: "दूरभाष संख्या",
-        comments: "टिप्पणी / सुझाव",
-        india: "भारत",
-        other: "अन्य",
-        submit: "प्रतिक्रिया भेजें",
-        reset: "रीसेट करें",
-        required: "यह फ़ील्ड आवश्यक है।",
-        badEmail: "मान्य ईमेल आईडी दर्ज करें।",
-        badPhone: "मान्य दूरभाष संख्या दर्ज करें।",
-        okTitle: "धन्यवाद!",
-        okBody:
-          "आपका ईमेल ऐप आपकी प्रतिक्रिया के साथ खुल गया है। कृपया भेजने हेतु पुष्टि करें।",
-        okBodyStored:
-          "आपकी प्रतिक्रिया सफलतापूर्वक दर्ज हो गई है। आपके सुझाव के लिए धन्यवाद।",
-        sending: "भेजा जा रहा है…",
-        again: "एक और प्रतिक्रिया भेजें",
-      }
-    : {
-        title: "Feedback Form",
-        intro:
-          "Complete the form below to send us your comments and feedback on the website. Your opinion and suggestions are very much appreciated. If you provide your contact information, we will be able to answer your questions.",
-        mandatory: "Fields marked with * are mandatory.",
-        name: "Name",
-        email: "Email Id",
-        address: "Postal Address",
-        country: "Country",
-        state: "State",
-        district: "District",
-        phone: "Phone No.",
-        comments: "Comments / Suggestion",
-        india: "India",
-        other: "Other",
-        submit: "Send Feedback",
-        reset: "Reset",
-        required: "This field is required.",
-        badEmail: "Enter a valid email Id.",
-        badPhone: "Enter a valid phone number.",
-        okTitle: "Thank you!",
-        okBody:
-          "Your email app has opened with your feedback. Please confirm to send it.",
-        okBodyStored:
-          "Your feedback has been recorded successfully. Thank you for your suggestions.",
-        sending: "Sending…",
-        again: "Send another response",
-      };
+  const L = {
+    title: t("Feedback Form"),
+    intro: t("Complete the form below to send us your comments and feedback on the website. Your opinion and suggestions are very much appreciated. If you provide your contact information, we will be able to answer your questions."),
+    mandatory: t("Fields marked with * are mandatory."),
+    name: t("Name"),
+    email: t("Email Id"),
+    address: t("Postal Address"),
+    country: t("Country"),
+    state: t("State"),
+    district: t("District"),
+    phone: t("Phone No."),
+    comments: t("Comments / Suggestion"),
+    india: t("India"),
+    other: t("Other"),
+    submit: t("Send Feedback"),
+    reset: t("Reset"),
+    required: t("This field is required."),
+    badEmail: t("Enter a valid email Id."),
+    badPhone: t("Enter a valid phone number."),
+    okTitle: t("Thank you!"),
+    okBody: t("Your email app has opened with your feedback. Please confirm to send it."),
+    okBodyStored: t("Your feedback has been recorded successfully. Thank you for your suggestions."),
+    sending: t("Sending..."),
+    again: t("Send another response"),
+    submitError: t("Feedback could not be submitted. Please try again."),
+  };
 
   const setField = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
@@ -132,7 +101,7 @@ const FeedbackForm = () => {
       return;
     }
 
-    setErrors({ submit: isHindi ? "प्रतिक्रिया दर्ज नहीं हो सकी। कृपया पुनः प्रयास करें।" : "Feedback could not be submitted. Please try again." });
+    setErrors({ submit: L.submitError });
   };
 
   const handleReset = () => {

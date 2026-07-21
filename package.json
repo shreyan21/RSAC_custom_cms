@@ -28,6 +28,8 @@
     "cms:sync-hindi": "node scripts/sync-approved-hindi-content.mjs --apply",
     "cms:sync-editor-labels": "node scripts/sync-cms-editor-labels.mjs",
     "cms:sync-media": "node scripts/sync-page-media-parity.mjs",
+    "cms:sync-runtime-content": "node scripts/sync-runtime-content-to-cms.mjs",
+    "cms:sync-interface-labels": "node scripts/sync-cms-interface-labels.mjs",
     "cms:ensure-text-fields": "node scripts/ensure-page-text-fields.mjs",
     "cms:ensure-assets": "node scripts/ensure-page-assets.mjs",
     "cms:text-coverage": "node scripts/cms-text-coverage.mjs",
@@ -35,7 +37,9 @@
     "cms:hindi-coverage": "node scripts/cms-hindi-coverage.mjs",
     "cms:portal-audit": "node scripts/cms-portal-audit.mjs",
     "cms:contract-audit": "node scripts/cms-public-contract-audit.mjs",
+    "cms:ownership-audit": "node scripts/cms-runtime-ownership-audit.mjs",
     "cms:media-smoke": "node scripts/cms-media-smoke.mjs",
+    "cms:flood-check": "node scripts/verify-flood-archive.mjs",
     "cms:smoke": "node scripts/cms-bilingual-smoke.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

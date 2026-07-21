@@ -4,14 +4,14 @@ import { useLanguage } from "../../hooks/useLanguage";
 
 // Label is always just "Back" (वापस in Hindi) regardless of the passed `label`/
 // route state — only the navigation target keeps using backTo/fallback.
-const BackButton = ({ fallback = "/", className = "" }) => {
+const BackButton = ({ fallback = "/", label, className = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
 
   const backTo = location.state?.backTo;
   const targetPath = backTo?.path || fallback;
-  const displayLabel = isHindi ? "वापस" : "Back";
+  const displayLabel = label || t("Back");
 
   const handleClick = () => {
     const historyIndex = Number(window.history.state?.idx);

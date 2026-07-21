@@ -16,6 +16,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
+import { useLanguage } from "../../hooks/useLanguage";
 import MaskReveal from "../motion/MaskReveal";
 
 const icons = {
@@ -54,6 +55,7 @@ const DomainBriefPanel = ({
 }) => {
   const panelRef = useRef(null);
   const Icon = icons[domain.icon] || Database;
+  const { t } = useLanguage();
 
   useEffect(() => {
     panelRef.current?.focus({ preventScroll: placement === "overlay" });
@@ -64,7 +66,7 @@ const DomainBriefPanel = ({
       ref={panelRef}
       tabIndex={-1}
       role="region"
-      aria-label={`${domain.label} — ${content.panelHeading || "Domain Brief"}`}
+      aria-label={`${domain.label} - ${content.panelHeading || t("Domain Brief")}`}
       className={`${panelPlacements[placement]} overflow-hidden rounded-2xl border border-orange-200/28 bg-[#04101c]/96 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.5),0_0_44px_rgba(249,115,22,0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-200 sm:p-6`}
     >
       {/* HUD corner brackets */}
@@ -79,13 +81,13 @@ const DomainBriefPanel = ({
             aria-hidden="true"
             className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300"
           />
-          {content.panelHeading || "Domain Brief"}
+          {content.panelHeading || t("Domain Brief")}
         </p>
 
         <button
           type="button"
           onClick={onClose}
-          aria-label={content.panelCloseLabel || "Close brief"}
+          aria-label={content.panelCloseLabel || t("Close brief")}
           className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/12 bg-white/[0.06] text-white/70 transition hover:border-orange-200/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-200"
         >
           <X className="h-4 w-4" aria-hidden="true" />

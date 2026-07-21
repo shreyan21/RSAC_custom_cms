@@ -8,13 +8,11 @@ import {
   ScanLine,
   Waves,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
-import {
-  floodArchiveYears,
-  floodReportsByYear,
-} from "../../data/floodReportsArchive.generated";
+import { getCmsFloodReportsByYear } from "../../data/customCmsClient";
 import { useFloodData, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useDialog } from "../../hooks/useDialog";
@@ -38,25 +36,46 @@ const localizeReportMeta = (meta, t, isHindi) => {
 const FloodReportsPage = () => {
   const { floodSection, floodReports } = useFloodData();
   const { pageContent } = useSiteSettings();
-  const { t, isHindi } = useLanguage();
+  const { t, isHindi, language } = useLanguage();
   const { openDocument } = useDialog();
   const { year } = useParams();
+  const [archiveResult, setArchiveResult] = useState({
+    key: "",
+    reports: [],
+    error: false,
+  });
   const c = pageContent.floodReports;
 
-  // Year archive view (/flood-reports/:year): the complete season mirrored in
-  // public/documents/flood/<year>/ — no jump to the legacy site. Years without
-  // a mirrored archive (e.g. a new season) fall back to CMS reports.
-  const archiveReports = year ? floodReportsByYear[year] : undefined;
-  const visibleReports = year
-    ? archiveReports ||
-      floodReports.filter((report) => String(report.date).startsWith(year))
-    : floodReports;
+  useEffect(() => {
+    if (!year) return undefined;
+
+    let active = true;
+    const requestKey = `${language}:${year}`;
+    getCmsFloodReportsByYear(year, language)
+      .then((reports) => {
+        if (active) {
+          setArchiveResult({ key: requestKey, reports, error: false });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setArchiveResult({ key: requestKey, reports: [], error: true });
+        }
+      });
+
+    return () => { active = false; };
+  }, [language, year]);
+
+  const archiveKey = year ? `${language}:${year}` : "";
+  const archiveReady = Boolean(year) && archiveResult.key === archiveKey;
+  const archiveLoading = Boolean(year) && !archiveReady;
+  const archiveError = archiveReady && archiveResult.error;
+  const archiveReports = archiveReady ? archiveResult.reports : [];
+  const visibleReports = year ? archiveReports : floodReports;
 
   // Year buttons: editable list from CMS when provided, otherwise every
   // mirrored season.
-  const archives = floodSection.archives?.length
-    ? floodSection.archives
-    : floodArchiveYears.map((archiveYear) => ({ year: archiveYear }));
+  const archives = floodSection.archives || [];
 
   return (
     <PageShell
@@ -135,12 +154,22 @@ const FloodReportsPage = () => {
           </div>
 
           <div className="divide-y divide-slate-200">
-            {visibleReports.length === 0 && (
+            {archiveLoading && (
+              <p className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                {t("Loading content")}
+              </p>
+            )}
+            {!archiveLoading && archiveError && (
+              <p className="px-5 py-8 text-center text-sm font-semibold text-red-700">
+                {t("Website content unavailable")}
+              </p>
+            )}
+            {!archiveLoading && !archiveError && visibleReports.length === 0 && (
               <p className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
                 {t("No reports have been published for this year yet.")}
               </p>
             )}
-            {visibleReports.map((report) => (
+            {!archiveLoading && !archiveError && visibleReports.map((report) => (
               <article
                 key={report.id}
                 className="grid min-w-0 gap-3 px-4 py-5 transition hover:bg-[#f8fbfd] sm:px-5 md:grid-cols-[7rem_minmax(0,1fr)_11rem_7rem] md:items-center md:gap-4"

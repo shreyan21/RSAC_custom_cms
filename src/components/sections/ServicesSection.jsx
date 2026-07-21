@@ -47,7 +47,7 @@ const ServicesSection = () => {
   const tabs = [
     services?.items?.length && {
       key: "services",
-      label: services.tabLabel || "Scientific Services",
+      label: services.tabLabel || t("Scientific Services"),
       eyebrow: services.eyebrow,
       title: services.title,
       description: services.description,
@@ -55,7 +55,7 @@ const ServicesSection = () => {
     },
     applications?.items?.length && {
       key: "applications",
-      label: applications.tabLabel || "Operational Programmes",
+      label: applications.tabLabel || t("Operational Programmes"),
       eyebrow: applications.eyebrow,
       title: applications.title,
       description: applications.description,

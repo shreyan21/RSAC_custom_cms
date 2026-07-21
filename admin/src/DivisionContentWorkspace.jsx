@@ -42,6 +42,10 @@ const sourceLabel = (block) => {
 const titleOf = (page) => page?.dataEn?.title || page?.entryKey || "Untitled division";
 const isPeopleSection = (label) => /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(label);
 
+const controlsVisibleSectionLabel = (block) =>
+  block?.controlsSectionLabel !== false ||
+  (block?.assetOnly === true && divisionBlockPrimarySection(block) === "Map/Photos");
+
 const editableRows = (block, referenceBlock = block, pageData, referencePageData = pageData) => {
   const scopedChildren = divisionRowsForSection(block, referenceBlock);
   const scopedReferenceChildren = divisionRowsForSection(referenceBlock, referenceBlock);
@@ -302,7 +306,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="primary" onClick={addAtTop}><Plus /> {numbered ? "Add item at top" : "Add line at top"}</button><label><Search /><input value={rowSearch} onChange={(event) => setRowSearch(event.target.value)} placeholder={`Search ${rows.length} rows`} /></label></div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
-      {currentBlock?.controlsSectionLabel !== false && typeof currentBlock?.value === "string" && <label className="field-row"><span>Section heading</span>{language === "hi" && englishBlock?.value && <small className="english-field-reference">English: {englishBlock.value}</small>}<input value={currentBlock.value} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
+      {controlsVisibleSectionLabel(currentBlock) && <label className="field-row"><span>Section heading</span>{language === "hi" && englishBlock?.value && <small className="english-field-reference">English: {englishBlock.value}</small>}<input value={typeof currentBlock?.value === "string" ? currentBlock.value : sectionLabelForReference(currentBlock, englishBlock)} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
       <div className="workspace-row-list">
         {filteredRows.map((row) => {
           const { child, referenceChild } = row;

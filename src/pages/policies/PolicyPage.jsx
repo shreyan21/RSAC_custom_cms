@@ -5,7 +5,7 @@ import { useGetPolicyBySlug, usePolicies } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 
 const PolicyPage = ({ slug }) => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const getPolicyBySlug = useGetPolicyBySlug();
   const policyPages = usePolicies();
   const page = getPolicyBySlug(slug);
@@ -16,25 +16,25 @@ const PolicyPage = ({ slug }) => {
 
   return (
     <PageShell
-      eyebrow={isHindi ? "वेबसाइट नीति" : "Website Policy"}
+      eyebrow={t("Website Policy")}
       title={page.title}
       intro={page.summary}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
-        { label: isHindi ? "वेबसाइट नीतियां" : "Website Policies" },
+        { label: t("Home"), to: "/" },
+        { label: t("Website Policies") },
         { label: page.title },
       ]}
       actions={
         <>
           <BackButton
             fallback="/"
-            label={isHindi ? "मुखपृष्ठ पर वापस जाएं" : "Back to Home"}
+            label={t("Back to Home")}
           />
           <Link
             to="/sitemap"
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#102f46] transition hover:border-[#0b6fa4]/35 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b6fa4]"
           >
-            {isHindi ? "साइटमैप देखें" : "View Sitemap"}
+            {t("View Sitemap")}
           </Link>
         </>
       }
@@ -59,7 +59,7 @@ const PolicyPage = ({ slug }) => {
 
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_16px_50px_rgba(18,50,74,0.06)] lg:sticky lg:top-36 lg:h-fit">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0b6fa4]">
-            {isHindi ? "संबंधित नीतियां" : "Related Policies"}
+            {t("Related Policies")}
           </p>
 
           <div className="mt-5 space-y-2">

@@ -1,8 +1,17 @@
 import { useRef, useState } from "react";
-import { FileUp, ImagePlus, Search, Trash2, Undo2, Upload } from "lucide-react";
+import { FileUp, Film, ImagePlus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { api, mediaPreviewUrl } from "./api";
 
 const imagePattern = /\.(?:png|jpe?g|webp|avif|gif|svg)(?:[?#].*)?$/i;
+
+const assetKindLabel = {
+  image: "Photo",
+  video: "Video",
+  audio: "Audio",
+  document: "Document",
+  embed: "Interactive",
+  link: "Web link",
+};
 
 function AssetUploadField({ asset, onChange, onBusy, onError }) {
   const fileRef = useRef(null);
@@ -27,18 +36,24 @@ function AssetUploadField({ asset, onChange, onBusy, onError }) {
       : asset.kind === "audio"
         ? ".mp3,.wav,.ogg,.m4a"
         : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip,.apk,image/*,video/mp4,video/webm";
+  const sourceLabel = asset.kind === "link" || asset.kind === "embed"
+    ? "Local file or webpage URL"
+    : "Local file URL";
 
   return (
-    <div className="imported-asset-url">
-      <input
-        value={asset.value || ""}
-        aria-label={`${asset.label} URL`}
-        placeholder="Local uploaded file URL or webpage URL"
-        onChange={(event) => onChange({ value: event.target.value })}
-      />
-      <input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} />
-      <button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Replace</button>
-    </div>
+    <label className="imported-asset-source">
+      <span>{sourceLabel}</span>
+      <div className="imported-asset-url">
+        <input
+          value={asset.value || ""}
+          aria-label={`${asset.label} URL`}
+          placeholder={sourceLabel}
+          onChange={(event) => onChange({ value: event.target.value })}
+        />
+        <input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} />
+        <button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Upload / replace</button>
+      </div>
+    </label>
   );
 }
 
@@ -63,7 +78,7 @@ export default function ImportedAssetEditor({ assets, onChange, onBusy = () => {
   const add = (kind) => onChange([...list, {
     key: `cms-asset-${crypto.randomUUID()}`,
     kind,
-    label: kind === "image" ? "New section image" : "New file or link",
+    label: kind === "image" ? "New section photo" : kind === "video" ? "New section video" : "New document or link",
     value: "",
     sourceValue: "",
     isNew: true,
@@ -72,8 +87,8 @@ export default function ImportedAssetEditor({ assets, onChange, onBusy = () => {
   return (
     <section className="imported-assets-editor">
       <div className="imported-assets-heading">
-        <div><strong>Section images, files and links</strong><p>Replace a local file or edit its URL. Existing page layout stays unchanged.</p></div>
-        <div className="imported-assets-add"><button type="button" className="secondary" onClick={() => add("image")}><ImagePlus /> Add image</button><button type="button" className="secondary" onClick={() => add("document")}><FileUp /> Add file or link</button></div>
+        <div><strong>Media shown in this section</strong><p>Each row states whether it is a photo, video, document or web link. Uploading replaces only that row.</p></div>
+        <div className="imported-assets-add"><button type="button" className="secondary" onClick={() => add("image")}><ImagePlus /> Add photo</button><button type="button" className="secondary" onClick={() => add("video")}><Film /> Add video</button><button type="button" className="secondary" onClick={() => add("document")}><FileUp /> Add document / link</button></div>
       </div>
       {active.length > 6 && <label className="imported-assets-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${active.length} media items`} /></label>}
       <div className="imported-assets-list">
@@ -82,11 +97,12 @@ export default function ImportedAssetEditor({ assets, onChange, onBusy = () => {
             <span className="imported-asset-number">{visibleIndex + 1}</span>
             {asset.kind === "image" && asset.value && imagePattern.test(asset.value) && <img src={mediaPreviewUrl(asset.value)} alt="Current CMS media preview" />}
             <div className="imported-asset-fields">
-              <strong>{asset.label || `Media ${index + 1}`}</strong>
+              <div className="imported-asset-title"><span>{assetKindLabel[asset.kind] || "Media"}</span><strong>{asset.label || `Media ${index + 1}`}</strong></div>
               <AssetUploadField asset={asset} onChange={(patch) => update(index, patch)} onBusy={onBusy} onError={onError} />
               {asset.kind === "image" && <label>Image description (alt text)<input value={asset.alt || ""} onChange={(event) => update(index, { alt: event.target.value })} /></label>}
-              {asset.isNew && asset.kind === "image" && <label>Caption<input value={asset.caption || ""} onChange={(event) => update(index, { caption: event.target.value })} /></label>}
-              {asset.isNew && asset.kind !== "image" && <label>Link text<input value={asset.text || ""} onChange={(event) => update(index, { text: event.target.value })} /></label>}
+              {asset.kind === "image" && !asset.isNew && <label>Visible title / caption (optional)<input value={asset.title || ""} onChange={(event) => update(index, { title: event.target.value })} /></label>}
+              {asset.kind === "image" && asset.isNew && <label>Visible caption (optional)<input value={asset.caption || ""} onChange={(event) => update(index, { caption: event.target.value })} /></label>}
+              {asset.kind !== "image" && <label>Visible title / link text<input value={asset.text || asset.title || ""} onChange={(event) => update(index, { text: event.target.value, title: event.target.value })} /></label>}
             </div>
             <button type="button" className="danger-icon" title={`Remove ${asset.label || "media"}`} onClick={() => remove(index)}><Trash2 /></button>
           </article>

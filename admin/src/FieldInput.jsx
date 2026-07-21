@@ -210,6 +210,12 @@ const settingsGroups = [
   {
     label: "Contact, apps, notices and portal page labels",
     fields: [
+      ["pageContent.downloads.eyebrow", "Downloads page small heading"],
+      ["pageContent.downloads.title", "Downloads page heading"],
+      ["pageContent.downloads.intro", "Downloads page introduction", "textarea"],
+      ["pageContent.downloads.emptyText", "Empty downloads message", "textarea"],
+      ["pageContent.downloads.openLabel", "Open document button label"],
+      ["pageContent.downloads.backLabel", "Downloads page back label"],
       ["pageContent.contact.backLabel", "Contact page back label"],
       ["pageContent.contact.downloadLabel", "Mobile app download label"],
       ["pageContent.contact.mobileAppsHeading", "Mobile apps section heading"],
@@ -302,6 +308,8 @@ const settingsGroups = [
       ["footer.assuranceText", "Assurance statement"],
       ["footer.visitorCountLabel", "Visitor counter label"],
       ["footer.webInformationManagerLabel", "Web manager label"],
+      ["footer.allRightsReserved", "Copyright wording"],
+      ["footer.lastUpdatedLabel", "Last updated label"],
     ],
   },
 ];

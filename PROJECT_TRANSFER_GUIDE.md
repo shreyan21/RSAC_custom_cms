@@ -2,22 +2,24 @@
 
 Use **Command Prompt (CMD)** for commands below.
 
-## Three Things That Must Be Synced
+## Four Things That Must Be Synced
 
 1. **Code**: GitHub repository.
 2. **CMS data**: latest `backups\rsac_custom_cms_YYYYMMDD_HHMMSS.sql` file.
 3. **CMS uploads**: complete `server\uploads` folder.
+4. **Flood PDFs**: complete `public\documents\flood` folder.
 
-Git does not transfer `.env.local`, database backups, or `server\uploads`.
+Git does not transfer `.env.local`, database backups, `server\uploads`, or the
+large flood-report folder.
 Never commit passwords or SQL backups.
 
 ## Choose Your Case
 
-| Case | Run `cms:setup`? | Pull Git? | Restore SQL? | Copy uploads? |
+| Case | Run `cms:setup`? | Pull Git? | Restore SQL? | Copy private media? |
 |---|---:|---:|---:|---:|
 | Fresh target computer | Once | Clone | Yes | Yes |
-| Existing target, code changed only | No | Yes | No | No |
-| Existing target, CMS content changed only | No | No | Yes | Yes |
+| Existing target, code changed only | No | Yes | No | Only if flood files are missing |
+| Existing target, CMS content changed only | No | No | Yes | Uploads; flood folder only if changed |
 | Existing target, code and CMS changed | No | Yes | Yes | Yes |
 | Target has newer accepted work | No | Reverse source/target roles | Yes | Yes |
 
@@ -73,9 +75,10 @@ Copy SQL and uploads to USB/shared folder. Replace `X:` with its drive:
 if not exist X:\RSAC_TRANSFER mkdir X:\RSAC_TRANSFER
 copy /Y "backups\YOUR_NEW_BACKUP.sql" "X:\RSAC_TRANSFER\"
 xcopy "server\uploads" "X:\RSAC_TRANSFER\uploads" /E /I /Y
+xcopy "public\documents\flood" "X:\RSAC_TRANSFER\flood" /E /I /Y
 ```
 
-If `server\uploads` does not exist or is empty, skip `xcopy`.
+If either source folder does not exist or is empty, skip only its `xcopy` line.
 
 ## B. Fresh Target Computer
 
@@ -107,7 +110,9 @@ Copy and restore source data:
 if not exist backups mkdir backups
 copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
 xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+xcopy "X:\RSAC_TRANSFER\flood" "public\documents\flood" /E /I /Y
 npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
+npm run cms:flood-check
 ```
 
 Without source SQL, setup uses committed starter seed. It will not contain latest
@@ -146,6 +151,7 @@ Then copy and restore source data:
 ```cmd
 copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
 xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+xcopy "X:\RSAC_TRANSFER\flood" "public\documents\flood" /E /I /Y
 npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
 npm run dev:all
 ```
@@ -158,6 +164,7 @@ git pull origin master
 npm ci --include=dev
 copy /Y "X:\RSAC_TRANSFER\YOUR_NEW_BACKUP.sql" "backups\"
 xcopy "X:\RSAC_TRANSFER\uploads" "server\uploads" /E /I /Y
+xcopy "X:\RSAC_TRANSFER\flood" "public\documents\flood" /E /I /Y
 npm run cms:restore -- backups\YOUR_NEW_BACKUP.sql
 npm run dev:all
 ```
@@ -196,6 +203,7 @@ In second CMD window, validate:
 ```cmd
 cd /d D:\RSAC_custom_cms
 npm run cms:validate
+npm run cms:flood-check
 ```
 
 Check English, Hindi, images, PDFs, videos, CMS login, and one harmless edit.
@@ -218,6 +226,7 @@ Do not rerun `cms:setup` for this problem.
 Code changed    -> Git push and pull
 CMS changed     -> SQL backup and restore
 Media changed   -> Copy server\uploads
+Flood PDFs missing or changed -> Copy public\documents\flood
 Fresh target    -> cms:setup once before first restore
 Existing target -> Never rerun cms:setup
 ```

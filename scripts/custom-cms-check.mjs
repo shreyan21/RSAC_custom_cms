@@ -1,4 +1,5 @@
 import { config as loadEnv } from "dotenv";
+import { JSDOM } from "jsdom";
 import pg from "pg";
 import { assembleBootstrap } from "../server/contentAssembler.js";
 import { collections as collectionDefinitions } from "../shared/cmsCollections.js";
@@ -12,6 +13,10 @@ import {
   divisionSectionFamily,
   findLocalizedDivisionBlockIndex,
 } from "../src/data/divisionSectionLabels.js";
+import {
+  findLegacyImportedTabStrips,
+  removeLegacyImportedTabStrips,
+} from "../src/data/importedHtmlCleanup.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) throw new Error("CMS_DATABASE_URL missing. Run npm run cms:setup.");
@@ -76,10 +81,76 @@ const expectedCipdmVideos = [
 if (!cipdmPage || expectedCipdmVideos.some((fileName) => !cipdmPage.html?.includes(fileName))) {
   throw new Error("CIPDM 3D-model links must remain MP4 videos instead of JPG poster links.");
 }
+const cipdmMapBlock = (cipdmPage.blocks || []).find((block) =>
+  String(block.value || block.label || "").toLowerCase().replace(/\s+/gu, "").includes("map/photos")
+);
+const cipdmMediaAssets = cipdmMapBlock?.assets || [];
+const cipdmVideoValues = cipdmMediaAssets
+  .filter((asset) => asset.kind === "video")
+  .map((asset) => String(asset.value || ""));
+const expectedCipdmVideoValues = expectedCipdmVideos.map(
+  (fileName) => `/official-media/legacy-rsac/rsac_MODEL_vIDEOS/${fileName}`
+);
+if (
+  cipdmVideoValues.length !== expectedCipdmVideoValues.length ||
+  expectedCipdmVideoValues.some((value) => !cipdmVideoValues.includes(value))
+) {
+  throw new Error("CIPDM must expose exactly the four locally mirrored official videos in its CMS section.");
+}
+const cipdmInteractiveModel = cipdmMediaAssets.find(
+  (asset) => asset.value === "/official-media/legacy-rsac/dam/index.html"
+);
+if (
+  !cipdmInteractiveModel ||
+  cipdmInteractiveModel.title !== "RSAC-UP 3D Model" ||
+  cipdmInteractiveModel.text !== "RSAC-UP 3D Model"
+) {
+  throw new Error("CIPDM page-turning model must remain a clearly titled local CMS link.");
+}
 const facilityPages = english.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
 if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-image-processing-lab1" || facilityPages.at(-1)?.slug !== "service-block1") {
   throw new Error("Facility pages are missing or incorrectly ordered.");
 }
+const hindiFacilityPages = hindi.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
+const hindiSoilLab = hindiFacilityPages.find((page) => page.slug === "soil-analysis-lab1");
+const hindiSoilOverview = hindiSoilLab?.blocks?.[0];
+const hindiSoilPhotos = (hindiSoilOverview?.children || []).find((child) => child.key === "text-0003");
+const hindiSoilMapPhotos = (hindiSoilLab?.blocks || []).find(
+  (block) => canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos"
+);
+if (
+  hindiSoilPhotos?.value !== "तस्वीरें" ||
+  !hindiSoilPhotos.structural ||
+  hindiSoilPhotos.editorVisible !== false
+) {
+  throw new Error("Soil Analysis Lab duplicate legacy Hindi tabs must remain structural and excluded from the editor.");
+}
+if (
+  !hindiSoilMapPhotos ||
+  hindiSoilMapPhotos.label !== "मानचित्र/तस्वीरें" ||
+  hindiSoilMapPhotos.editorVisible === false ||
+  hindiSoilMapPhotos.controlsSectionLabel === false
+) {
+  throw new Error("Soil Analysis Lab Hindi Map/Photos heading must be visible and editable in the CMS.");
+}
+let removedLegacyTabStrips = 0;
+for (const [language, payload] of [["English", english], ["Hindi", hindi]]) {
+  for (const section of payload.rsacOfficialSections || []) {
+    for (const page of section.pages || []) {
+      if (!page.html) continue;
+      const document = new JSDOM(page.html).window.document;
+      const before = findLegacyImportedTabStrips(document).length;
+      removedLegacyTabStrips += removeLegacyImportedTabStrips(document);
+      if (findLegacyImportedTabStrips(document).length) {
+        throw new Error(`${language} ${page.slug} retains a duplicate imported tab strip after cleanup.`);
+      }
+      if (page.slug === "soil-analysis-lab1" && before !== 1) {
+        throw new Error(`${language} Soil Analysis Lab must contain exactly one removable legacy tab strip.`);
+      }
+    }
+  }
+}
+if (!removedLegacyTabStrips) throw new Error("Legacy imported tab-strip cleanup is not covering any CMS pages.");
 if (english.publicInfoPages.length !== 4 || english.policyPages.length !== 7) {
   throw new Error("Public-service or policy page collections are incomplete.");
 }
@@ -132,6 +203,25 @@ if (
 }
 const hindiDivisionPages = hindi.rsacOfficialSections.find((section) => section.key === "divisions")?.pages || [];
 const hindiDivisionBySlug = new Map(hindiDivisionPages.map((page) => [page.slug, page]));
+const hindiCipdm = hindiDivisionBySlug.get("computer-image-processing-division");
+const hindiCipdmMapBlock = (hindiCipdm?.blocks || []).find((block) =>
+  (block.children || []).some((child) => child.key === "text-0186")
+);
+const hindiCipdmDivisionHeading = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0185");
+const hindiCipdmRelatedLinks = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0186");
+const hindiCipdmRelatedPhotos = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0187");
+if (
+  hindiCipdmDivisionHeading?.value !== "कंप्यूटर इमेज प्रोसेसिंग डिवीजन" ||
+  hindiCipdmDivisionHeading.hidden ||
+  hindiCipdmRelatedLinks?.value !== "" ||
+  !hindiCipdmRelatedLinks.hidden ||
+  !hindiCipdmRelatedLinks.sourceKeys?.includes("text-0205") ||
+  hindiCipdmRelatedPhotos?.value !== "संबंधित तस्वीरें" ||
+  hindiCipdmRelatedPhotos.hidden ||
+  !hindiCipdmRelatedPhotos.sourceKeys?.includes("text-0206")
+) {
+  throw new Error("CIPDM Hindi media headings do not match the English section structure.");
+}
 const hindiAgriculture = hindiDivisionBySlug.get("agriculture-resources-division1");
 const agricultureScientistBlock = (hindiAgriculture?.blocks || []).find(
   (block) => block.id === "official-agriculture-resources-division1-02"
@@ -270,6 +360,15 @@ if (organisationRoles.length < 10 || organisationRoles.some((role) => !role.role
 const contactDisplay = english.siteSettings.pageDisplaySettings?.find((item) => item.path === "/contact");
 if (!contactDisplay?.hideTitle || contactDisplay.headingSize !== "large") {
   throw new Error("Contact page heading display control is missing.");
+}
+const geoportalDisplay = english.siteSettings.pageDisplaySettings?.find((item) => item.path === "/geoportals");
+if (geoportalDisplay?.eyebrowSize !== "large") {
+  throw new Error("Geoportal small-heading size control is missing.");
+}
+for (const display of english.siteSettings.pageDisplaySettings || []) {
+  if (display.eyebrowSize && !["compact", "normal", "large"].includes(display.eyebrowSize)) {
+    throw new Error(`${display.path || display.key} has an invalid small-heading size.`);
+  }
 }
 const design = english.siteSettings.designSettings || {};
 if (!design.bodyFont || !design.headingFont || !design.hindiFont || design.baseFontSize < 14 || design.baseFontSize > 20) {

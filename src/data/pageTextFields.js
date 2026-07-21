@@ -336,6 +336,52 @@ export const flattenContentFields = (fields) => {
   return flat;
 };
 
+const controlsImportedSectionLabel = (block) =>
+  block?.controlsSectionLabel !== false ||
+  (
+    block?.assetOnly === true &&
+    canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos"
+  );
+
+// Convert the section-oriented CMS editor shape into exact source-text keys.
+// Blank or hidden values stay authoritative: they remove the corresponding
+// legacy HTML text instead of allowing that source text to reappear.
+export const flattenImportedPageTextFields = (blocks) => {
+  const fields = (Array.isArray(blocks) ? blocks : [])
+    .filter((block) => block && (Array.isArray(block.children) || block.key))
+    .flatMap((block) => {
+      const headingField = controlsImportedSectionLabel(block) && /^text-\d+$/u.test(String(block.key || ""))
+        ? [{ key: block.key, value: block.hidden ? "" : String(block.value || "") }]
+        : [];
+      const childFields = (Array.isArray(block.children) ? block.children : [])
+        .filter((child) =>
+          (child?.key || child?.sourceKeys?.length) &&
+          !child.isNew &&
+          !String(child.key || "").startsWith("cms-")
+        )
+        .flatMap((child) => {
+          const sourceKeys = Array.isArray(child.sourceKeys)
+            ? child.sourceKeys.filter(Boolean)
+            : [];
+          const keys = sourceKeys.length ? sourceKeys : [child.key];
+          return keys.map((key, index) => ({
+            key,
+            value: block.hidden || child.hidden || index > 0
+              ? ""
+              : String(child.value || ""),
+          }));
+      });
+      return [...headingField, ...childFields];
+    });
+
+  const claimedKeys = new Set();
+  return fields.filter((field) => {
+    if (!field.key || claimedKeys.has(field.key)) return false;
+    claimedKeys.add(field.key);
+    return true;
+  });
+};
+
 export const translatePageTextFields = (fields, translations = {}) => {
   const lookup = new Map(
     Object.entries(translations)

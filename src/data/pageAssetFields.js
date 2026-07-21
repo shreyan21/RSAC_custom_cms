@@ -189,8 +189,11 @@ export const applyPageAssetFields = (html, fields, { applyLabels = true } = {}) 
       candidate.kind === field.kind &&
       sourceValue &&
       candidate.sourceValue === sourceValue
-    ) || entries.find((candidate) => candidate.key === field.key)
-      || entries.find((candidate) => candidate.kind === field.kind && sourceValue && candidate.sourceValue === sourceValue);
+    ) || entries.find((candidate) =>
+      candidate.kind === field.kind &&
+      sourceValue &&
+      candidate.sourceValue === sourceValue
+    ) || entries.find((candidate) => candidate.key === field.key);
     if (!entry) return;
 
     const nextValue = safeAssetUrl(field.value, field.kind);
@@ -249,7 +252,21 @@ export const appendNewPageAssets = (html, fields) => {
       media.controls = true;
       media.src = value;
       media.dataset.rsacAddedAsset = "true";
+      const title = compactText(field.title || field.text);
+      if (title) {
+        media.title = title;
+        media.setAttribute("aria-label", title);
+      }
       document.body.append(media);
+      return;
+    }
+    if (field.kind === "embed") {
+      const frame = document.createElement("iframe");
+      frame.src = value;
+      frame.title = compactText(field.title || field.text) || "Interactive content";
+      frame.loading = "lazy";
+      frame.dataset.rsacAddedAsset = "true";
+      document.body.append(frame);
       return;
     }
     const paragraph = document.createElement("p");

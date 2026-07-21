@@ -53,6 +53,7 @@ const socialIcons = {
   facebook: FacebookIcon,
   twitter: TwitterIcon,
 };
+const EMPTY_SEARCH_ITEMS = [];
 
 const normalize = (value = "") =>
   String(value)
@@ -184,61 +185,26 @@ const scoreResult = (item, query) => {
   return score + Math.max(0, 12 - titleWords.length);
 };
 
-const DEFAULT_QUICK_SEARCHES = [
-  {
-    title: "Scientific Manpower",
-    description: "Scientist profiles with employee IDs and division details.",
-    path: "/about-us/scientific-manpower",
-    type: "People",
-  },
-  {
-    title: "Divisions",
-    description: "Scientific divisions, projects, reports, maps, and manpower.",
-    path: "/divisions",
-    type: "Section",
-  },
-  {
-    title: "Facilities",
-    description: "Labs, data bank, library, hostel, LiDAR, and service block.",
-    path: "/facilities",
-    type: "Section",
-  },
-  {
-    title: "Geo-Portals",
-    description: "PM Gati Shakti, Bhuvan, NGDR, VEDAS, Samvedan and related services.",
-    path: "/geoportals",
-    type: "Services",
-  },
-];
-
-const DEFAULT_INSTITUTIONAL_ITEMS = [
-  { title: "Our Formers", description: "Former chairmen, directors, and scientists.", path: "/about-us/our-formers", type: "Institution", keywords: ["former", "formers", "chairman", "director", "scientist", "governing body"] },
-  { title: "About RSAC-UP", description: "Established at Lucknow in May 1982.", path: "/about-us/read-more-about-us", type: "Institution", keywords: ["about", "established", "lucknow", "1982", "remote sensing"] },
-  { title: "Organisational Chart", description: "Official organisational structure of RSAC-UP.", path: "/organisation-chart", type: "Institution", keywords: ["organisation", "organization", "chart", "structure", "hierarchy"] },
-  { title: "Training Programmes", description: "Remote sensing and GIS training programmes.", path: "/academics/training-division-", type: "Training", keywords: ["training", "capacity building", "students", "officials"] },
-  { title: "Remote Sensing, GIS, GPS", description: "Core technology areas used by RSAC-UP.", path: "/divisions", type: "Capability", keywords: ["satellite", "remote sensing", "gis", "gps", "image processing"] },
-];
-
-const buildSearchIndex = (officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems = DEFAULT_INSTITUTIONAL_ITEMS) => {
+const buildSearchIndex = (officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems = [], translate = (value) => value) => {
   const items = [];
 
   (officials || []).forEach((o) =>
-    items.push({ title: o.name, description: o.department || o.role || "", path: "/leadership", type: "Profile", keywords: [o.name, o.role, o.department, o.category] })
+    items.push({ title: o.name, description: o.department || o.role || "", path: "/leadership", type: translate("Profile"), keywords: [o.name, o.role, o.department, o.category] })
   );
   (scientists || []).forEach((s) =>
-    items.push({ title: s.name, description: s.designation || "", path: "/scientists", type: "Profile", keywords: [s.name, s.designation, s.specialization, s.deployment, s.department, s.employeeId, s.employee_id, s.email] })
+    items.push({ title: s.name, description: s.designation || "", path: "/scientists", type: translate("Profile"), keywords: [s.name, s.designation, s.specialization, s.deployment, s.department, s.employeeId, s.employee_id, s.email] })
   );
   (technical || []).forEach((t) =>
-    items.push({ title: t.name, description: t.designation || "", path: "/technical-staff", type: "Profile", keywords: [t.name, t.designation] })
+    items.push({ title: t.name, description: t.designation || "", path: "/technical-staff", type: translate("Profile"), keywords: [t.name, t.designation] })
   );
   (admin || []).forEach((a) =>
-    items.push({ title: a.name, description: a.designation || "", path: "/administration", type: "Profile", keywords: [a.name, a.designation] })
+    items.push({ title: a.name, description: a.designation || "", path: "/administration", type: translate("Profile"), keywords: [a.name, a.designation] })
   );
   (divisions || []).forEach((d) =>
-    items.push({ title: d.title, description: d.lead || "", path: "/divisions/" + d.id, type: "Division", keywords: [d.title, d.lead] })
+    items.push({ title: d.title, description: d.lead || "", path: "/divisions/" + d.id, type: translate("Division"), keywords: [d.title, d.lead] })
   );
   (notices || []).forEach((n) =>
-    items.push({ title: n.title, description: n.category || "", path: "/notices", type: "Notice", keywords: [n.title, n.category] })
+    items.push({ title: n.title, description: n.category || "", path: "/notices", type: translate("Notice"), keywords: [n.title, n.category] })
   );
   (menuItems || []).forEach((section) =>
     (section.links || []).forEach((link) => {
@@ -247,23 +213,23 @@ const buildSearchIndex = (officials, scientists, technical, admin, divisions, no
           title: link.label,
           description: link.description || section.description || "",
           path: link.path,
-          type: "Page",
+          type: translate("Page"),
           keywords: [section.title, link.label, link.description || ""],
         });
       }
     })
   );
   (geoportals || []).forEach((g) =>
-    items.push({ title: g.title, description: g.description || "", path: "/geoportals", type: "Geoportal", keywords: [g.title] })
+    items.push({ title: g.title, description: g.description || "", path: "/geoportals", type: translate("Geoportal"), keywords: [g.title] })
   );
   (policies || []).forEach((p) =>
-    items.push({ title: p.title, description: p.summary || "", path: "/" + p.slug, type: "Policy", keywords: [p.title, p.summary] })
+    items.push({ title: p.title, description: p.summary || "", path: "/" + p.slug, type: translate("Policy"), keywords: [p.title, p.summary] })
   );
   if (contactDetails) {
-    items.push({ title: "Contact RSAC-UP", description: contactDetails.address || "", path: "/contact", type: "Contact", keywords: [contactDetails.address, contactDetails.email, contactDetails.phone] });
+    items.push({ title: translate("Contact RSAC-UP"), description: contactDetails.address || "", path: "/contact", type: translate("Contact"), keywords: [contactDetails.address, contactDetails.email, contactDetails.phone] });
   }
   (officialSections || []).forEach((s) => {
-    items.push({ title: s.title, description: s.intro || "", path: "/" + s.route, type: "Section", keywords: [s.title, s.intro] });
+    items.push({ title: s.title, description: s.intro || "", path: "/" + s.route, type: translate("Section"), keywords: [s.title, s.intro] });
     (s.pages || []).forEach((page) => {
       items.push({
         title: page.title,
@@ -325,63 +291,35 @@ const TopBar = () => {
   const officialSections = useRsacOfficialSections();
   const { search: searchCfg, ui, footer } = useSiteSettings();
   const socialLinks = footer?.socialLinks || [];
-  const quickSearches = searchCfg?.quickLinks?.length
-    ? searchCfg.quickLinks
-    : DEFAULT_QUICK_SEARCHES;
-  const institutionalItems = searchCfg?.institutionalItems?.length
-    ? searchCfg.institutionalItems
-    : DEFAULT_INSTITUTIONAL_ITEMS;
-  const topbarText = isHindi
-    ? {
-        skip: "मुख्य सामग्री पर जाएं",
-        skipShort: "मुख्य सामग्री",
-        screenReader: "स्क्रीन रीडर अभिगम",
-        readerShort: "रीडर",
-        displayOptions: "प्रदर्शन विकल्प",
-        openSearch: "साइट खोज खोलें",
-        searchButton: "साइट खोजें",
-        decrease: "पाठ आकार घटाएं",
-        resetSize: "पाठ आकार सामान्य करें",
-        increase: "पाठ आकार बढ़ाएं",
-        contrast: "कंट्रास्ट",
-        toggleContrast: "उच्च कंट्रास्ट मोड बदलें",
-        sitemap: "साइटमैप",
-        sitemapShort: "मानचित्र",
-        displayTitle: "सुगम्यता प्रदर्शन विकल्प",
-        displayIntro: "मूल सामग्री बदले बिना प्रस्तुति समायोजित करें।",
-        closeDisplay: "प्रदर्शन विकल्प बंद करें",
-        accessibility: "सुगम्यता वक्तव्य",
-        resetDisplay: "प्रदर्शन सामान्य करें",
-        closeSearch: "खोज बंद करें",
-        searchAria: "आरएसएसी वेबसाइट खोज",
-      }
-    : {
-        skip: "Skip to main content",
-        skipShort: "Skip to Content",
-        screenReader: "Screen Reader Access",
-        readerShort: "Reader",
-        displayOptions: "Display options",
-        openSearch: "Open site search",
-        searchButton: "Search site",
-        decrease: "Decrease text size",
-        resetSize: "Reset text size",
-        increase: "Increase text size",
-        contrast: "Contrast",
-        toggleContrast: "Toggle high contrast mode",
-        sitemap: "Sitemap",
-        sitemapShort: "Map",
-        displayTitle: "Accessibility display options",
-        displayIntro: "Adjust presentation without changing the underlying content.",
-        closeDisplay: "Close display options",
-        accessibility: "Accessibility statement",
-        resetDisplay: "Reset display",
-        closeSearch: "Close search",
-        searchAria: "Search RSAC website",
-      };
+  const quickSearches = searchCfg?.quickLinks || [];
+  const institutionalItems = searchCfg?.institutionalItems || EMPTY_SEARCH_ITEMS;
+  const topbarText = {
+    skip: t("Skip to main content"),
+    skipShort: t("Skip to Content"),
+    screenReader: t("Screen Reader Access"),
+    readerShort: t("Reader"),
+    displayOptions: t("Display options"),
+    openSearch: t("Open site search"),
+    searchButton: t("Search site"),
+    decrease: t("Decrease text size"),
+    resetSize: t("Reset text size"),
+    increase: t("Increase text size"),
+    contrast: t("Contrast"),
+    toggleContrast: t("Toggle high contrast mode"),
+    sitemap: t("Sitemap"),
+    sitemapShort: t("Map"),
+    displayTitle: t("Accessibility display options"),
+    displayIntro: t("Adjust presentation without changing the underlying content."),
+    closeDisplay: t("Close display options"),
+    accessibility: t("Accessibility statement"),
+    resetDisplay: t("Reset display"),
+    closeSearch: t("Close search"),
+    searchAria: t("Search RSAC website"),
+  };
 
   const searchIndex = useMemo(
-    () => buildSearchIndex(officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems),
-    [officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems]
+    () => buildSearchIndex(officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems, t),
+    [officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems, t]
   );
 
   const scrollToHash = (hash) => {
@@ -589,11 +527,11 @@ const TopBar = () => {
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-3 lg:gap-5">
             <button
               type="button"
-              aria-label={isHindi ? topbarText.skip : ui?.skipToContent || topbarText.skip}
+              aria-label={ui?.skipToContent || topbarText.skip}
               className="hidden min-h-7 whitespace-nowrap rounded-md px-2 transition duration-300 hover:bg-emerald-50 hover:text-emerald-700 lg:inline"
               onClick={focusMainContent}
             >
-              {isHindi ? topbarText.skipShort : ui?.skipToContentShort || topbarText.skipShort}
+              {ui?.skipToContentShort || topbarText.skipShort}
             </button>
 
             <Link
@@ -651,13 +589,13 @@ const TopBar = () => {
             <button
               type="button"
               onClick={() => setAccessibilityOpen((open) => !open)}
-              aria-label={isHindi ? topbarText.displayOptions : ui?.displayOptions || topbarText.displayOptions}
+              aria-label={ui?.displayOptions || topbarText.displayOptions}
               aria-expanded={accessibilityOpen}
               aria-haspopup="dialog"
               className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2 transition duration-300 hover:bg-emerald-50 hover:text-emerald-700"
             >
               <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="hidden xl:inline">{isHindi ? topbarText.displayOptions : ui?.displayOptions || topbarText.displayOptions}</span>
+              <span className="hidden xl:inline">{ui?.displayOptions || topbarText.displayOptions}</span>
             </button>
           </div>
 
@@ -686,7 +624,7 @@ const TopBar = () => {
 
             <div
               role="group"
-              aria-label="भाषा चुनें / Select language"
+              aria-label={t("Select language")}
               className="flex items-center rounded-md border border-slate-200 bg-white p-0.5"
             >
               <button
@@ -696,7 +634,7 @@ const TopBar = () => {
                 aria-pressed={language === "hi"}
                 className="min-h-6 rounded px-1.5 font-bold text-[#0f6f42] transition hover:bg-emerald-50 aria-pressed:bg-emerald-100"
               >
-                {searchCfg?.languageLabels?.primary || "हिं"}
+                {searchCfg?.languageLabels?.primary || t("Hindi short label")}
               </button>
               <span aria-hidden="true" className="text-slate-300">|</span>
               <button
@@ -706,7 +644,7 @@ const TopBar = () => {
                 aria-pressed={language === "en"}
                 className="min-h-6 rounded px-1.5 font-bold text-[#0b6fa4] transition hover:bg-sky-50 aria-pressed:bg-sky-100"
               >
-                {searchCfg?.languageLabels?.secondary || "EN"}
+                {searchCfg?.languageLabels?.secondary || t("English short label")}
               </button>
             </div>
 
@@ -728,10 +666,10 @@ const TopBar = () => {
               className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 font-semibold text-[#102f46] shadow-sm transition duration-300 hover:border-[#0b6fa4]/35 hover:bg-sky-50 hover:text-[#0b6fa4]"
               aria-haspopup="dialog"
               aria-expanded={searchOpen}
-              aria-label={isHindi ? topbarText.openSearch : ui?.openSearch || topbarText.openSearch}
+              aria-label={ui?.openSearch || topbarText.openSearch}
             >
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{isHindi ? topbarText.searchButton : ui?.searchButtonLabel || topbarText.searchButton}</span>
+              <span className="hidden sm:inline">{ui?.searchButtonLabel || topbarText.searchButton}</span>
             </button>
           </div>
         </div>
@@ -769,37 +707,29 @@ const TopBar = () => {
           <div className="grid gap-2 p-3 sm:grid-cols-2">
             {[
               {
-                label: isHindi ? "पाठ अंतराल" : "Text spacing",
-                description: isHindi
-                  ? "अक्षर और शब्द अंतराल बढ़ाएं"
-                  : "Increase letter and word spacing",
+                label: t("Text spacing"),
+                description: t("Increase letter and word spacing"),
                 icon: TextCursorInput,
                 value: textSpacing,
                 setValue: setTextSpacing,
               },
               {
-                label: isHindi ? "पंक्ति ऊंचाई" : "Line height",
-                description: isHindi
-                  ? "पंक्तियों के बीच अंतर बढ़ाएं"
-                  : "Add breathing room between lines",
+                label: t("Line height"),
+                description: t("Add breathing room between lines"),
                 icon: AlignJustify,
                 value: lineHeight,
                 setValue: setLineHeight,
               },
               {
-                label: isHindi ? "चित्र छिपाएं" : "Hide images",
-                description: isHindi
-                  ? "पाठ और लेआउट रखते हुए चित्र छिपाएं"
-                  : "Keep text and layout, hide visual media",
+                label: t("Hide images"),
+                description: t("Keep text and layout, hide visual media"),
                 icon: ImageOff,
                 value: hideImages,
                 setValue: setHideImages,
               },
               {
-                label: isHindi ? "बड़ा कर्सर" : "Large cursor",
-                description: isHindi
-                  ? "अधिक दिखाई देने वाला बड़ा सूचक उपयोग करें"
-                  : "Use a larger high-visibility pointer",
+                label: t("Large cursor"),
+                description: t("Use a larger high-visibility pointer"),
                 icon: MousePointer2,
                 value: largeCursor,
                 setValue: setLargeCursor,
@@ -881,11 +811,11 @@ const TopBar = () => {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 id="site-search-title" className="text-lg font-extrabold text-[#102f46] sm:text-xl">
-                    {searchCfg?.title || "Search RSAC-UP"}
+                    {searchCfg?.title || t("Search RSAC-UP")}
                   </h2>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
                     {searchCfg?.subtitle ||
-                      "Pages, profiles, divisions, facilities, academics, and portals."}
+                      t("Pages, profiles, divisions, facilities, academics, and portals.")}
                   </p>
                 </div>
 
@@ -908,11 +838,11 @@ const TopBar = () => {
                   onChange={(event) => setQuery(event.target.value)}
                   aria-label={
                     searchCfg?.inputLabel ||
-                    "Search divisions, scientists, facilities, academics and geo-portals"
+                    t("Search divisions, scientists, facilities, academics and geo-portals")
                   }
                   placeholder={
                     searchCfg?.placeholder ||
-                    "Type a name, division, facility, PDF topic, or portal"
+                    t("Type a name, division, facility, PDF topic, or portal")
                   }
                   className="min-h-11 w-full min-w-0 bg-transparent text-base font-semibold text-[#12324a] outline-none placeholder:text-slate-400"
                 />
@@ -926,18 +856,18 @@ const TopBar = () => {
               <div className="mb-3 flex items-center justify-between gap-3 px-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                 <span aria-live="polite">
                   {query.trim().length < 2
-                    ? searchCfg?.quickLinksLabel || "Quick Links"
-                    : searchCfg?.resultsLabel || "Search Results"}
+                    ? searchCfg?.quickLinksLabel || t("Quick Links")
+                    : searchCfg?.resultsLabel || t("Search Results")}
                 </span>
                 <span>
-                  {visibleResults.length} {searchCfg?.foundSuffix || "found"}
+                  {visibleResults.length} {searchCfg?.foundSuffix || t("found")}
                 </span>
               </div>
 
               {query.trim().length > 0 && query.trim().length < 2 && (
                 <p className="mb-3 rounded-lg border border-sky-900/10 bg-sky-50 px-3 py-2 text-sm font-semibold text-slate-600">
                   {searchCfg?.minCharsHint ||
-                    "Type at least 2 characters for site search."}
+                    t("Type at least 2 characters for site search.")}
                 </p>
               )}
 
@@ -980,11 +910,11 @@ const TopBar = () => {
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
                   <p className="text-base font-bold text-[#12324a]">
-                    {searchCfg?.emptyTitle || "No matching result found."}
+                    {searchCfg?.emptyTitle || t("No matching result found.")}
                   </p>
                   <p className="mt-2 text-sm text-slate-600">
                     {searchCfg?.emptyHint ||
-                      "Try searching for GIS, agriculture, water, training, disaster, or remote sensing."}
+                      t("Try searching for GIS, agriculture, water, training, disaster, or remote sensing.")}
                   </p>
                 </div>
               )}

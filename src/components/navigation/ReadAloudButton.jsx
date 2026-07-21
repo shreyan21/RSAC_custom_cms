@@ -71,7 +71,7 @@ const ReadAloudButton = () => {
     synth.resume();
 
     const main = document.getElementById("main-content");
-    const text = buildPageSpeech(main, isHindi);
+    const text = buildPageSpeech(main, t);
     if (!text) {
       return;
     }

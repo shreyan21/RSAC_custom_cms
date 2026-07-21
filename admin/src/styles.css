@@ -216,7 +216,11 @@ textarea { resize: vertical; }
 .imported-asset-fields { min-width: 0; display: grid; gap: 8px; }
 .imported-asset-row:not(.has-preview) .imported-asset-fields { grid-column: 2 / 4; }
 .imported-asset-row:not(.has-preview) > .danger-icon { grid-column: 4; }
-.imported-asset-fields > strong { overflow-wrap: anywhere; color: #526b7b; font-size: 12px; }
+.imported-asset-title { min-width: 0; display: flex; align-items: flex-start; gap: 8px; }
+.imported-asset-title > span { flex: none; border: 1px solid #c7dde3; border-radius: 4px; background: #eef7f6; padding: 3px 6px; color: #176349; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+.imported-asset-title > strong { min-width: 0; overflow-wrap: anywhere; color: #526b7b; font-size: 12px; line-height: 1.45; }
+.imported-asset-source { display: grid; gap: 5px; }
+.imported-asset-source > span { color: #526b7b; font-size: 11px; font-weight: 800; }
 .imported-asset-url { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
 .imported-asset-url input { min-width: 0; }
 .imported-asset-row > .danger-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #e2c4c1; border-radius: 5px; background: white; color: #a13c34; }

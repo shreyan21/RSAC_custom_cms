@@ -39,7 +39,7 @@ export default function useLivePreview({ collection, draft, language, notify }) 
       if (previewWindow && !previewWindow.closed) {
         if (open || routeChanged) {
           previewWindow.location.replace(target);
-          previewWindow.focus();
+          if (open) previewWindow.focus();
         } else {
           previewWindow.postMessage(
             { type: previewMessageType, token: result.token, revision: result.revision },

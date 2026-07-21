@@ -48,7 +48,7 @@ const footerHeadingSizeClasses = {
 };
 
 const Footer = () => {
-  const { isHindi } = useLanguage();
+  const { isHindi, t } = useLanguage();
   const { contentVersion } = useDataContext();
   const contactDetails = useContactDetails();
   const { branding, footer } = useSiteSettings();
@@ -64,7 +64,7 @@ const Footer = () => {
     footer.reviewLabel,
     isHindi ? "hi-IN" : "en-IN"
   );
-  const contactHeading = footer.contactHeading || (isHindi ? "संपर्क" : "Contact");
+  const contactHeading = footer.contactHeading || t("Contact");
   const contactHeadingSize = footerHeadingSizeClasses[footer.contactHeadingSize]
     || footerHeadingSizeClasses.normal;
   const statutoryLinks = (footer.statutoryLinks || []).filter(
@@ -207,7 +207,7 @@ const Footer = () => {
                 &copy; {currentYear}{" "}
                 <span className="font-semibold">{branding.organisationName}</span>.
                 {" "}
-                {isHindi ? "सर्वाधिकार सुरक्षित।" : "All Rights Reserved."}
+                {footer.allRightsReserved || t("All Rights Reserved.")}
               </p>
               <p className="text-xs text-white/50">
                 {footer.ownership}
@@ -225,7 +225,7 @@ const Footer = () => {
 
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <p className="text-sm text-orange-300">
-                {isHindi ? "अंतिम अद्यतन:" : "Last updated:"}{" "}
+                {footer.lastUpdatedLabel || t("Last updated:")}{" "}
                 <time dateTime={lastUpdated}>{reviewLabel}</time>
               </p>
               <p

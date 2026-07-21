@@ -3,11 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useActiveHeroVideo } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import HeroLeaderPortraits from "./HeroLeaderPortraits";
-import { activeHeroVideo as bundledHeroVideo } from "../../data/heroVideos";
-// Bundled poster = the video's exact first frame. We always use it (even when
-// the CMS supplies its own poster, which is a zoomed-UP still that does NOT
-// match the video's wide opening frame → caused the load "blink"/morph).
-import heroFrameZeroPoster from "../../assets/images/hero-videos/rsac-earth-studio-up-poster.jpg";
 
 const reduceMotionQuery = "(prefers-reduced-motion: reduce)";
 const constrainedConnectionTypes = new Set(["slow-2g", "2g", "3g"]);
@@ -33,23 +28,12 @@ const prefersLargeHeroSource = () =>
 const HeroBackground = () => {
   const { t } = useLanguage();
   const activeHeroVideo = useActiveHeroVideo() || {};
-  // Force the frame-0 poster so poster === video's first frame (seamless, no blink).
-  const heroPoster = heroFrameZeroPoster;
-  // A CMS row matching the bundled file resolves to bundledHeroVideo.video
-  // (small master); upgrade that to the large encode on big screens. Custom
-  // CMS uploads (different URL) are always used as-is.
+  const heroPoster = activeHeroVideo.poster || "";
   const [useLargeSource] = useState(prefersLargeHeroSource);
-  const bundledVideo =
-    useLargeSource && bundledHeroVideo.videoLarge
-      ? bundledHeroVideo.videoLarge
-      : bundledHeroVideo.video;
-  const requestedVideoRaw = activeHeroVideo.video || bundledHeroVideo.video || "";
   const requestedVideo =
-    requestedVideoRaw === bundledHeroVideo.video ? bundledVideo : requestedVideoRaw;
+    (useLargeSource && activeHeroVideo.videoLarge) || activeHeroVideo.video || "";
   const fallbackVideo =
-    requestedVideo && requestedVideo !== bundledHeroVideo.video
-      ? bundledHeroVideo.video
-      : "";
+    requestedVideo === activeHeroVideo.videoLarge ? activeHeroVideo.video || "" : "";
   const videoRef = useRef(null);
   const [reduceMotion, setReduceMotion] = useState(prefersReducedMotion);
   const [loadHeroVideo, setLoadHeroVideo] = useState(false);
@@ -348,12 +332,14 @@ const HeroBackground = () => {
       >
 
        <div className="absolute inset-0">
-        <img
-          src={heroPoster}
-          alt=""
-          className="hero-map-media hero-map-poster"
-          fetchPriority="high"
-        />
+        {heroPoster && (
+          <img
+            src={heroPoster}
+            alt=""
+            className="hero-map-media hero-map-poster"
+            fetchPriority="high"
+          />
+        )}
 
         {loadHeroVideo && !reduceMotion && heroVideo && (
 

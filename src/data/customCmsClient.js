@@ -44,6 +44,16 @@ export async function getCmsVersion() {
   return (await cmsRequest("/api/content/version", { cache: "no-store" })).version || "";
 }
 
+export async function getCmsFloodReportsByYear(year, language = "en") {
+  const normalizedYear = String(year || "").trim();
+  if (!/^\d{4}$/.test(normalizedYear)) return [];
+  const lang = language === "hi" ? "hi" : "en";
+  const payload = await cmsRequest(
+    `/api/content/flood_reports?lang=${lang}&year=${encodeURIComponent(normalizedYear)}`
+  );
+  return Array.isArray(payload.data) ? payload.data : [];
+}
+
 export function subscribeCmsUpdates(onUpdate) {
   if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
     return () => {};

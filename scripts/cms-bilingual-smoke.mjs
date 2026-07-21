@@ -31,8 +31,12 @@ try {
   rejectedMissingHindi = /required in Hindi/.test(error.message);
 }
 if (!rejectedMissingHindi) throw new Error("Published division items allowed a missing Hindi title.");
-const layoutOnlyHeading = validateEntryPayload("page_display_settings", { status: "published", dataEn: { path: "/verify-layout-only", title: "", hideTitle: false, contentWidth: "wide" }, dataHi: {} });
-if (layoutOnlyHeading.dataEn.hideTitle || layoutOnlyHeading.dataEn.contentWidth !== "wide") throw new Error("Layout-only page settings changed heading visibility.");
+const layoutOnlyHeading = validateEntryPayload("page_display_settings", { status: "published", dataEn: { path: "/verify-layout-only", title: "", hideTitle: false, eyebrowSize: "large", contentWidth: "wide" }, dataHi: {} });
+if (
+  layoutOnlyHeading.dataEn.hideTitle ||
+  layoutOnlyHeading.dataEn.eyebrowSize !== "large" ||
+  layoutOnlyHeading.dataEn.contentWidth !== "wide"
+) throw new Error("Layout-only page settings changed heading visibility or small-heading sizing.");
 const validatedDivisionItem = validateEntryPayload("division_section_items", divisionItemPayload);
 if (validatedDivisionItem.dataEn.divisionSlug !== "training-division" || validatedDivisionItem.dataHi.title !== divisionItemPayload.dataHi.title) {
   throw new Error("Structured division item validation changed bilingual or shared fields.");
@@ -471,7 +475,12 @@ if ((hindiBootstrap.siteSettings.organisationChart?.roles || []).length < 10) {
   throw new Error("Live organisation chart roles are missing.");
 }
 const contactDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((item) => item.path === "/contact");
-if (!contactDisplay?.hideTitle || !englishBootstrap.siteSettings.designSettings?.bodyFont) {
+const geoportalDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((item) => item.path === "/geoportals");
+if (
+  !contactDisplay?.hideTitle ||
+  geoportalDisplay?.eyebrowSize !== "large" ||
+  !englishBootstrap.siteSettings.designSettings?.bodyFont
+) {
   throw new Error("Live page-heading or typography controls are missing.");
 }
 console.log("CMS bilingual save, page layout and flexible blocks, focused division/facility sections, division image/file replacement, instant versioning, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");

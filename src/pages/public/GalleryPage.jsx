@@ -5,21 +5,13 @@ import BackButton from "../../components/navigation/BackButton";
 import Lightbox from "../../components/media/Lightbox";
 import { useGalleryItems, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
-import { gallerySection } from "../../data/gallery";
 
 const GalleryPage = () => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const galleryImages = useGalleryItems();
   const { pageContent } = useSiteSettings();
   const [activeIndex, setActiveIndex] = useState(null);
-  const g = pageContent?.gallery || {
-    eyebrow: isHindi ? gallerySection.eyebrowHi : gallerySection.eyebrow,
-    title: isHindi ? gallerySection.titleHi : gallerySection.title,
-    intro: isHindi ? gallerySection.introHi : gallerySection.intro,
-    emptyText: isHindi ? gallerySection.emptyTextHi : gallerySection.emptyText,
-    backLabel: isHindi ? "मुखपृष्ठ पर वापस जाएं" : "Back to Home",
-    imageAlt: isHindi ? "गैलरी चित्र" : "Gallery image",
-  };
+  const g = pageContent?.gallery || {};
 
   const lightboxImages = galleryImages.map((image) => ({
     src: image.src,
@@ -32,7 +24,7 @@ const GalleryPage = () => {
       title={g.title}
       intro={g.intro}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
+        { label: t("Home"), to: "/" },
         { label: g.eyebrow },
       ]}
       actions={
@@ -69,7 +61,7 @@ const GalleryPage = () => {
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   </span>
-                  {caption && !isHindi && (
+                  {caption && (
                     <span className="rsac-gallery-frame__caption block px-2 pb-1 pt-3 text-sm font-semibold leading-relaxed text-[#102f46]">
                       {caption}
                     </span>

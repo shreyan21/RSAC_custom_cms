@@ -7,18 +7,16 @@
 
 const clean = (value = "") => value.replace(/\s+/g, " ").trim();
 
-// Spoken cue words, localized.
-const cues = (isHindi) =>
-  isHindi
-    ? { page: "पृष्ठ", section: "अनुभाग", end: "सामग्री समाप्त।" }
-    : { page: "Page", section: "Section", end: "End of content." };
-
-export const buildPageSpeech = (root, isHindi = false) => {
+export const buildPageSpeech = (root, t = (value) => value) => {
   if (!root) {
     return "";
   }
 
-  const c = cues(isHindi);
+  const c = {
+    page: t("Page"),
+    section: t("Section"),
+    end: t("End of content."),
+  };
   const segments = [];
   const seen = new Set();
 

@@ -26,6 +26,7 @@ Editor saves in CMS -> API saves in PostgreSQL -> Website reads new content
 | `server/` | Express API and PostgreSQL connection |
 | `shared/` | CMS field definitions shared by the portal and API |
 | `public/` | Public images, PDFs, and the four CIPDM video previews |
+| `public/documents/flood/` | Large year-wise flood-report PDF archive; transfer separately |
 | `server/uploads/` | New files uploaded later through the CMS |
 | `scripts/` | Setup, start, backup, restore, and checking commands |
 
@@ -86,6 +87,17 @@ public/official-media/legacy-rsac/rsac_MODEL_vIDEOS/
 
 They move with Git. An editor can later replace a preview with an approved
 original video from the CIPDM **Map/Photos** media fields in the CMS.
+
+### 4. Year-wise Flood Report PDFs
+
+```text
+public/documents/flood/
+```
+
+This folder contains the large local flood archive for 2016 onward. Git ignores
+it because it is about 1.3 GB. Copy it separately with the database backup and
+`server/uploads/`. Without this folder, flood years and report names still
+appear, but clicking a PDF opens no real report.
 
 ## What Is a Seed?
 
@@ -208,10 +220,11 @@ removed automatically. Safety dumps and unrelated files are not removed.
 
 ### Uploaded Files
 
-Copy the complete folder if it exists:
+Copy these complete folders if they exist:
 
 ```text
 server/uploads/
+public/documents/flood/
 ```
 
 Keep the SQL backup and uploads copy together in secure storage. Neither belongs
@@ -219,11 +232,12 @@ in a public GitHub repository.
 
 ## Move the Project to Another Computer
 
-Move three things:
+Move four things:
 
 1. Git repository: code and included public media.
 2. Latest SQL backup: current PostgreSQL content.
 3. `server/uploads/`: files uploaded through the CMS.
+4. `public/documents/flood/`: year-wise flood report PDFs.
 
 On the new computer:
 
@@ -238,7 +252,9 @@ npm.cmd run cms:restore -- backups\YOUR_BACKUP_FILE.sql
 ```
 
 6. copy the saved uploads folder back to `server/uploads/`;
-7. run `npm.cmd run dev:all`.
+7. copy the saved flood folder back to `public/documents/flood/`;
+8. run `npm.cmd run cms:flood-check`;
+9. run `npm.cmd run dev:all`.
 
 ## What Git Does Not Move
 
@@ -247,6 +263,7 @@ Git intentionally ignores:
 - `.env.local` and passwords
 - `backups/` and database dumps
 - `server/uploads/`
+- `public/documents/flood/`
 - installed `node_modules/`
 - generated build folders
 
@@ -256,6 +273,7 @@ This protects secrets and prevents very large private files from entering GitHub
 
 ```powershell
 npm.cmd run cms:validate
+npm.cmd run cms:flood-check
 npm.cmd run lint
 npm.cmd run build
 npm.cmd run build:admin

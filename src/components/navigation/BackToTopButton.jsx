@@ -1,10 +1,12 @@
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSiteSettings } from "../../hooks/useData";
+import { useLanguage } from "../../hooks/useLanguage";
 import { scrollToTop } from "../../utils/scroll";
 
 const BackToTopButton = () => {
   const { ui } = useSiteSettings();
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -45,8 +47,8 @@ const BackToTopButton = () => {
     <button
       type="button"
       onClick={() => scrollToTop()}
-      aria-label={ui?.backToTop || "Back to top"}
-      title={ui?.backToTop || "Back to top"}
+      aria-label={ui?.backToTop || t("Back to top")}
+      title={ui?.backToTop || t("Back to top")}
       className={`fixed bottom-5 right-5 z-[110] grid h-11 w-11 place-items-center rounded-xl border border-emerald-900/15 bg-white/94 text-[#0f6f42] shadow-[0_14px_36px_rgba(18,50,74,0.16)] backdrop-blur-md transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#0f6f42] ${
         visible
           ? "translate-y-0 opacity-100"

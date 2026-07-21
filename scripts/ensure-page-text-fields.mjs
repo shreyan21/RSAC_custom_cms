@@ -24,33 +24,32 @@ const sectionIdentity = (value) => canonicalDivisionSection(value) || canonical(
 
 const represented = (data) => {
   const keys = new Set();
-  const labels = new Set([
-    canonical(data.title),
-    canonical(data.eyebrow),
-    canonical(data.summary),
-  ].filter(Boolean));
+  const structuralKeys = new Set();
   for (const block of data.blocks || []) {
-    if (block.key) keys.add(block.key);
-    [block.sourceLabel, block.label, block.value, block.heading]
-      .map(canonical)
-      .filter(Boolean)
-      .forEach((label) => labels.add(label));
+    const blockTarget = block.editorVisible === false || block.structural || block.controlsSectionLabel === false
+      ? structuralKeys
+      : keys;
+    if (block.key) blockTarget.add(block.key);
     for (const child of block.children || []) {
-      if (child.key) keys.add(child.key);
-      for (const sourceKey of child.sourceKeys || []) keys.add(sourceKey);
+      const childTarget = child.editorVisible === false || child.structural
+        ? structuralKeys
+        : keys;
+      if (child.key) childTarget.add(child.key);
+      for (const sourceKey of child.sourceKeys || []) childTarget.add(sourceKey);
     }
   }
-  return { keys, labels };
+  return { keys, structuralKeys };
 };
 
 const ensureDataFields = (data, sectionKey, pageSlug) => {
   if (!data?.html || !Array.isArray(data.blocks)) return { data, changed: false, added: 0 };
   const blocks = structuredClone(data.blocks);
-  const { keys, labels } = represented(data);
+  const { keys, structuralKeys: cmsStructuralKeys } = represented(data);
   const usesCategorizedContent = sectionKey === "divisions" || /^training-division-?$/u.test(pageSlug);
-  const structuralKeys = usesCategorizedContent
-    ? extractPageStructuralTextKeys(data.html)
-    : new Set();
+  const structuralKeys = new Set([
+    ...extractPageStructuralTextKeys(data.html),
+    ...cmsStructuralKeys,
+  ]);
   const categorizedSections = usesCategorizedContent
     ? collectDivisionSectionKeys(data.html, data.title, pageSlug)
     : null;
@@ -69,7 +68,6 @@ const ensureDataFields = (data, sectionKey, pageSlug) => {
       !value ||
       punctuationOnly.test(value) ||
       keys.has(field.key) ||
-      labels.has(canonical(value)) ||
       structuralKeys.has(field.key) ||
       (visibleKeys && !visibleKeys.has(field.key))
     ) continue;

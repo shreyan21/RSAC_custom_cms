@@ -7,23 +7,19 @@ import { useLanguage } from "../hooks/useLanguage";
 // Standalone page for the "Mobile Apps" home tab. Renders the same download
 // grid used inside the Geo-Portal page, so both stay identical from one source.
 const MobileAppsPage = () => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const { pageContent } = useSiteSettings();
-  const c = pageContent.geoportals;
+  const c = pageContent.contact || {};
+  const portal = pageContent.geoportals || {};
 
   return (
     <PageShell
-      eyebrow={c.eyebrow}
-      title={c.mobileAppsHeading || (isHindi ? "मोबाइल ऐप्स" : "Mobile Apps")}
-      intro={
-        c.mobileAppsIntro ||
-        (isHindi
-          ? "आरएसएसी-यूपी द्वारा विकसित मोबाइल ऐप डाउनलोड करें।"
-          : "Download mobile applications developed by RSAC-UP.")
-      }
+      eyebrow={portal.eyebrow}
+      title={c.mobileAppsHeading}
+      intro={c.mobileAppsIntro}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
-        { label: isHindi ? "मोबाइल ऐप्स" : "Mobile Apps" },
+        { label: t("Home"), to: "/" },
+        { label: c.mobileAppsHeading },
       ]}
       actions={<BackButton fallback="/" label={c.backLabel} />}
     >

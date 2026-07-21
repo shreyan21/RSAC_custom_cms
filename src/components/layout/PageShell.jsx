@@ -22,6 +22,18 @@ const soloEyebrowClasses = {
   large: "rsac-kicker--page-large",
 };
 
+const eyebrowSizeClasses = {
+  compact: "rsac-kicker--small",
+  normal: "rsac-kicker--normal",
+  large: "rsac-kicker--large",
+};
+
+const eyebrowBarHeights = {
+  compact: "1rem",
+  normal: "1.2rem",
+  large: "1.5rem",
+};
+
 const contentWidthClasses = {
   compact: "max-w-5xl",
   normal: "max-w-7xl",
@@ -51,6 +63,7 @@ const PageShell = ({
   density = "standard",
   className = "",
   largeEyebrow = false,
+  eyebrowSize: pageEyebrowSize,
   headingSize: pageHeadingSize = "normal",
   contentSize = "normal",
   contentWidth = "normal",
@@ -72,6 +85,17 @@ const PageShell = ({
   const resolvedIntro = display?.hideIntro ? undefined : configuredIntro;
   const headingSize = display?.headingSize || pageHeadingSize || "normal";
   const effectiveLargeEyebrow = largeEyebrow || (!resolvedTitle && Boolean(resolvedEyebrow));
+  const eyebrowSize = display?.eyebrowSize || pageEyebrowSize;
+  const eyebrowClass = eyebrowSize
+    ? eyebrowSizeClasses[eyebrowSize] || eyebrowSizeClasses.normal
+    : effectiveLargeEyebrow
+      ? soloEyebrowClasses[headingSize] || soloEyebrowClasses.normal
+      : "";
+  const eyebrowBarHeight = eyebrowSize
+    ? eyebrowBarHeights[eyebrowSize] || eyebrowBarHeights.normal
+    : effectiveLargeEyebrow
+      ? "1.7rem"
+      : "1.05rem";
   const EyebrowTag = !resolvedTitle ? "h1" : "p";
   const resolvedContentSize = display?.contentSize || contentSize || "normal";
   const resolvedContentWidth = display?.contentWidth || contentWidth || "normal";
@@ -101,13 +125,13 @@ const PageShell = ({
               <EyebrowTag
                 className={`rsac-kicker flex items-center text-[#c2410c] ${
                   effectiveLargeEyebrow
-                    ? `gap-3 tracking-normal ${soloEyebrowClasses[headingSize] || soloEyebrowClasses.normal}`
-                    : "gap-2.5"
+                    ? `gap-3 tracking-normal ${eyebrowClass}`
+                    : `gap-2.5 ${eyebrowClass}`
                 }`}
               >
                 <span
                   className="geo-tricolor-bar"
-                  style={{ height: effectiveLargeEyebrow ? "1.7rem" : "1.05rem" }}
+                  style={{ height: eyebrowBarHeight }}
                   aria-hidden="true"
                 />
                 {resolvedEyebrow}

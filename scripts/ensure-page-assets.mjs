@@ -11,6 +11,7 @@ if (!process.env.CMS_DATABASE_URL) {
 }
 
 const dryRun = process.argv.includes("--dry-run");
+const headingsOnly = process.argv.includes("--headings-only");
 const profileOnlyPages = new Set([
   "our-chairman's-governing-body",
   "director's",
@@ -111,7 +112,7 @@ const ensureAssetSectionBlock = (blocks, sectionKey, sectionLabel) => {
     label,
     value: label,
     sourceLabel: label,
-    controlsSectionLabel: false,
+    controlsSectionLabel: true,
     assetOnly: true,
     children: [],
     assets: [],
@@ -130,6 +131,26 @@ const locateAsset = (blocks, wantedIdentity) => {
 const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
   if (!data?.html || !Array.isArray(data.blocks)) return { data, changed: false, added: 0 };
   const blocks = structuredClone(data.blocks);
+  let normalized = 0;
+  blocks.forEach((block) => {
+    const isDedicatedMediaSection =
+      block?.assetOnly === true &&
+      canonicalDivisionSection(blockLabel(block)) === "Map/Photos";
+    if (isDedicatedMediaSection && block.controlsSectionLabel === false) {
+      block.controlsSectionLabel = true;
+      normalized += 1;
+    }
+  });
+  if (headingsOnly) {
+    return {
+      data: normalized ? { ...data, blocks } : data,
+      changed: normalized > 0,
+      added: 0,
+      removed: 0,
+      moved: 0,
+      normalized,
+    };
+  }
   const document = new JSDOM(`<!DOCTYPE html><html><body>${data.html}</body></html>`).window.document;
   const sourceAssets = extractPageAssetFieldsFromDocument(document);
   const sourceAssetIdentities = new Set(sourceAssets.map(assetIdentity));
@@ -214,11 +235,12 @@ const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
   ));
   const compacted = compactedBlocks.length !== blocks.length;
   return {
-    data: added || removed || moved || compacted ? { ...data, blocks: compactedBlocks } : data,
-    changed: added > 0 || removed > 0 || moved > 0 || compacted,
+    data: added || removed || moved || normalized || compacted ? { ...data, blocks: compactedBlocks } : data,
+    changed: added > 0 || removed > 0 || moved > 0 || normalized > 0 || compacted,
     added,
     removed,
     moved,
+    normalized,
   };
 };
 
@@ -237,6 +259,7 @@ try {
   let added = 0;
   let removed = 0;
   let moved = 0;
+  let normalized = 0;
   for (const row of rows) {
     const english = ensureDataAssets(row.data_en, row.data_en?.slug || row.entry_key);
     const englishAssets = (english.data?.blocks || []).flatMap((block) => block.assets || []);
@@ -246,7 +269,8 @@ try {
     added += english.added + hindi.added;
     removed += (english.removed || 0) + (hindi.removed || 0);
     moved += (english.moved || 0) + (hindi.moved || 0);
-    console.log(`${row.entry_key}: English +${english.added}/-${english.removed || 0}/moved ${english.moved || 0}, Hindi +${hindi.added}/-${hindi.removed || 0}/moved ${hindi.moved || 0}`);
+    normalized += (english.normalized || 0) + (hindi.normalized || 0);
+    console.log(`${row.entry_key}: English +${english.added}/-${english.removed || 0}/moved ${english.moved || 0}/headings ${english.normalized || 0}, Hindi +${hindi.added}/-${hindi.removed || 0}/moved ${hindi.moved || 0}/headings ${hindi.normalized || 0}`);
     if (!dryRun) {
       await client.query(
         `UPDATE cms_entries
@@ -259,7 +283,7 @@ try {
       );
     }
   }
-  console.log(`${dryRun ? "Would update" : "Updated"} ${updated} pages with ${added} added, ${removed} retired and ${moved} repositioned image, file and link fields.`);
+  console.log(`${dryRun ? "Would update" : "Updated"} ${updated} pages with ${added} added, ${removed} retired, ${moved} repositioned media fields and ${normalized} editable media-section headings.`);
 } finally {
   await client.end();
 }

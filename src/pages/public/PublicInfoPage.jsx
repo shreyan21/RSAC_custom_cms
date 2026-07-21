@@ -8,7 +8,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 import { useDialog } from "../../hooks/useDialog";
 
 const PublicInfoPage = ({ slug }) => {
-  const { isHindi, t } = useLanguage();
+  const { t } = useLanguage();
   const { openDocument } = useDialog();
   const publicInfoPages = usePublicInfoPages();
   const page = publicInfoPages.find((item) => item.slug === slug);
@@ -19,25 +19,25 @@ const PublicInfoPage = ({ slug }) => {
 
   return (
     <PageShell
-      eyebrow={page.eyebrow || (isHindi ? "जन सेवाएं" : "Public Services")}
+      eyebrow={page.eyebrow || t("Public Services")}
       title={page.title}
       intro={page.summary}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
-        { label: isHindi ? "जन सेवाएं" : "Public Services" },
+        { label: t("Home"), to: "/" },
+        { label: t("Public Services") },
         { label: page.title },
       ]}
       actions={
         <>
           <BackButton
             fallback="/"
-            label={isHindi ? "मुखपृष्ठ पर वापस जाएं" : "Back to Home"}
+            label={t("Back to Home")}
           />
           <Link
             to="/sitemap"
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#102f46] transition hover:border-[#0b6fa4]/35 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b6fa4]"
           >
-            {isHindi ? "साइटमैप देखें" : "View Sitemap"}
+            {t("View Sitemap")}
           </Link>
         </>
       }
@@ -63,9 +63,9 @@ const PublicInfoPage = ({ slug }) => {
               {section.officers?.length > 0 && (
                 <div className="relative z-[1] mt-5 overflow-hidden rounded-xl border border-slate-200">
                   <div className="hidden bg-[#f7fbfe] px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500 sm:grid sm:grid-cols-[1.3fr_1.4fr_1fr] sm:gap-4">
-                    <span>{isHindi ? "नाम" : "Name"}</span>
-                    <span>{isHindi ? "पद" : "Post"}</span>
-                    <span>{isHindi ? "दूरभाष" : "Phone"}</span>
+                    <span>{t("Name")}</span>
+                    <span>{t("Post")}</span>
+                    <span>{t("Phone")}</span>
                   </div>
                   <div className="divide-y divide-slate-200">
                     {section.officers.map((officer) => (
@@ -121,7 +121,7 @@ const PublicInfoPage = ({ slug }) => {
                         )}
                       </span>
                       <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0f6f42] px-3 py-1.5 text-xs font-bold text-white">
-                        {isHindi ? "देखें" : "View"}
+                        {t("View")}
                       </span>
                     </button>
                   ))}
@@ -145,8 +145,7 @@ const PublicInfoPage = ({ slug }) => {
                   rel="noopener noreferrer"
                   className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#0f6f42] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0b5f38]"
                 >
-                  {section.actionLabel ||
-                    (isHindi ? "आधिकारिक सेवा खोलें" : "Open official service")}
+                  {section.actionLabel || t("Open official service")}
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
               )}
@@ -156,7 +155,7 @@ const PublicInfoPage = ({ slug }) => {
 
         <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-[0_16px_50px_rgba(18,50,74,0.06)] lg:sticky lg:top-36">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0b6fa4]">
-            {isHindi ? "जन सेवाएं" : "Public Services"}
+            {t("Public Services")}
           </p>
 
           <div className="mt-5 space-y-2">
@@ -178,14 +177,14 @@ const PublicInfoPage = ({ slug }) => {
               to="/notices"
               className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#102f46]"
             >
-              {isHindi ? "सूचनाएं एवं परिपत्र" : "Notices & Circulars"}
+              {t("Notices & Circulars")}
             </Link>
 
             <Link
               to="/flood-reports"
               className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#102f46]"
             >
-              {isHindi ? "दैनिक बाढ़ रिपोर्ट" : "Flood Daily Reports"}
+              {t("Flood Daily Reports")}
             </Link>
           </div>
 

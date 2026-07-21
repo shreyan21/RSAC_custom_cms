@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { LanguageContext } from "./LanguageContextCore";
-import { hiTranslations } from "../data/translations";
 import {
   getUiLabelOverride,
   getUiLabelsVersion,
@@ -57,19 +56,13 @@ export function LanguageProvider({ children }) {
       language,
       setLanguage,
       isHindi: language === "hi",
-      // Static-UI translator: CMS "Interface Labels" overrides win first; in
-      // Hindi an override only applies when the editor actually changed it,
-      // otherwise the official term map decides; plain text is the fallback.
+      // Static interface wording is stored in the CMS for both languages.
+      // Dynamic page records arrive already localized from the API.
       t: (text) => {
         if (typeof text !== "string") {
           return text;
         }
         const override = getUiLabelOverride(text);
-        if (language === "hi") {
-          return override && override !== text
-            ? override
-            : hiTranslations[text] || text;
-        }
         return override || text;
       },
     }),

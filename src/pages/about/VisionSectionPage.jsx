@@ -1,10 +1,8 @@
 import { Layers, ListChecks, Workflow } from "lucide-react";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
-import { deepMerge } from "../../data/contentUtils";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
-import { visionMissionContent } from "./VisionMission";
 
 // One dedicated page per RSAC tab (Objective / Implementation / Approach /
 // Sphere of Activities). Content is the exact same source as the combined
@@ -15,7 +13,7 @@ import { visionMissionContent } from "./VisionMission";
 const ObjectivesBody = ({ c }) => (
   <section>
     <ol className="grid gap-3 sm:grid-cols-2">
-      {c.objectives.map((item, i) => (
+      {(c.objectives || []).map((item, i) => (
         <li
           key={item}
           className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(18,50,74,0.04)]"
@@ -33,7 +31,7 @@ const ObjectivesBody = ({ c }) => (
 const ApproachBody = ({ c }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_16px_50px_rgba(18,50,74,0.06)]">
     <ul className="space-y-3">
-      {c.approach.map((item) => (
+      {(c.approach || []).map((item) => (
         <li key={item} className="flex gap-3 text-sm leading-relaxed text-slate-700">
           <span
             aria-hidden="true"
@@ -52,7 +50,7 @@ const ImplementationBody = ({ c }) => (
       {c.implementationIntro}
     </p>
     <ul className="mt-4 space-y-3">
-      {c.implementation.map((item) => (
+      {(c.implementation || []).map((item) => (
         <li key={item} className="flex gap-3 text-sm leading-relaxed text-slate-700">
           <span
             aria-hidden="true"
@@ -67,14 +65,14 @@ const ImplementationBody = ({ c }) => (
 
 const SphereBody = ({ c }) => (
   <div className="grid gap-5 md:grid-cols-2">
-    {c.sphere.map((group) => (
+    {(c.sphere || []).map((group) => (
       <article
         key={group.name}
         className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(18,50,74,0.06)]"
       >
         <h2 className="text-lg font-extrabold text-[#0b5f38]">{group.name}</h2>
         <ul className="mt-3 space-y-2">
-          {group.items.map((item) => (
+          {(group.items || []).map((item) => (
             <li
               key={item}
               className="flex gap-2.5 text-sm leading-relaxed text-slate-700"
@@ -120,10 +118,9 @@ const sectionConfig = {
 };
 
 const VisionSectionPage = ({ section }) => {
-  const { isHindi } = useLanguage();
+  const { t } = useLanguage();
   const { pageContent } = useSiteSettings();
-  const fallback = isHindi ? visionMissionContent.hi : visionMissionContent.en;
-  const c = deepMerge(fallback, pageContent?.visionMission || {});
+  const c = pageContent?.visionMission || {};
   const config = sectionConfig[section] || sectionConfig.objectives;
   const { Body } = config;
   const title = config.getTitle(c);
@@ -135,8 +132,8 @@ const VisionSectionPage = ({ section }) => {
       title={title}
       intro={intro}
       breadcrumbs={[
-        { label: isHindi ? "मुखपृष्ठ" : "Home", to: "/" },
-        { label: isHindi ? "हमारे बारे में" : "About Us", to: "/about-us" },
+        { label: t("Home"), to: "/" },
+        { label: t("About Us"), to: "/about-us" },
         { label: c.title, to: "/vision" },
         { label: title },
       ]}
