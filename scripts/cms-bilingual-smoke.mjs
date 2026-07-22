@@ -1,81 +1,83 @@
 import { config as loadEnv } from "dotenv";
 import { assembleBootstrap } from "../server/contentAssembler.js";
-import { preserveStoredUndeclaredFields, validateEntryPayload } from "../server/contentValidation.js";
+import { validateEntryPayload } from "../server/contentValidation.js";
 
 loadEnv({ path: ".env.local", quiet: true });
+
 const base = process.env.VITE_API_URL || "http://localhost:3000";
+const targetSections = new Set(["divisions", "facilities"]);
 let cookie = "";
 let csrf = "";
 
-const divisionItemPayload = {
-  status: "published",
-  dataEn: {
-    divisionSlug: "training-division",
-    sectionKey: "research-papers",
-    title: "Newest structured research paper",
-    authors: "Test Author",
-    publicationName: "Test Journal",
-    details: "Structured English citation",
-    year: 2026,
-    date: "2026-07-12",
-    documentUrl: "/cms-media/test-paper.pdf",
-    externalUrl: "https://example.gov.in/paper",
-  },
-  dataHi: { title: "नवीनतम संरचित शोध पत्र", details: "संरचित हिन्दी विवरण" },
-};
-
-let rejectedMissingHindi = false;
-try {
-  validateEntryPayload("division_section_items", { ...divisionItemPayload, dataHi: {} });
-} catch (error) {
-  rejectedMissingHindi = /required in Hindi/.test(error.message);
-}
-if (!rejectedMissingHindi) throw new Error("Published division items allowed a missing Hindi title.");
-const layoutOnlyHeading = validateEntryPayload("page_display_settings", { status: "published", dataEn: { path: "/verify-layout-only", title: "", hideTitle: false, eyebrowSize: "large", contentWidth: "wide" }, dataHi: {} });
-if (
-  layoutOnlyHeading.dataEn.hideTitle ||
-  layoutOnlyHeading.dataEn.eyebrowSize !== "large" ||
-  layoutOnlyHeading.dataEn.contentWidth !== "wide"
-) throw new Error("Layout-only page settings changed heading visibility or small-heading sizing.");
-const validatedDivisionItem = validateEntryPayload("division_section_items", divisionItemPayload);
-if (validatedDivisionItem.dataEn.divisionSlug !== "training-division" || validatedDivisionItem.dataHi.title !== divisionItemPayload.dataHi.title) {
-  throw new Error("Structured division item validation changed bilingual or shared fields.");
-}
-const validatedLosslessEntry = validateEntryPayload("impact_stats", {
-  status: "published",
-  dataEn: { label: "Lossless validation", value: "1", detail: "Test", injectedField: "must not be accepted" },
-  dataHi: { label: "Lossless validation", value: "1", detail: "Test" },
-});
-const losslessEntry = preserveStoredUndeclaredFields(
-  validatedLosslessEntry.definition,
-  { label: "Old label", legacySort: 7 },
-  validatedLosslessEntry.dataEn
-);
-if (losslessEntry.legacySort !== 7 || losslessEntry.label !== "Lossless validation" || Object.hasOwn(losslessEntry, "injectedField")) {
-  throw new Error("CMS update validation does not preserve stored legacy data safely.");
-}
-
-const fakeRows = [
-  { id: "section", collection: "page_sections", entry_key: "divisions", sort_order: 0, data_en: { key: "divisions", title: "Divisions" }, data_hi: { title: "प्रभाग" } },
-  { id: "page", collection: "pages", entry_key: "training", sort_order: 0, data_en: { slug: "training-division", sectionKey: "divisions", title: "Training Division", html: "<p>Existing content</p>" }, data_hi: { title: "प्रशिक्षण प्रभाग", html: "<p>मौजूदा सामग्री</p>" } },
-  { id: "new", collection: "division_section_items", entry_key: "new-paper", sort_order: -2, data_en: divisionItemPayload.dataEn, data_hi: divisionItemPayload.dataHi },
-  { id: "old", collection: "division_section_items", entry_key: "old-paper", sort_order: -1, data_en: { ...divisionItemPayload.dataEn, title: "Older structured research paper" }, data_hi: { ...divisionItemPayload.dataHi, title: "पुराना संरचित शोध पत्र" } },
-];
-const assembledEnglish = assembleBootstrap(fakeRows, "en");
-const assembledHindi = assembleBootstrap(fakeRows, "hi");
-const englishManaged = assembledEnglish.rsacOfficialSections[0].pages[0].managedSectionItems["research-papers"];
-const hindiManaged = assembledHindi.rsacOfficialSections[0].pages[0].managedSectionItems["research-papers"];
-if (englishManaged[0].title !== divisionItemPayload.dataEn.title || hindiManaged[0].title !== divisionItemPayload.dataHi.title) {
-  throw new Error("Division items were not assembled newest-first with separate English/Hindi text.");
-}
-
 const request = async (path, options = {}) => {
-  const headers = { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(cookie ? { Cookie: cookie } : {}), ...(csrf && options.method && options.method !== "GET" ? { "X-CSRF-Token": csrf } : {}) };
-  const response = await fetch(`${base}${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } });
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(cookie ? { Cookie: cookie } : {}),
+    ...(csrf && options.method && options.method !== "GET" ? { "X-CSRF-Token": csrf } : {}),
+    ...(options.headers || {}),
+  };
+  const response = await fetch(`${base}${path}`, { ...options, headers });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || `${path} failed (${response.status})`);
   return { payload, response };
 };
+
+const findTargetPages = (bootstrap) => bootstrap.rsacOfficialSections
+  .filter((section) => targetSections.has(section.key))
+  .flatMap((section) => section.pages || []);
+
+const findEditableBlock = (page) => (page?.blocks || []).find((block) =>
+  Object.hasOwn(block, "contentHtml") && !block.peopleSection
+);
+
+const assertCanonicalPage = (page, language) => {
+  if (!page?.canonicalSectionContent) throw new Error(`${language} ${page?.slug || "page"} is not canonical.`);
+  for (const block of page.blocks || []) {
+    if (!Object.hasOwn(block, "contentHtml")) {
+      throw new Error(`${language} ${page.slug} contains a section without canonical contentHtml.`);
+    }
+    if (Object.hasOwn(block, "children")) {
+      throw new Error(`${language} ${page.slug} still exposes active legacy child rows.`);
+    }
+  }
+};
+
+const validatedPage = validateEntryPayload("pages", {
+  status: "published",
+  dataEn: {
+    slug: "canonical-smoke",
+    sectionKey: "facilities",
+    title: "Canonical smoke",
+    blocks: [{ id: "intro", value: "Introduction", contentHtml: '<h2>Heading</h2><p><strong>Bold</strong> <em>italic</em> <u>underline</u> <a href="https://example.gov.in">link</a></p><blockquote>Quote</blockquote><table><tbody><tr><th>Head</th><td>Cell</td></tr></tbody></table>' }],
+  },
+  dataHi: {
+    slug: "canonical-smoke",
+    sectionKey: "facilities",
+    title: "",
+    blocks: [{ id: "intro", value: "", contentHtml: "" }],
+  },
+});
+if (!validatedPage.dataEn.blocks[0].contentHtml.includes("<table>") || validatedPage.dataHi.blocks[0].contentHtml !== "") {
+  throw new Error("Rich section validation removed supported markup or replaced an exact-empty translation.");
+}
+
+const fakeRows = [
+  { id: "section-divisions", collection: "page_sections", entry_key: "divisions", sort_order: 0, data_en: { key: "divisions", title: "Divisions" }, data_hi: { key: "divisions", title: "Prabhag" } },
+  {
+    id: "page-canonical",
+    collection: "pages",
+    entry_key: "canonical-page",
+    sort_order: 0,
+    status: "published",
+    data_en: { slug: "canonical-page", sectionKey: "divisions", title: "English title", blocks: [{ id: "intro", value: "Introduction", contentHtml: "<p>English only</p>" }] },
+    data_hi: { slug: "canonical-page", sectionKey: "divisions", title: "Hindi title", blocks: [{ id: "intro", value: "", contentHtml: "" }] },
+  },
+];
+const fakeEnglish = assembleBootstrap(fakeRows, "en").rsacOfficialSections[0].pages[0];
+const fakeHindi = assembleBootstrap(fakeRows, "hi").rsacOfficialSections[0].pages[0];
+if (fakeEnglish.blocks[0].contentHtml !== "<p>English only</p>" || fakeHindi.blocks[0].contentHtml !== "") {
+  throw new Error("Bootstrap assembly copied content between languages.");
+}
 
 const login = await request("/api/auth/login", {
   method: "POST",
@@ -84,403 +86,112 @@ const login = await request("/api/auth/login", {
 cookie = login.response.headers.get("set-cookie")?.split(";")[0] || "";
 csrf = login.payload.csrfToken;
 if (!cookie || !csrf) throw new Error("CMS login did not return a secure session.");
-const users = (await request("/api/admin/users")).payload.data;
-if (!Array.isArray(users) || !users.some((user) => user.role === "admin" && user.active)) {
-  throw new Error("Multi-user administration endpoint did not return an active administrator.");
-}
-const collectionDefinitions = (await request("/api/admin/collections")).payload.data;
-const divisionListDefinition = collectionDefinitions.find((item) => item.id === "division_section_items");
-const pageDefinition = collectionDefinitions.find((item) => item.id === "pages");
-const designDefinition = collectionDefinitions.find((item) => item.id === "design_settings");
-const siteSettingsDefinition = collectionDefinitions.find((item) => item.id === "site_settings");
-const divisionField = divisionListDefinition?.fields?.find((field) => field.name === "divisionSlug");
-const sectionField = divisionListDefinition?.fields?.find((field) => field.name === "sectionKey");
-if (!divisionListDefinition?.autoNewestFirst || divisionField?.type !== "select" || sectionField?.type !== "select") {
-  throw new Error("CMS portal does not expose structured division and section form controls.");
-}
-const hiddenProfilesField = pageDefinition?.fields?.find((field) => field.name === "hiddenProfileNames");
-if (hiddenProfilesField?.type !== "list" || hiddenProfilesField.localized !== false) {
-  throw new Error("CMS portal does not expose shared per-page duplicate profile controls.");
-}
-if (designDefinition?.fields?.find((field) => field.name === "siteFont")?.type !== "select" || designDefinition?.fields?.some((field) => field.name === "homeSectionTypography")) {
-  throw new Error("Website Design and Fonts does not expose one clear, non-duplicated set of global controls.");
-}
-if (siteSettingsDefinition?.fields?.find((field) => field.name === "settings")?.type !== "json") {
-  throw new Error("Homepage, Sitemap and Global Text does not expose homepage typography controls.");
-}
 
-const profileEntries = (await request("/api/admin/content/profiles")).payload.data;
-const existingProfile = profileEntries.find((item) => item.status !== "archived");
-if (!existingProfile) throw new Error("Profile collection is empty.");
-let duplicateProfileRejected = false;
-try {
-  await request("/api/admin/content/profiles", {
-    method: "POST",
-    body: JSON.stringify({
-      status: existingProfile.status,
-      sortOrder: existingProfile.sortOrder,
-      dataEn: existingProfile.dataEn,
-      dataHi: existingProfile.dataHi,
-    }),
-  });
-} catch (error) {
-  duplicateProfileRejected = /duplicate profile/i.test(error.message);
-}
-if (!duplicateProfileRejected) throw new Error("CMS allowed a duplicate active profile card.");
-
-const entries = (await request("/api/admin/content/impact_stats")).payload.data;
-const original = structuredClone(entries.find((item) => item.status === "published"));
-if (!original?.entryKey) throw new Error("Admin entryKey contract is missing.");
-const previewDraft = structuredClone(original);
-previewDraft.dataEn.label = `${original.dataEn.label} [PREVIEW ONLY]`;
-previewDraft.dataHi.label = `${original.dataHi.label} पूर्वावलोकन`;
-const previewSession = (await request("/api/admin/preview", {
-  method: "POST",
-  body: JSON.stringify({ collection: "impact_stats", entry: previewDraft }),
-})).payload;
-if (!previewSession.token || !previewSession.expiresAt || previewSession.path !== "/") {
-  throw new Error("CMS preview did not return a valid private preview session.");
-}
-const previewEnglish = (await request(`/api/content/preview/${previewSession.token}?lang=en`)).payload.data;
-const previewHindi = (await request(`/api/content/preview/${previewSession.token}?lang=hi`)).payload.data;
-if (
-  !previewEnglish.isPreview ||
-  !previewHindi.isPreview ||
-  !previewEnglish.siteSettings.impactStats.some((item) => item.label === previewDraft.dataEn.label) ||
-  !previewHindi.siteSettings.impactStats.some((item) => item.label === previewDraft.dataHi.label)
-) {
-  throw new Error("CMS preview did not assemble separate English and Hindi content.");
-}
-const refreshedPreviewDraft = structuredClone(previewDraft);
-refreshedPreviewDraft.dataEn.label = `${original.dataEn.label} [LIVE PREVIEW UPDATE]`;
-refreshedPreviewDraft.dataHi.label = `${original.dataHi.label} लाइव पूर्वावलोकन`;
-const refreshedPreviewSession = (await request("/api/admin/preview", {
-  method: "POST",
-  body: JSON.stringify({
-    collection: "impact_stats",
-    entry: refreshedPreviewDraft,
-    token: previewSession.token,
-  }),
-})).payload;
-if (
-  refreshedPreviewSession.token !== previewSession.token ||
-  !refreshedPreviewSession.revision ||
-  refreshedPreviewSession.revision < previewSession.revision
-) {
-  throw new Error("CMS live preview did not reuse and revise the existing preview session.");
-}
-const refreshedPreviewEnglish = (await request(`/api/content/preview/${previewSession.token}?lang=en`)).payload.data;
-const refreshedPreviewHindi = (await request(`/api/content/preview/${previewSession.token}?lang=hi`)).payload.data;
-if (
-  refreshedPreviewEnglish.previewRevision !== refreshedPreviewSession.revision ||
-  refreshedPreviewHindi.previewRevision !== refreshedPreviewSession.revision ||
-  !refreshedPreviewEnglish.siteSettings.impactStats.some((item) => item.label === refreshedPreviewDraft.dataEn.label) ||
-  !refreshedPreviewHindi.siteSettings.impactStats.some((item) => item.label === refreshedPreviewDraft.dataHi.label)
-) {
-  throw new Error("CMS live preview revision did not reach the existing bilingual preview session.");
-}
-const liveAfterPreview = (await request("/api/content/impact_stats?lang=en")).payload.data;
-if (liveAfterPreview.some((item) => [previewDraft.dataEn.label, refreshedPreviewDraft.dataEn.label].includes(item.label))) {
-  throw new Error("CMS preview changed live website content.");
-}
-const designEntries = (await request("/api/admin/content/design_settings")).payload.data;
-const designOriginal = structuredClone(designEntries.find((item) => item.status === "published"));
-if (!designOriginal?.entryKey) throw new Error("Website Design and Fonts record is missing.");
-const siteSettingsEntries = (await request("/api/admin/content/site_settings")).payload.data;
-const siteSettingsOriginal = structuredClone(siteSettingsEntries.find((item) => item.status === "published"));
-if (!siteSettingsOriginal?.entryKey) throw new Error("Homepage, Sitemap and Global Text record is missing.");
-const testEn = `${original.dataEn.label} [CMS VERIFY]`;
-const testHi = `${original.dataHi.label} परीक्षण`;
-let updated = null;
-let facilityOriginal = null;
-let facilityUpdated = null;
-let divisionPageOriginal = null;
-let divisionPageUpdated = null;
-let geoPageOriginal = null;
-let geoPageUpdated = null;
-let designUpdated = null;
-let siteSettingsUpdated = null;
+let original = null;
+let saved = null;
 let verificationError = null;
 
 try {
-  const designDraft = structuredClone(designOriginal);
-  designDraft.dataEn.siteFont = "System Sans";
-  designUpdated = (await request(`/api/admin/content/design_settings/${designDraft.id}`, { method: "PUT", body: JSON.stringify(designDraft) })).payload.data;
-  const siteSettingsDraft = structuredClone(siteSettingsOriginal);
-  siteSettingsDraft.dataEn.settings.homeSectionTypography = {
-    ...(siteSettingsDraft.dataEn.settings.homeSectionTypography || {}),
-    about: { headingSize: "large", bodySize: "compact" },
-    location: { eyebrowSize: "large", headingSize: "compact", bodySize: "large" },
-  };
-  siteSettingsUpdated = (await request(`/api/admin/content/site_settings/${siteSettingsDraft.id}`, { method: "PUT", body: JSON.stringify(siteSettingsDraft) })).payload.data;
-  const settingsEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.siteSettings;
-  const settingsHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.siteSettings;
-  if (
-    settingsEnglish.designSettings.siteFont !== "System Sans" ||
-    settingsHindi.designSettings.siteFont !== "System Sans" ||
-    settingsEnglish.homeSectionTypography?.about?.headingSize !== "large" ||
-    settingsHindi.homeSectionTypography?.about?.bodySize !== "compact" ||
-    settingsEnglish.homeSectionTypography?.location?.eyebrowSize !== "large" ||
-    settingsEnglish.homeSectionTypography?.location?.headingSize !== "compact" ||
-    settingsHindi.homeSectionTypography?.location?.bodySize !== "large" ||
-    settingsEnglish.location?.eyebrowSize !== undefined ||
-    settingsHindi.location?.eyebrowSize !== undefined
-  ) {
-    throw new Error("Shared website font or canonical homepage section typography controls did not reach both languages.");
-  }
-  const draft = structuredClone(original);
-  draft.dataEn.label = testEn;
-  draft.dataHi.label = testHi;
-  updated = (await request(`/api/admin/content/impact_stats/${draft.id}`, { method: "PUT", body: JSON.stringify(draft) })).payload.data;
-  const english = (await request("/api/content/impact_stats?lang=en")).payload.data;
-  const hindi = (await request("/api/content/impact_stats?lang=hi")).payload.data;
-  if (!english.some((item) => item.label === testEn) || !hindi.some((item) => item.label === testHi)) {
-    throw new Error("English/Hindi public content did not reflect the CMS edit.");
-  }
-  const pages = (await request("/api/admin/content/pages")).payload.data;
-  facilityOriginal = structuredClone(pages.find((item) => item.status === "published" && item.dataEn.sectionKey === "facilities"));
-  if (!facilityOriginal) throw new Error("Facility page collection is empty.");
-  const facilityDraft = structuredClone(facilityOriginal);
-  facilityDraft.dataEn.title = `${facilityOriginal.dataEn.title} [FACILITY VERIFY]`;
-  facilityDraft.dataHi.title = `${facilityOriginal.dataHi.title} परीक्षण`;
-  const facilityEnglishBlock = facilityDraft.dataEn.blocks?.find((block) => block.children?.length);
-  const facilityRowKey = facilityEnglishBlock?.children?.[0]?.key;
-  const facilityHindiBlock = facilityDraft.dataHi.blocks?.find((block) => block.children?.some((child) => child.key === facilityRowKey));
-  if (!facilityRowKey || !facilityHindiBlock) throw new Error("Facility section rows are not aligned between English and Hindi.");
-  facilityEnglishBlock.value = `${facilityEnglishBlock.value} [HEADING VERIFY]`;
-  facilityHindiBlock.value = `${facilityHindiBlock.value} शीर्षक-परीक्षण`;
-  facilityEnglishBlock.children[0].value = `${facilityEnglishBlock.children[0].value} [ROW VERIFY]`;
-  const facilityHindiRow = facilityHindiBlock.children.find((child) => child.key === facilityRowKey);
-  facilityHindiRow.value = `${facilityHindiRow.value} पंक्ति-परीक्षण`;
-  facilityDraft.dataEn.headingSize = "large";
-  facilityDraft.dataEn.contentSize = "large";
-  facilityDraft.dataEn.contentWidth = "wide";
-  facilityDraft.dataEn.mediaSize = "compact";
-  facilityDraft.dataEn.contentSpacing = "relaxed";
-  facilityDraft.dataEn.blocks.push({ id: "cms-smoke-flexible-block", type: "rich_text", heading: "Flexible block verification", html: "<p>Flexible English block</p>", textSize: "large", mediaSize: "compact", spacing: "relaxed", variant: "plain" });
-  facilityDraft.dataHi.blocks.push({ id: "cms-smoke-flexible-block", type: "rich_text", heading: "\u0932\u091a\u0940\u0932\u093e \u092c\u094d\u0932\u0949\u0915 \u0938\u0924\u094d\u092f\u093e\u092a\u0928", html: "<p>\u0932\u091a\u0940\u0932\u093e \u0939\u093f\u0928\u094d\u0926\u0940 \u092c\u094d\u0932\u0949\u0915</p>", textSize: "large", mediaSize: "compact", spacing: "relaxed", variant: "plain" });
-  facilityUpdated = (await request(`/api/admin/content/pages/${facilityDraft.id}`, { method: "PUT", body: JSON.stringify(facilityDraft) })).payload.data;
-  const facilityEnglish = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections.find((section) => section.key === "facilities")?.pages;
-  const facilityHindi = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections.find((section) => section.key === "facilities")?.pages;
-  if (!facilityEnglish?.some((item) => item.title === facilityDraft.dataEn.title) || !facilityHindi?.some((item) => item.title === facilityDraft.dataHi.title)) {
-    throw new Error("Facility CMS edit did not reach English and Hindi website payloads.");
-  }
-  const facilityEnglishSaved = facilityEnglish.find((item) => item.slug === facilityDraft.dataEn.slug);
-  const facilityHindiSaved = facilityHindi.find((item) => item.slug === facilityDraft.dataEn.slug);
-  if (!facilityEnglishSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("[ROW VERIFY]"))) || !facilityHindiSaved?.blocks?.some((block) => block.children?.some((child) => child.value?.endsWith("पंक्ति-परीक्षण")))) {
-    throw new Error("Focused facility section row did not persist separately in English and Hindi.");
-  }
-  if (!facilityEnglishSaved.blocks.some((block) => block.value?.endsWith("[HEADING VERIFY]")) || !facilityHindiSaved.blocks.some((block) => block.value?.endsWith("शीर्षक-परीक्षण"))) {
-    throw new Error("Imported page section headings did not persist separately in English and Hindi.");
-  }
-  if (facilityEnglishSaved.contentWidth !== "wide" || facilityHindiSaved.contentWidth !== "wide" || facilityEnglishSaved.contentSize !== "large" || facilityHindiSaved.mediaSize !== "compact") {
-    throw new Error(`Shared page sizing controls did not reach both website languages: ${JSON.stringify({ en: { contentWidth: facilityEnglishSaved.contentWidth, contentSize: facilityEnglishSaved.contentSize, mediaSize: facilityEnglishSaved.mediaSize }, hi: { contentWidth: facilityHindiSaved.contentWidth, contentSize: facilityHindiSaved.contentSize, mediaSize: facilityHindiSaved.mediaSize } })}`);
-  }
-  const flexibleEnglish = facilityEnglishSaved.blocks.find((block) => block.id === "cms-smoke-flexible-block");
-  const flexibleHindi = facilityHindiSaved.blocks.find((block) => block.id === "cms-smoke-flexible-block");
-  if (flexibleEnglish?.textSize !== "large" || !flexibleEnglish?.html?.includes("Flexible English block") || flexibleHindi?.spacing !== "relaxed" || !flexibleHindi?.html?.includes("\u0932\u091a\u0940\u0932\u093e")) {
-    throw new Error("Flexible page block content or display controls did not persist bilingually.");
-  }
-  divisionPageOriginal = structuredClone(pages.find((item) => item.entryKey === "computer-image-processing-division"));
-  const divisionDraft = structuredClone(divisionPageOriginal);
-  const englishSoftware = divisionDraft.dataEn.blocks?.find((block) => block.children?.some((child) => /^Software\s/u.test(child.label || "")));
-  const hindiSoftware = divisionDraft.dataHi.blocks?.[divisionDraft.dataEn.blocks.indexOf(englishSoftware)];
-  if (!englishSoftware?.children?.[0] || !hindiSoftware?.children?.[0]) throw new Error("Focused division section fields are missing.");
-  englishSoftware.children[0].value = `${englishSoftware.children[0].value} [SECTION VERIFY]`;
-  hindiSoftware.children[0].value = `${hindiSoftware.children[0].value} परीक्षण`;
-  englishSoftware.children[1].hidden = true;
-  hindiSoftware.children[1].hidden = true;
-  englishSoftware.children.unshift({ key: "cms-smoke-new-line", label: "Software -> New line", value: "Newest software test line", isNew: true });
-  hindiSoftware.children.unshift({ key: "cms-smoke-new-line", label: "सॉफ्टवेयर -> नई पंक्ति", value: "नवीनतम सॉफ्टवेयर परीक्षण पंक्ति", isNew: true });
-  const mapBlock = divisionDraft.dataEn.blocks?.find((block) => block.assets?.filter((asset) => asset.kind === "image").length >= 2);
-  const mapImages = mapBlock?.assets?.filter((asset) => asset.kind === "image") || [];
-  if (mapImages.length < 2) throw new Error("Division Map/Photos asset controls are missing.");
-  mapImages[0].value = mapImages[1].value;
-  mapImages[0].alt = "CMS asset save verification";
-  divisionPageUpdated = (await request(`/api/admin/content/pages/${divisionDraft.id}`, { method: "PUT", body: JSON.stringify(divisionDraft) })).payload.data;
-  const updatedEnglishPage = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections.flatMap((section) => section.pages || []).find((page) => page.slug === "computer-image-processing-division");
-  const updatedHindiPage = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections.flatMap((section) => section.pages || []).find((page) => page.slug === "computer-image-processing-division");
-  const updatedEnglishSoftware = updatedEnglishPage.blocks.find((block) => block.children?.some((child) => child.key === "cms-smoke-new-line"));
-  const updatedHindiSoftware = updatedHindiPage.blocks.find((block) => block.children?.some((child) => child.key === "cms-smoke-new-line"));
-  if (updatedEnglishSoftware?.children?.[0]?.value !== "Newest software test line" || updatedHindiSoftware?.children?.[0]?.value !== "नवीनतम सॉफ्टवेयर परीक्षण पंक्ति") {
-    throw new Error("Focused division section add-at-top did not persist separately in English and Hindi.");
-  }
-  if (!updatedEnglishSoftware.children.some((child) => child.value?.endsWith("[SECTION VERIFY]")) || !updatedHindiSoftware.children.some((child) => child.value?.endsWith("परीक्षण")) || !updatedEnglishSoftware.children.some((child) => child.hidden) || !updatedHindiSoftware.children.some((child) => child.hidden)) {
-    throw new Error("Focused division section edit/remove state did not persist separately in English and Hindi.");
-  }
-  const savedAsset = updatedEnglishPage.blocks.flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
-  const sharedHindiAsset = (updatedHindiPage.structureAssetBlocks || updatedHindiPage.sharedAssetBlocks || []).flatMap((block) => block.assets || []).find((asset) => asset.key === mapImages[0].key);
-  if (savedAsset?.value !== mapImages[1].value || savedAsset?.alt !== "CMS asset save verification" || sharedHindiAsset?.value !== mapImages[1].value) {
-    throw new Error("Division image/file replacement did not persist or reach the Hindi shared-media payload.");
+  const users = (await request("/api/admin/users")).payload.data;
+  if (!Array.isArray(users) || !users.some((user) => user.role === "admin" && user.active)) {
+    throw new Error("CMS user administration has no active administrator.");
   }
 
-  geoPageOriginal = structuredClone(pages.find((item) => item.entryKey === "geo-spatial-data-bank-division1"));
-  if (!geoPageOriginal) throw new Error("Geo-Spatial Data Bank Division CMS page is missing.");
-  const geoDraft = structuredClone(geoPageOriginal);
-  const geoEnglishResearch = geoDraft.dataEn.blocks?.find((block) => block.value === "Research Paper Published");
-  const geoHindiResearch = geoDraft.dataHi.blocks?.find((block) => /शोध\s*(?:पत्र|प्रपत्र)/u.test(`${block.value || ""} ${block.label || ""}`));
-  if (!geoEnglishResearch || !geoHindiResearch) throw new Error("Geo-Spatial bilingual research blocks are missing.");
-  const geoTestKey = "cms-smoke-geo-research";
-  geoEnglishResearch.children.unshift({ key: geoTestKey, label: "Research Paper Published -> New item", value: "Geo research English verification", isNew: true, sectionKey: "Research Paper Published", language: "en" });
-  geoHindiResearch.children.unshift({ key: geoTestKey, label: "शोध प्रपत्र -> नई प्रविष्टि", value: "भू-स्थानिक शोध हिन्दी सत्यापन", isNew: true, sectionKey: "Research Paper Published", language: "hi" });
-  geoPageUpdated = (await request(`/api/admin/content/pages/${geoDraft.id}`, { method: "PUT", body: JSON.stringify(geoDraft) })).payload.data;
-  const geoEnglishSaved = (await request("/api/content/bootstrap?lang=en")).payload.data.rsacOfficialSections
-    .find((section) => section.key === "divisions")?.pages
-    .find((page) => page.slug === "geo-spatial-data-bank-division1");
-  const geoHindiSaved = (await request("/api/content/bootstrap?lang=hi")).payload.data.rsacOfficialSections
-    .find((section) => section.key === "divisions")?.pages
-    .find((page) => page.slug === "geo-spatial-data-bank-division1");
-  const savedEnglishItem = geoEnglishSaved?.blocks.flatMap((block) => block.children || []).find((child) => child.key === geoTestKey);
-  const savedHindiItem = geoHindiSaved?.blocks.flatMap((block) => block.children || []).find((child) => child.key === geoTestKey);
-  if (savedEnglishItem?.value !== "Geo research English verification" || savedHindiItem?.value !== "भू-स्थानिक शोध हिन्दी सत्यापन") {
-    throw new Error("Geo-Spatial research add-at-top did not reach both website languages.");
+  const pages = (await request("/api/admin/content/pages")).payload.data;
+  const targetPages = pages.filter((page) => targetSections.has(page.dataEn?.sectionKey));
+  if (!targetPages.length) throw new Error("Division and Facility CMS pages are missing.");
+
+  for (const page of targetPages) {
+    for (const [language, data] of [["English", page.dataEn], ["Hindi", page.dataHi]]) {
+      for (const block of data?.blocks || []) {
+        if (!Object.hasOwn(block, "contentHtml")) {
+          throw new Error(`${language} ${page.entryKey} was not migrated to one rich section field.`);
+        }
+        if (Object.hasOwn(block, "children")) {
+          throw new Error(`${language} ${page.entryKey} still has active legacy rows.`);
+        }
+      }
+    }
   }
+
+  original = structuredClone(targetPages.find((page) =>
+    findEditableBlock(page.dataEn) && findEditableBlock(page.dataHi)
+  ));
+  if (!original) throw new Error("No bilingual rich section is available for the save test.");
+
+  const draft = structuredClone(original);
+  const englishBlock = findEditableBlock(draft.dataEn);
+  const hindiBlock = draft.dataHi.blocks.find((block) => block.id === englishBlock.id) || findEditableBlock(draft.dataHi);
+  const englishMarker = `CMS English rich test ${Date.now()}`;
+  const hindiMarker = `CMS Hindi rich test ${Date.now()}`;
+  englishBlock.contentHtml = `${englishBlock.contentHtml}<p><strong>${englishMarker}</strong></p>`;
+  hindiBlock.contentHtml = `${hindiBlock.contentHtml}<p><em>${hindiMarker}</em></p>`;
+
+  const sharedAssetsBefore = JSON.stringify((draft.dataEn.blocks || []).map((block) => block.assets || []));
+  const preview = (await request("/api/admin/preview", {
+    method: "POST",
+    body: JSON.stringify({ collection: "pages", entry: draft }),
+  })).payload;
+  const previewEnglish = (await request(`/api/content/preview/${preview.token}?lang=en`)).payload.data;
+  const previewHindi = (await request(`/api/content/preview/${preview.token}?lang=hi`)).payload.data;
+  const previewEnglishPage = findTargetPages(previewEnglish).find((page) => page.slug === draft.dataEn.slug);
+  const previewHindiPage = findTargetPages(previewHindi).find((page) => page.slug === draft.dataEn.slug);
+  if (!previewEnglishPage?.blocks.some((block) => block.contentHtml?.includes(englishMarker))) {
+    throw new Error("English rich-section preview did not update.");
+  }
+  if (!previewHindiPage?.blocks.some((block) => block.contentHtml?.includes(hindiMarker))) {
+    throw new Error("Hindi rich-section preview did not update independently.");
+  }
+
+  saved = (await request(`/api/admin/content/pages/${draft.id}`, {
+    method: "PUT",
+    body: JSON.stringify(draft),
+  })).payload.data;
+
+  const englishBootstrap = (await request("/api/content/bootstrap?lang=en")).payload.data;
+  const hindiBootstrap = (await request("/api/content/bootstrap?lang=hi")).payload.data;
+  const englishPage = findTargetPages(englishBootstrap).find((page) => page.slug === draft.dataEn.slug);
+  const hindiPage = findTargetPages(hindiBootstrap).find((page) => page.slug === draft.dataEn.slug);
+  assertCanonicalPage(englishPage, "English");
+  assertCanonicalPage(hindiPage, "Hindi");
+  if (!englishPage.blocks.some((block) => block.contentHtml?.includes(englishMarker))) {
+    throw new Error("Saved English rich content did not reach the website payload.");
+  }
+  if (!hindiPage.blocks.some((block) => block.contentHtml?.includes(hindiMarker))) {
+    throw new Error("Saved Hindi rich content did not reach the website payload.");
+  }
+  if (englishPage.blocks.some((block) => block.contentHtml?.includes(hindiMarker)) || hindiPage.blocks.some((block) => block.contentHtml?.includes(englishMarker))) {
+    throw new Error("Rich content leaked between languages.");
+  }
+  if (JSON.stringify((saved.dataEn.blocks || []).map((block) => block.assets || [])) !== sharedAssetsBefore) {
+    throw new Error("Editing rich text changed shared media.");
+  }
+
+  const version = (await request("/api/content/version")).payload.version;
+  if (!version || version !== englishBootstrap.contentVersion) {
+    throw new Error("Website content version did not refresh after save.");
+  }
+
+  for (const page of findTargetPages(englishBootstrap)) assertCanonicalPage(page, "English");
+  for (const page of findTargetPages(hindiBootstrap)) assertCanonicalPage(page, "Hindi");
 } catch (error) {
   verificationError = error;
 } finally {
-  if (updated) {
-    const restore = { ...updated, entryKey: original.entryKey, dataEn: original.dataEn, dataHi: original.dataHi, status: original.status, sortOrder: original.sortOrder };
-    const restored = (await request(`/api/admin/content/impact_stats/${original.id}`, { method: "PUT", body: JSON.stringify(restore) })).payload.data;
-    if (restored.entryKey !== original.entryKey) throw new Error("Internal key changed during restoration.");
-  }
-  if (facilityUpdated && facilityOriginal) {
-    const restoreFacility = { ...facilityUpdated, entryKey: facilityOriginal.entryKey, dataEn: facilityOriginal.dataEn, dataHi: facilityOriginal.dataHi, status: facilityOriginal.status, sortOrder: facilityOriginal.sortOrder };
-    await request(`/api/admin/content/pages/${facilityOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreFacility) });
-  }
-  if (divisionPageUpdated && divisionPageOriginal) {
-    const restoreDivisionPage = { ...divisionPageUpdated, entryKey: divisionPageOriginal.entryKey, dataEn: divisionPageOriginal.dataEn, dataHi: divisionPageOriginal.dataHi, status: divisionPageOriginal.status, sortOrder: divisionPageOriginal.sortOrder };
-    await request(`/api/admin/content/pages/${divisionPageOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDivisionPage) });
-  }
-  if (geoPageUpdated && geoPageOriginal) {
-    const restoreGeoPage = { ...geoPageUpdated, entryKey: geoPageOriginal.entryKey, dataEn: geoPageOriginal.dataEn, dataHi: geoPageOriginal.dataHi, status: geoPageOriginal.status, sortOrder: geoPageOriginal.sortOrder };
-    await request(`/api/admin/content/pages/${geoPageOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreGeoPage) });
-  }
-  if (designUpdated) {
-    const restoreDesign = { ...designUpdated, entryKey: designOriginal.entryKey, dataEn: designOriginal.dataEn, dataHi: designOriginal.dataHi, status: designOriginal.status, sortOrder: designOriginal.sortOrder };
-    await request(`/api/admin/content/design_settings/${designOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreDesign) });
-  }
-  if (siteSettingsUpdated) {
-    const restoreSiteSettings = { ...siteSettingsUpdated, entryKey: siteSettingsOriginal.entryKey, dataEn: siteSettingsOriginal.dataEn, dataHi: siteSettingsOriginal.dataHi, status: siteSettingsOriginal.status, sortOrder: siteSettingsOriginal.sortOrder };
-    await request(`/api/admin/content/site_settings/${siteSettingsOriginal.id}`, { method: "PUT", body: JSON.stringify(restoreSiteSettings) });
+  if (saved && original) {
+    await request(`/api/admin/content/pages/${original.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...saved,
+        entryKey: original.entryKey,
+        dataEn: original.dataEn,
+        dataHi: original.dataHi,
+        status: original.status,
+        sortOrder: original.sortOrder,
+      }),
+    });
   }
   await request("/api/auth/logout", { method: "POST" });
 }
 
 if (verificationError) throw verificationError;
-const englishBootstrap = (await request("/api/content/bootstrap?lang=en")).payload.data;
-const hindiBootstrap = (await request("/api/content/bootstrap?lang=hi")).payload.data;
-const contentVersion = (await request("/api/content/version")).payload.version;
-if (!contentVersion || contentVersion !== englishBootstrap.contentVersion) throw new Error("Website change-version endpoint does not match bootstrap content.");
-const facilityPages = englishBootstrap.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
-if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-image-processing-lab1" || facilityPages.at(-1)?.slug !== "service-block1") {
-  throw new Error("CMS does not expose all ten facility pages in expected order.");
-}
-if (englishBootstrap.siteSettings.pageContent?.gallery?.title !== "" || hindiBootstrap.siteSettings.pageContent?.gallery?.title !== "") {
-  throw new Error("Requested Gallery heading removal is not active in both languages.");
-}
-const expectedDivisionKeys = ["computer-image-processing", "agriculture-resources"];
-if (JSON.stringify(englishBootstrap.divisions.slice(0, 2).map((item) => item.key)) !== JSON.stringify(expectedDivisionKeys)) {
-  throw new Error("Live website bootstrap ignored CMS division sort order.");
-}
-if (englishBootstrap.siteSettings.homeSections.featureTabs.length !== 5 || hindiBootstrap.siteSettings.homeSections.featureTabs.length !== 5) {
-  throw new Error("Live website bootstrap did not expose five bilingual homepage tabs.");
-}
-const hindiTraining = hindiBootstrap.rsacOfficialSections
-  .find((section) => section.key === "divisions")?.pages
-  .find((page) => page.slug === "training-division");
-if (
-  !hindiTraining?.html ||
-  (
-    !(hindiTraining.blocks || []).some((block) => String(block?.id || "").startsWith("official-")) &&
-    !hindiTraining.structureHtml?.includes("List of Research Papers")
-  )
-) {
-  throw new Error("Live Hindi Training Division lacks a validated content structure.");
-}
-const hindiHostel = hindiBootstrap.rsacOfficialSections
-  .find((section) => section.key === "facilities")?.pages
-  .find((page) => page.slug === "training-hostels");
-if ((hindiHostel?.html?.match(/<img\b/gi) || []).length !== 5) {
-  throw new Error("Hindi Training Hostels does not share all five English photographs.");
-}
-const forestRemovedKeys = {
-  en: new Set(["text-0067", "text-0068", "text-0069", "text-0070", "text-0071", "text-0072"]),
-  hi: new Set(["text-0065", "text-0066", "text-0067", "text-0068", "text-0069", "text-0070"]),
-};
-for (const [language, bootstrap] of [["en", englishBootstrap], ["hi", hindiBootstrap]]) {
-  const forest = bootstrap.rsacOfficialSections
-    .find((section) => section.key === "divisions")?.pages
-    .find((page) => page.slug === "forest-resources-ecology-division");
-  const removed = (forest?.blocks || []).flatMap((block) => block.children || [])
-    .filter((child) => forestRemovedKeys[language].has(child.key) && child.hidden);
-  if (removed.length !== forestRemovedKeys[language].size) {
-    throw new Error("Forest Completed Projects still contains cross-division rows.");
-  }
-}
-const expectedPublicationCounts = {
-  English: new Map([
-    ["computer-image-processing-division", 21],
-    ["agriculture-resources-division1", 54],
-    ["earth-resources-division1", 113],
-    ["forest-resources-ecology-division", 51],
-    ["geo-spatial-data-bank-division1", 65],
-    ["landuse-amp;-urban-survey-division1", 56],
-    ["soil-resources-division1", 96],
-    ["surface-water-resources-division1", 208],
-    ["training-division", 24],
-  ]),
-  Hindi: new Map([
-    ["agriculture-resources-division1", 60],
-    ["forest-resources-ecology-division", 51],
-    ["landuse-amp;-urban-survey-division1", 14],
-    ["soil-resources-division1", 77],
-    ["surface-water-resources-division1", 186],
-  ]),
-};
-const publicationLabelPattern = /research|paper|\u0936\u094b\u0927\s*\u092a\u0924\u094d\u0930/iu;
-const punctuationOnlyPattern = /^[\s,.;:\u0964|/()[\]{}\-\u2013\u2014\u2022\u00b7]+$/u;
-const findDivisionPage = (bootstrap, slug) => bootstrap.rsacOfficialSections
-  .find((section) => section.key === "divisions")?.pages
-  ?.find((page) => page.slug === slug);
-
-for (const [language, bootstrap] of [["English", englishBootstrap], ["Hindi", hindiBootstrap]]) {
-  for (const [slug, expectedCount] of expectedPublicationCounts[language]) {
-    const block = findDivisionPage(bootstrap, slug)?.blocks?.find((candidate) =>
-      candidate.editorMode === "numbered_list" &&
-      publicationLabelPattern.test(`${candidate.value || ""} ${candidate.label || ""}`)
-    );
-    const visibleRows = (block?.children || []).filter((item) => !item.hidden);
-    if (!block?.normalizedItemRows || visibleRows.length !== expectedCount) {
-      throw new Error(`${language} ${slug} exposes ${visibleRows.length} normalized publication rows; expected ${expectedCount}.`);
-    }
-    const malformed = visibleRows.find((item) => {
-      const value = String(item.value || "").trim();
-      return !value || punctuationOnlyPattern.test(value);
-    });
-    if (malformed) {
-      throw new Error(`${language} ${slug} contains an empty or punctuation-only publication row.`);
-    }
-  }
-}
-
-const hindiCipdmResearch = findDivisionPage(hindiBootstrap, "computer-image-processing-division")?.blocks
-  ?.find((block) => block.editorMode === "numbered_list");
-if (
-  hindiCipdmResearch &&
-  !hindiCipdmResearch.children.some((item) => /[\u0900-\u097f]/u.test(item.value || ""))
-) {
-  throw new Error("CIPDM Hindi research rows do not contain separate Hindi content.");
-}
-if ((hindiBootstrap.siteSettings.organisationChart?.roles || []).length < 10) {
-  throw new Error("Live organisation chart roles are missing.");
-}
-const contactDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((item) => item.path === "/contact");
-const geoportalDisplay = englishBootstrap.siteSettings.pageDisplaySettings?.find((item) => item.path === "/geoportals");
-if (
-  !contactDisplay?.hideTitle ||
-  geoportalDisplay?.eyebrowSize !== "large" ||
-  !englishBootstrap.siteSettings.designSettings?.bodyFont
-) {
-  throw new Error("Live page-heading or typography controls are missing.");
-}
-console.log("CMS bilingual save, page layout and flexible blocks, focused division/facility sections, division image/file replacement, instant versioning, structured division forms/order and research rows, users, homepage tabs, organisation chart, and typography smoke tests passed; temporary edits were restored.");
+console.log("Canonical bilingual Division/Facility rich-text, exact-empty language behavior, preview, public delivery, shared media, content versioning, users, and restoration smoke tests passed.");

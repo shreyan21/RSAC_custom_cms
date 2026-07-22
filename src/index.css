@@ -2039,8 +2039,10 @@ html:not(.rsac-high-contrast)
 
 .rsac-government-emblem {
   background: transparent !important;
-  -webkit-clip-path: circle(49% at 50% 50%);
-  clip-path: circle(49% at 50% 50%);
+  object-fit: contain !important;
+  object-position: center;
+  -webkit-clip-path: none;
+  clip-path: none;
 }
 
 .rsac-high-contrast button:focus-visible,
@@ -3444,7 +3446,7 @@ a:focus-visible {
 .rsac-rich-content .rsac-video-grid {
   display: grid;
   gap: 1rem 1.25rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
   margin: 0.75rem 0 1rem;
 }
 
@@ -3471,6 +3473,67 @@ a:focus-visible {
   line-height: 1.35;
   margin-top: 0.45rem;
   padding: 0 0.15rem;
+}
+
+.rsac-rich-content .rsac-interactive-figure {
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border: 1px solid #cbdce7;
+  border-radius: 0.5rem;
+  background: #f8fbfd;
+}
+
+.rsac-rich-content .rsac-interactive-thumbnail {
+  background: #f8fbfd;
+  border: 1px solid #cbdce7;
+  border-radius: 0.65rem;
+  display: block;
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.rsac-rich-content .rsac-interactive-thumbnail:hover {
+  border-color: #0f6f42;
+  box-shadow: 0 10px 24px rgba(18, 50, 74, 0.12);
+  transform: translateY(-2px);
+}
+
+.rsac-rich-content .rsac-interactive-thumbnail:focus-visible {
+  outline: 3px solid #f5a623;
+  outline-offset: 3px;
+}
+
+.rsac-rich-content .rsac-interactive-thumbnail img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.rsac-rich-content .rsac-interactive-embed {
+  display: block;
+  width: 100%;
+  min-height: clamp(24rem, 62vw, 44rem);
+  border: 0;
+  background: #fff;
+}
+
+.rsac-rich-content .rsac-interactive-figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #334e62;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.rsac-rich-content .rsac-interactive-figcaption a {
+  color: #0b6fa4;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .rsac-high-contrast .rsac-rich-content .rsac-video-embed {
@@ -4112,6 +4175,10 @@ html:not(.rsac-high-contrast) .rsac-effect-card:focus-within {
 
 .rsac-rich-content a[href]:hover {
   text-decoration-thickness: 2px;
+}
+
+.rsac-rich-content [data-rsac-tone="light"] {
+  font-weight: 350;
 }
 
 /* ============================================================

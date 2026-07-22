@@ -12,6 +12,7 @@ if (!process.env.CMS_DATABASE_URL) {
 
 const dryRun = process.argv.includes("--dry-run");
 const headingsOnly = process.argv.includes("--headings-only");
+const missingOnly = process.argv.includes("--missing-only");
 const profileOnlyPages = new Set([
   "our-chairman's-governing-body",
   "director's",
@@ -128,6 +129,36 @@ const locateAsset = (blocks, wantedIdentity) => {
   return null;
 };
 
+const mirrorAssetControls = (targetData, sourceData) => {
+  const targetBlocks = structuredClone(targetData?.blocks || []);
+  const existing = new Set(targetBlocks.flatMap((block) => (block.assets || []).map(assetIdentity)));
+  let added = 0;
+  (sourceData?.blocks || []).forEach((sourceBlock, sourceIndex) => {
+    let targetIndex = targetBlocks.findIndex((block) =>
+      String(block?.id || "") && String(block.id) === String(sourceBlock?.id || "")
+    );
+    if (targetIndex < 0 && sourceIndex < targetBlocks.length) targetIndex = sourceIndex;
+    if (targetIndex < 0) return;
+    (sourceBlock.assets || []).forEach((asset) => {
+      const identityValue = assetIdentity(asset);
+      if (!identityValue || existing.has(identityValue)) return;
+      targetBlocks[targetIndex].assets = [...(targetBlocks[targetIndex].assets || []), {
+        ...asset,
+        alt: "",
+        title: "",
+        caption: "",
+        text: "",
+      }];
+      existing.add(identityValue);
+      added += 1;
+    });
+  });
+  return {
+    data: added ? { ...targetData, blocks: targetBlocks } : targetData,
+    added,
+  };
+};
+
 const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
   if (!data?.html || !Array.isArray(data.blocks)) return { data, changed: false, added: 0 };
   const blocks = structuredClone(data.blocks);
@@ -156,16 +187,18 @@ const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
   const sourceAssetIdentities = new Set(sourceAssets.map(assetIdentity));
   const sharedAssetIdentities = new Set(sharedAssets.map(assetIdentity));
   let removed = 0;
-  blocks.forEach((block) => {
-    if (!Array.isArray(block.assets)) return;
-    block.assets = block.assets.filter((asset) => {
-      const keep = asset?.isNew || !String(asset?.key || "").startsWith("asset-") || (
-        sourceAssetIdentities.has(assetIdentity(asset)) && !sharedAssetIdentities.has(assetIdentity(asset))
-      );
-      if (!keep) removed += 1;
-      return keep;
+  if (!missingOnly) {
+    blocks.forEach((block) => {
+      if (!Array.isArray(block.assets)) return;
+      block.assets = block.assets.filter((asset) => {
+        const keep = asset?.isNew || !String(asset?.key || "").startsWith("asset-") || (
+          sourceAssetIdentities.has(assetIdentity(asset)) && !sharedAssetIdentities.has(assetIdentity(asset))
+        );
+        if (!keep) removed += 1;
+        return keep;
+      });
     });
-  });
+  }
   const keyByNode = assignTextKeys(document);
   const ownerByKey = ownerLookup(blocks);
   const imageMetadata = new Map(
@@ -198,7 +231,7 @@ const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
 
     const existingAsset = locateAsset(blocks, assetIdentity(sourceAsset));
     if (existingAsset) {
-      if (targetIndex >= 0 && existingAsset.blockIndex !== targetIndex) {
+      if (!missingOnly && targetIndex >= 0 && existingAsset.blockIndex !== targetIndex) {
         blocks[existingAsset.blockIndex].assets.splice(existingAsset.assetIndex, 1);
         blocks[targetIndex].assets = [...(blocks[targetIndex].assets || []), existingAsset.asset];
         moved += 1;
@@ -228,7 +261,7 @@ const ensureDataAssets = (data, pageSlug, sharedAssets = []) => {
     added += 1;
   }
 
-  const compactedBlocks = blocks.filter((block) => !(
+  const compactedBlocks = missingOnly ? blocks : blocks.filter((block) => !(
     block.assetOnly &&
     !(block.assets || []).length &&
     !(block.children || []).length
@@ -261,9 +294,20 @@ try {
   let moved = 0;
   let normalized = 0;
   for (const row of rows) {
-    const english = ensureDataAssets(row.data_en, row.data_en?.slug || row.entry_key);
+    let english = ensureDataAssets(row.data_en, row.data_en?.slug || row.entry_key);
     const englishAssets = (english.data?.blocks || []).flatMap((block) => block.assets || []);
     const hindi = ensureDataAssets(row.data_hi, row.data_en?.slug || row.entry_key, englishAssets);
+    if (missingOnly && ["divisions", "facilities"].includes(row.data_en?.sectionKey)) {
+      const mirrored = mirrorAssetControls(english.data, hindi.data);
+      if (mirrored.added) {
+        english = {
+          ...english,
+          data: mirrored.data,
+          changed: true,
+          added: english.added + mirrored.added,
+        };
+      }
+    }
     if (!english.changed && !hindi.changed) continue;
     updated += 1;
     added += english.added + hindi.added;

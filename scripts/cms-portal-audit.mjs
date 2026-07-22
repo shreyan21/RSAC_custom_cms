@@ -19,6 +19,9 @@ const allowedStatuses = new Set(["draft", "published", "archived"]);
 const virtualDashboardCollections = new Set([
   "about_pages", "division_pages", "facility_pages", "academic_pages",
 ]);
+const intentionallyHiddenCollections = new Set([
+  "division_section_items",
+]);
 const problems = [];
 const legacyFields = new Map();
 const databaseCounts = new Map();
@@ -77,7 +80,12 @@ for (const definition of collections) {
 const groupedIds = cmsGroups.flatMap((group) => group.ids);
 const groupedIdSet = new Set(groupedIds);
 for (const definition of collections) {
-  if (!groupedIdSet.has(definition.id)) problems.push(`${definition.id} is missing from the CMS dashboard.`);
+  if (!groupedIdSet.has(definition.id) && !intentionallyHiddenCollections.has(definition.id)) {
+    problems.push(`${definition.id} is missing from the CMS dashboard.`);
+  }
+}
+for (const id of intentionallyHiddenCollections) {
+  if (groupedIdSet.has(id)) problems.push(`${id} must stay hidden because section content is edited on its owning page.`);
 }
 for (const id of groupedIds) {
   if (!definitionIds.has(id) && !virtualDashboardCollections.has(id)) problems.push(`Dashboard references unknown collection ${id}.`);
@@ -178,7 +186,7 @@ try {
             if (!Array.isArray(blocks)) continue;
             blocks.forEach((block, index) => {
               if (!isObject(block)) problems.push(`${label} ${language} block ${index + 1} is not an object.`);
-              else if (!String(block.type || "").trim() && !Array.isArray(block.children) && !block.editorMode) {
+              else if (!String(block.type || "").trim() && !Array.isArray(block.children) && !block.editorMode && !Object.hasOwn(block, "contentHtml")) {
                 problems.push(`${label} ${language} block ${index + 1} has no editor format.`);
               }
               if (

@@ -66,8 +66,8 @@ export const pageCardIconOptions = [
 export const collections = [
   {
     id: "pages",
-    label: "All Website Pages",
-    description: "About, division, facility, policy, service, programme and public-information pages.",
+    label: "Other Website Pages",
+    description: "Policy, service, programme and public-information pages without another dedicated editor.",
     fields: [
       text("title", "Page title", { required: true }),
       plain("slug", "URL slug", { required: true, advanced: true }),

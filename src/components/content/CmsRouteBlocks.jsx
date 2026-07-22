@@ -99,7 +99,7 @@ export default function CmsRouteBlocks({ blocks, className = "" }) {
             <section key={key} {...shellProps}>
               <BlockHeading block={block} />
               <figure className="cms-flexible-figure">
-                <img src={image} alt={asText(block.alt || block.heading)} className="cms-flexible-media" loading="lazy" />
+                <img src={image} alt={asText(block.alt)} className="cms-flexible-media" loading="lazy" />
                 {block.caption && <figcaption>{block.caption}</figcaption>}
               </figure>
             </section>
@@ -117,8 +117,8 @@ export default function CmsRouteBlocks({ blocks, className = "" }) {
                   if (!image) return null;
                   return (
                     <figure key={value.id || `${key}-image-${itemIndex}`} className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-[#f8fbfd]">
-                      <img src={image} alt={asText(value.alt || value.title)} className="cms-flexible-media w-full object-contain" loading="lazy" />
-                      {(value.caption || value.title) && <figcaption className="p-3 text-sm font-semibold leading-relaxed text-slate-700">{value.caption || value.title}</figcaption>}
+                      <img src={image} alt={asText(value.alt)} className="cms-flexible-media w-full object-contain" loading="lazy" />
+                      {value.caption && <figcaption className="p-3 text-sm font-semibold leading-relaxed text-slate-700">{value.caption}</figcaption>}
                     </figure>
                   );
                 })}
@@ -134,7 +134,7 @@ export default function CmsRouteBlocks({ blocks, className = "" }) {
               <div className={`grid items-stretch gap-4 ${columns(block.columns)}`}>
                 {items.map((item, itemIndex) => (
                   <article key={item.id || item.key || `${key}-card-${itemIndex}`} className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-[#fbfdfc] shadow-[0_10px_28px_rgba(18,50,74,0.055)]">
-                    {(item.image || item.src) && <img src={item.image || item.src} alt={asText(item.alt || item.title)} className="cms-flexible-media aspect-[16/9] w-full object-cover" loading="lazy" />}
+                    {(item.image || item.src) && <img src={item.image || item.src} alt={asText(item.alt)} className="cms-flexible-media aspect-[16/9] w-full object-cover" loading="lazy" />}
                     <div className="flex flex-1 flex-col p-4">
                       {item.title && <h3 className="text-lg font-extrabold leading-snug text-[#102f46]">{item.title}</h3>}
                       {(item.text || item.summary || item.description) && <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.text || item.summary || item.description}</p>}

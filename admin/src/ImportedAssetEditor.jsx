@@ -57,7 +57,7 @@ function AssetUploadField({ asset, onChange, onBusy, onError }) {
   );
 }
 
-export default function ImportedAssetEditor({ assets, onChange, onBusy = () => {}, onError = () => {} }) {
+export default function ImportedAssetEditor({ assets, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {
   const [query, setQuery] = useState("");
   const list = Array.isArray(assets) ? assets : [];
   const active = list.reduce((result, asset, index) => {
@@ -87,7 +87,7 @@ export default function ImportedAssetEditor({ assets, onChange, onBusy = () => {
   return (
     <section className="imported-assets-editor">
       <div className="imported-assets-heading">
-        <div><strong>Media shown in this section</strong><p>Each row states whether it is a photo, video, document or web link. Uploading replaces only that row.</p></div>
+        <div><strong>Media shown in this section</strong><p>Photo or file is shared by English and Hindi. {language === "hi" ? "Edit only Hindi alt text and caption here." : "Edit English alt text and caption here."} A blank caption or description stays blank on the website.</p></div>
         <div className="imported-assets-add"><button type="button" className="secondary" onClick={() => add("image")}><ImagePlus /> Add photo</button><button type="button" className="secondary" onClick={() => add("video")}><Film /> Add video</button><button type="button" className="secondary" onClick={() => add("document")}><FileUp /> Add document / link</button></div>
       </div>
       {active.length > 6 && <label className="imported-assets-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${active.length} media items`} /></label>}

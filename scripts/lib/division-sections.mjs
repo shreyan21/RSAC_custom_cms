@@ -326,7 +326,18 @@ const applyTrainingTailSplit = (sections, keyMap, slug) => {
     .slice(researchIndex, techIndex === -1 ? undefined : techIndex)
     .map((entry) => entry.key);
   const techKeys = techIndex === -1 ? [] : ordered.slice(techIndex).map((entry) => entry.key);
-  const moved = new Set([...researchKeys, ...techKeys]);
+  // The research/report lists sit after the legacy tab panels in document
+  // order. Keep keys already owned by the real hostel/photo panels in those
+  // panels; otherwise the tail split steals them and the CMS loses the same
+  // sections the public page still shows.
+  const protectedKeys = new Set(
+    sections
+      .filter((section) => ["training-hostel", "map-photos"].includes(section.key))
+      .flatMap((section) => section.textKeys || [])
+  );
+  const filteredResearchKeys = researchKeys.filter((key) => !protectedKeys.has(key));
+  const filteredTechKeys = techKeys.filter((key) => !protectedKeys.has(key));
+  const moved = new Set([...filteredResearchKeys, ...filteredTechKeys]);
 
   const result = sections
     .map((section) => ({ ...section, textKeys: section.textKeys.filter((key) => !moved.has(key)) }))
@@ -337,8 +348,8 @@ const applyTrainingTailSplit = (sections, keyMap, slug) => {
     if (existing) existing.textKeys.push(...textKeys);
     else result.push({ key, label, textKeys });
   };
-  append("research-paper-published", "Research Paper Published", researchKeys);
-  append("technical-reports", "Technical Reports", techKeys);
+  append("research-paper-published", "Research Paper Published", filteredResearchKeys);
+  append("technical-reports", "Technical Reports", filteredTechKeys);
   return result;
 };
 

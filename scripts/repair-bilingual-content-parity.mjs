@@ -108,7 +108,11 @@ const cipdmMedia = new Map([
   ["asset-image-0004", { label: "Video poster: Charbagh 3D Model", title: "Charbagh 3D Model" }],
   ["asset-image-0005", { label: "Video poster: Badshahnagar 3D Model", title: "Badshahnagar 3D Model" }],
   ["asset-image-0006", { label: "Video poster: Aishbagh 3D Model", title: "Aishbagh 3D Model" }],
-  ["asset-image-0007", { label: "Interactive model poster: Dam Analysis", title: "RSAC-UP 3D Model" }],
+  ["asset-image-0007", {
+    label: "Interactive model poster: Dam Analysis",
+    title: "RSAC-UP 3D Model",
+    linkedHref: "/official-media/legacy-rsac/dam/index.html",
+  }],
   ["asset-link-0004", {
     label: "Video: RSAC-UP Virtual 3D Campus",
     title: "RSAC-UP Virtual 3D Campus",
@@ -138,6 +142,7 @@ const cipdmMedia = new Map([
     title: "RSAC-UP 3D Model",
     text: "RSAC-UP 3D Model",
     value: "/official-media/legacy-rsac/dam/index.html",
+    hidden: true,
   }],
 ]);
 
@@ -146,11 +151,7 @@ const repairCipdm = (dataEn, dataHi) => {
     String(block.value || block.label || "").toLowerCase().replace(/\s+/gu, "").includes("map/photos")
   );
   if (!mapBlock) throw new Error("CIPDM Map/Photos block is missing.");
-  mapBlock.children = (mapBlock.children || []).map((child) => {
-    if (child.key === "text-0205") return { ...child, value: "", hidden: true };
-    if (child.key === "text-0206") return { ...child, value: "Related Photos", hidden: false };
-    return child;
-  });
+  delete mapBlock.children;
   mapBlock.assets = (mapBlock.assets || []).map((asset) => ({
     ...asset,
     ...(cipdmMedia.get(asset.key) || {}),
@@ -158,37 +159,34 @@ const repairCipdm = (dataEn, dataHi) => {
   }));
 
   const hindiMapBlock = (dataHi.blocks || []).find((block) =>
-    (block.children || []).some((child) => child.key === "text-0186")
+    String(block.sourceLabel || block.value || block.label || "")
+      .toLowerCase()
+      .replace(/\s+/gu, "")
+      .includes("map/photos") ||
+    (block.children || []).some((child) =>
+      ["text-0185", "text-0186", "text-0187"].includes(child.key)
+    )
   );
   if (!hindiMapBlock) throw new Error("CIPDM Hindi Map/Photos block is missing.");
-  hindiMapBlock.children = (hindiMapBlock.children || []).map((child) => {
-    if (child.key === "text-0185") {
+  hindiMapBlock.assets = (hindiMapBlock.assets || []).map((asset) => {
+    if (asset.key === "asset-image-0007") {
       return {
-        ...child,
-        value: "कंप्यूटर इमेज प्रोसेसिंग डिवीजन",
-        hidden: false,
+        ...asset,
+        linkedHref: "/official-media/legacy-rsac/dam/index.html",
+        title: "\u0906\u0930\u090f\u0938\u090f\u0938\u0940-\u092f\u0942\u092a\u0940 3\u0921\u0940 \u092e\u0949\u0921\u0932",
+        alt: "\u0906\u0930\u090f\u0938\u090f\u0938\u0940-\u092f\u0942\u092a\u0940 3\u0921\u0940 \u092e\u0949\u0921\u0932",
       };
     }
-    if (child.key === "text-0186") {
+    if (asset.key === "asset-link-0008") {
       return {
-        ...child,
-        label: "मानचित्र / तस्वीरें → सम्बंधित लिंक्स",
-        value: "",
+        ...asset,
+        value: "/official-media/legacy-rsac/dam/index.html",
         hidden: true,
-        sourceKeys: [...new Set([...(child.sourceKeys || []), "text-0205"])],
       };
     }
-    if (child.key === "text-0187") {
-      return {
-        ...child,
-        label: "मानचित्र / तस्वीरें → संबंधित तस्वीरें",
-        value: "संबंधित तस्वीरें",
-        hidden: false,
-        sourceKeys: [...new Set([...(child.sourceKeys || []), "text-0206"])],
-      };
-    }
-    return child;
+    return asset;
   });
+  delete hindiMapBlock.children;
 
   const hindiOnlyVideoSources = new Set([
     "http://geoportal.rsacup.org.in:8080/video_rsac/RSACUPVirtualTour.mp4",

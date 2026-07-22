@@ -21,6 +21,7 @@ const reactRefreshPreamble = {
 
 export default defineConfig({
   root: "admin",
+  cacheDir: "../node_modules/.vite-admin",
   plugins: [reactRefreshPreamble, react()],
   server: { host: "127.0.0.1", port: 5174, strictPort: true },
   build: { outDir: "../dist-admin", emptyOutDir: true },

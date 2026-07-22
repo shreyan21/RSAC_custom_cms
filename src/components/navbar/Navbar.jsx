@@ -186,9 +186,12 @@ const Navbar = () => {
               aria-label={t("Government and partner logos")}
             >
               {supportingLogos.map((logo) => {
-                const isGovernmentEmblem = /government of uttar pradesh/i.test(
-                  `${logo.title} ${logo.alt}`
-                );
+                const isGovernmentEmblem =
+                  logo.image === branding.governmentLogo ||
+                  logo.id === "up-government" ||
+                  /government of uttar pradesh|uttar pradesh government|उत्तर प्रदेश सरकार/iu.test(
+                    `${logo.title} ${logo.alt} ${logo.altText}`
+                  );
 
                 return (
                   <HeaderLogoLink

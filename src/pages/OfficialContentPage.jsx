@@ -54,7 +54,9 @@ import {
 } from "../data/pageAssetFields";
 import {
   applyPageTextFields,
+  extractPageTextFields,
   flattenImportedPageTextFields,
+  sanitizeInlineRichText,
 } from "../data/pageTextFields";
 import { SHOW_BREADCRUMBS } from "../config/uiConfig";
 
@@ -905,7 +907,7 @@ const isScientistProfileCard = (profile) => {
   }
 
   const designation = getProfileField(profile, ["Designation"])?.value || "";
-  return /\bscientist\b/i.test(
+  return /\bscientist\b|\u0935\u0948\u091c\u094d\u091e\u093e\u0928\u093f\u0915/iu.test(
     `${profile.designation || ""} ${profile.role || ""} ${profile.category || ""} ${designation}`
   );
 };
@@ -938,6 +940,10 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
   const scientists = getScientistProfileData(scientistProfiles);
   const employeeId = getProfileEmployeeId(profile);
   const profileName = normalizeEquivalentHonorifics(getProfileName(profile));
+  const profileNames = new Set([
+    profileName,
+    normalizeEquivalentHonorifics(profile.baseName || ""),
+  ].filter(Boolean));
 
   const matched = (
     (employeeId &&
@@ -945,8 +951,9 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
         (scientist) => getProfileEmployeeId(scientist) === employeeId
       )) ||
     scientists.find(
-      (scientist) =>
-        normalizeEquivalentHonorifics(scientist.name) === profileName
+      (scientist) => [scientist.name, scientist.baseName]
+        .map(normalizeEquivalentHonorifics)
+        .some((name) => name && profileNames.has(name))
     )
   );
 
@@ -1040,12 +1047,14 @@ const scientistProfilesMatch = (leftProfile, rightProfile) => {
     return true;
   }
 
-  const leftName = getProfileName(leftProfile);
-  const rightName = getProfileName(rightProfile);
-  const normalizedLeftName = normalizeEquivalentHonorifics(leftName);
-  const normalizedRightName = normalizeEquivalentHonorifics(rightName);
+  const leftNames = new Set([getProfileName(leftProfile), leftProfile.baseName]
+    .map(normalizeEquivalentHonorifics)
+    .filter(Boolean));
+  const rightNames = [getProfileName(rightProfile), rightProfile.baseName]
+    .map(normalizeEquivalentHonorifics)
+    .filter(Boolean);
 
-  if (normalizedLeftName === normalizedRightName) {
+  if (rightNames.some((name) => leftNames.has(name))) {
     return true;
   }
 
@@ -1624,8 +1633,22 @@ const removeDuplicatePageTitle = (document, pageTitle) => {
     return;
   }
 
+  const titleWords = (value) => new Set(value.split(" ").filter((word) => word.length >= 3));
+  const titlesEquivalent = (heading) => {
+    if (normalizedTargets.has(heading)) return true;
+    if (!/\bdivision\b/u.test(heading)) return false;
+    const headingWords = titleWords(heading);
+    if (headingWords.size < 3) return false;
+    return [...normalizedTargets].some((target) => {
+      if (!/\bdivision\b/u.test(target)) return false;
+      const targetWords = titleWords(target);
+      const common = [...headingWords].filter((word) => targetWords.has(word)).length;
+      return common >= 3 && common / Math.min(headingWords.size, targetWords.size) >= 0.75;
+    });
+  };
+
   Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"))
-    .filter((heading) => normalizedTargets.has(normalizeTitle(heading.textContent)))
+    .filter((heading) => titlesEquivalent(normalizeTitle(heading.textContent)))
     .forEach((heading) => heading.remove());
 };
 
@@ -1651,7 +1674,8 @@ const pruneEmptyImportedWrappers = (document) => {
 };
 
 const isDuplicateMediaHeading = (text, pageTitle) => {
-  if (!pageTitle || !/\b(map\s*\/\s*)?photos?\b/i.test(text)) {
+  const mediaWords = /(?:\b(?:map\s*\/\s*)?photos?\b|\bimages?\b|मानचित्र\s*\/\s*तस्वीरें|तस्वीरें|फोटो|चित्र)/iu;
+  if (!pageTitle || !mediaWords.test(text)) {
     return false;
   }
 
@@ -1668,11 +1692,13 @@ const isDuplicateMediaHeading = (text, pageTitle) => {
     text
       .replace(/\b(map\s*\/\s*)?photos?\b/gi, "")
       .replace(/\bimages?\b/gi, "")
+      .replace(/मानचित्र\s*\/\s*तस्वीरें|तस्वीरें|फोटो|चित्र/gu, "")
   );
 
-  if (!textWithoutPhotos || textWithoutPhotos.length < 4) {
-    return false;
-  }
+  // A bare media label is structural chrome, not page content. Remove it in
+  // either language so English and Hindi keep the same media-grid position.
+  if (!textWithoutPhotos) return true;
+  if (textWithoutPhotos.length < 4) return false;
 
   return (
     normalizedTitle.includes(textWithoutPhotos) ||
@@ -1867,17 +1893,10 @@ const sanitizeOfficialHtml = (
   pruneEmptyImportedWrappers(document);
   removeTrailingOrphanHeading(document);
 
-  // The scraped html carries images with no alt text (WCAG/GIGW). Name them
-  // from the page title — language-neutral, since the Hindi page object
-  // already carries the Hindi title — so screen readers announce something
-  // meaningful and the Lightbox has a caption.
-  Array.from(document.querySelectorAll("img")).forEach((image, index) => {
-    if (!image.getAttribute("alt")) {
-      image.setAttribute(
-        "alt",
-        pageTitle ? `${pageTitle} — ${index + 1}` : `RSAC-UP — ${index + 1}`
-      );
-    }
+  // Blank CMS alt text is intentional. Keep a standards-valid empty alt
+  // attribute without inventing visible captions or image descriptions.
+  Array.from(document.querySelectorAll("img")).forEach((image) => {
+    if (!image.hasAttribute("alt")) image.setAttribute("alt", "");
   });
 
   return document.body.innerHTML;
@@ -3744,7 +3763,7 @@ const normalizeRichContentTables = (document) => {
 const enhanceRichContentHtml = (
   html,
   sectionKey,
-  { pageTitle = "", language = "en" } = {}
+  { language = "en" } = {}
 ) => {
   if (typeof DOMParser === "undefined") {
     return html;
@@ -3820,7 +3839,7 @@ const enhanceRichContentHtml = (
   parsedDocument.body.querySelectorAll("img[src]").forEach((image) => {
     const existingLink = image.closest("a[href]");
     const title = getReadableMediaTitle(
-      image.getAttribute("title") || image.getAttribute("alt") || "image",
+      image.getAttribute("title") || image.getAttribute("alt") || "",
       language
     );
 
@@ -3828,6 +3847,9 @@ const enhanceRichContentHtml = (
       existingLink.classList.add("rsac-media-link");
       if (title) {
         existingLink.setAttribute("title", title);
+      } else {
+        existingLink.removeAttribute("title");
+        existingLink.setAttribute("aria-label", localizeOfficialText("Open in new tab"));
       }
       return;
     }
@@ -3838,8 +3860,13 @@ const enhanceRichContentHtml = (
     link.setAttribute("target", "_blank");
     link.setAttribute("rel", "noopener noreferrer");
     link.setAttribute("class", "rsac-media-link");
-    link.setAttribute("aria-label", `${localizeOfficialText("Open in new tab")}: ${title}`);
-    link.setAttribute("title", title);
+    link.setAttribute(
+      "aria-label",
+      title
+        ? `${localizeOfficialText("Open in new tab")}: ${title}`
+        : localizeOfficialText("Open in new tab")
+    );
+    if (title) link.setAttribute("title", title);
 
     image.replaceWith(link);
     link.appendChild(image);
@@ -3864,6 +3891,19 @@ const enhanceRichContentHtml = (
         "",
       language
     );
+
+    if (
+      image &&
+      /\.html?(?:$|[?#])/i.test(href) &&
+      /^(?:\/official-media\/|\/cms-media\/)/i.test(href)
+    ) {
+      link.classList.add("rsac-interactive-thumbnail");
+      link.setAttribute(
+        "aria-label",
+        title || localizeOfficialText("Open interactive content")
+      );
+      return;
+    }
 
     if (/\.(?:mp4|m4v|webm|ogv|mov)(?:$|[?#])/i.test(href)) {
       // A locally mirrored video linked from a thumbnail: play it in place
@@ -3907,31 +3947,13 @@ const enhanceRichContentHtml = (
       caption.textContent = title;
       link.appendChild(caption);
       link.setAttribute("title", title);
+    } else if (!title) {
+      hasCaption?.remove();
+      link.removeAttribute("title");
+      link.setAttribute("aria-label", localizeOfficialText("Open in new tab"));
+      image?.setAttribute("alt", "");
     }
   });
-
-  if (language === "hi" && /[\u0900-\u097f]/u.test(pageTitle)) {
-    parsedDocument.body.querySelectorAll("a.rsac-media-link").forEach((link, index) => {
-      const caption = link.querySelector(".rsac-media-caption");
-      const currentLabel = compactText(
-        caption?.textContent || link.getAttribute("title") || ""
-      );
-      if (/[\u0900-\u097f]/u.test(currentLabel)) return;
-      if (link.classList.contains("rsac-media-link--preview") && currentLabel) {
-        if (caption) caption.textContent = currentLabel;
-        link.setAttribute("title", currentLabel);
-        link.setAttribute("aria-label", `${currentLabel} खोलें`);
-        link.querySelector("img")?.setAttribute("alt", currentLabel);
-        return;
-      }
-
-      const localizedLabel = `${pageTitle} - चित्र ${index + 1}`;
-      if (caption) caption.textContent = localizedLabel;
-      link.setAttribute("title", localizedLabel);
-      link.setAttribute("aria-label", `${localizedLabel} खोलें`);
-      link.querySelector("img")?.setAttribute("alt", localizedLabel);
-    });
-  }
 
   // Free inline players from single-child paragraph wrappers, then pack each
   // run of consecutive players into a responsive grid so several videos sit
@@ -4332,7 +4354,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
             <section key={key} {...shellProps}>
               <FlexibleHeading block={block} language={language} />
               <figure className="cms-flexible-figure">
-                <img src={image} alt={flexibleText(block.alt || block.heading, language)} className="cms-flexible-media" loading="lazy" />
+                <img src={image} alt={flexibleText(block.alt, language)} className="cms-flexible-media" loading="lazy" />
                 {block.caption && <figcaption>{flexibleText(block.caption, language)}</figcaption>}
               </figure>
             </section>
@@ -4350,8 +4372,8 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
                   if (!image) return null;
                   return (
                     <figure key={value.id || `${key}-image-${itemIndex}`} className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-[#f8fbfd]">
-                      <img src={image} alt={flexibleText(value.alt || value.title, language)} className="cms-flexible-media w-full object-contain" loading="lazy" />
-                      {(value.caption || value.title) && <figcaption className="p-3 text-sm font-semibold leading-relaxed text-slate-700">{flexibleText(value.caption || value.title, language)}</figcaption>}
+                      <img src={image} alt={flexibleText(value.alt, language)} className="cms-flexible-media w-full object-contain" loading="lazy" />
+                      {value.caption && <figcaption className="p-3 text-sm font-semibold leading-relaxed text-slate-700">{flexibleText(value.caption, language)}</figcaption>}
                     </figure>
                   );
                 })}
@@ -4373,7 +4395,7 @@ const FlexibleCmsBlocks = ({ blocks, page }) => {
                     {(item.image || item.src) && (
                       <img
                         src={item.image || item.src}
-                        alt={flexibleText(item.alt || item.title, language)}
+                        alt={flexibleText(item.alt, language)}
                         className="cms-flexible-media aspect-[16/9] w-full object-cover"
                         loading="lazy"
                       />
@@ -4756,8 +4778,30 @@ const mergeMissingSectionMedia = (localizedHtml, structuralHtml) => {
 
 const mediaSectionKeys = new Set(["map-photos", "training-hostel-photos"]);
 
-const mergeMediaSectionLayout = (localizedHtml, structuralHtml) =>
-  mergeMissingSectionMedia(localizedHtml, structuralHtml);
+const emptyLocalizedSectionLayout = (structuralHtml) => {
+  if (typeof DOMParser === "undefined" || !structuralHtml) return "";
+
+  const document = new DOMParser().parseFromString(structuralHtml, "text/html");
+  const textNodes = [];
+  const visit = (node) => {
+    Array.from(node.childNodes || []).forEach((child) => {
+      if (child.nodeType === 3) textNodes.push(child);
+      else visit(child);
+    });
+  };
+
+  visit(document.body);
+  textNodes.forEach((node) => {
+    node.nodeValue = "";
+  });
+  document.body.querySelectorAll("[title], [aria-label]").forEach((element) => {
+    element.removeAttribute("title");
+    element.removeAttribute("aria-label");
+  });
+  document.body.querySelectorAll("img").forEach((image) => image.setAttribute("alt", ""));
+
+  return document.body.innerHTML;
+};
 
 const comparableSectionText = (value) =>
   compactText(value)
@@ -4828,27 +4872,34 @@ const cleanRepeatedMediaSectionText = (sections) => {
   });
 };
 
-const profileImageIdentity = (profile) =>
-  getProfileImage(profile)
-    .split(/[?#]/)[0]
-    .split("/")
-    .at(-1)
-    ?.toLowerCase() || "";
+const normalizeDivisionPlacement = (value) =>
+  compactText(value)
+    .replace(/&amp;|&/gi, " and ")
+    .replace(/\b(?:and|amp|division|department|section|studies)\b/gi, " ")
+    .replace(/\bresources?\b/gi, "resource")
+    .replace(/[^a-z0-9\p{Script=Devanagari}]+/giu, "")
+    .toLowerCase();
 
-const scientistProfilesEquivalent = (left, right, scientistProfiles) => {
-  if (!left || !right) return false;
-  if (scientistProfilesMatch(left, right)) return true;
+const profileDeploymentIdentities = (profile) =>
+  [
+    profile?.baseDeployment,
+    profile?.deployment,
+    getProfileField(profile || {}, ["Deployment", "Division", "Posting"])?.value,
+  ]
+    .map(normalizeDivisionPlacement)
+    .filter(Boolean);
 
-  const leftImage = profileImageIdentity(left);
-  const rightImage = profileImageIdentity(right);
-  if (leftImage && rightImage && leftImage === rightImage) return true;
+const profileBelongsToDivisionPage = (profile, page) => {
+  const pageIdentities = [page?.baseTitle, page?.title, page?.slug]
+    .map(normalizeDivisionPlacement)
+    .filter((identity) => identity.length >= 8);
+  const deploymentIdentities = profileDeploymentIdentities(profile);
 
-  const leftKnown = getKnownScientistProfile(left, scientistProfiles);
-  const rightKnown = getKnownScientistProfile(right, scientistProfiles);
-  return Boolean(
-    leftKnown &&
-    rightKnown &&
-    scientistProfilesMatch(leftKnown, rightKnown)
+  return pageIdentities.some((pageIdentity) =>
+    deploymentIdentities.some((deploymentIdentity) =>
+      pageIdentity.includes(deploymentIdentity) ||
+      deploymentIdentity.includes(pageIdentity)
+    )
   );
 };
 
@@ -4860,37 +4911,17 @@ const mergeDivisionProfileSections = (
   const existingIndex = sections.findIndex(
     (section) => section.type === "profiles"
   );
-  const localizedProfiles = existingIndex >= 0
-    ? sections[existingIndex].profiles || []
-    : [];
-  const profileStructureHtml = page.useStructureProfiles
-    ? page.structureHtml
-    : page.profileStructureHtml;
-  const structuralProfiles = profileStructureHtml
-    ? extractProfileCards(profileStructureHtml).filter((profile) =>
-        looksLikePersonName(getProfileName(profile))
-      )
-    : [];
-  const intendedProfiles = structuralProfiles.length
-    ? structuralProfiles
-    : localizedProfiles;
+  const profiles = dedupeProfileCards(
+    getScientistProfileData(scientistProfiles).filter((profile) =>
+      profileBelongsToDivisionPage(profile, page)
+    )
+  );
 
-  if (!intendedProfiles.length) return sections;
-
-  const completedProfiles = intendedProfiles
-    .map((sourceProfile) => {
-      const localizedProfile = localizedProfiles.find((candidate) =>
-        scientistProfilesEquivalent(candidate, sourceProfile, scientistProfiles)
-      );
-      const knownProfile = getKnownScientistProfile(sourceProfile, scientistProfiles);
-      const baseProfile = localizedProfile || knownProfile;
-      if (!baseProfile) return null;
-      return mergeKnownScientistDetails(baseProfile, scientistProfiles, [localizedProfile]);
-    })
-    .filter(Boolean);
-  const profiles = dedupeProfileCards(completedProfiles);
-
-  if (!profiles.length) return sections;
+  // Division staff is owned by the CMS People collection. Imported HTML may
+  // supply layout, but it must never reintroduce stale or language-fallback cards.
+  if (!profiles.length) {
+    return sections.filter((section) => section.type !== "profiles");
+  }
 
   if (existingIndex >= 0) {
     return sections.map((section, index) =>
@@ -4935,27 +4966,55 @@ const buildDivisionSections = (
   const usedLocalizedKeys = new Set();
   const researchKeys = new Set(["research-paper-published", "research-papers"]);
 
-  const mergedSections = structuralSections.map((section) => {
-    let localized = localizedByKey.get(section.key);
-    if (!localized && researchKeys.has(section.key)) {
-      localized = localizedSections.find(
+  const findLocalizedSection = (section) => {
+    const exact = localizedByKey.get(section.key);
+    if (exact && !usedLocalizedKeys.has(exact.key)) return exact;
+
+    if (researchKeys.has(section.key)) {
+      const research = localizedSections.find(
         (candidate) => researchKeys.has(candidate.key) && !usedLocalizedKeys.has(candidate.key)
       );
+      if (research) return research;
     }
 
-    if (!localized) return null;
+    const family = divisionSectionFamily(section.label)
+      || divisionSectionFamily(String(section.key || "").replace(/-/g, " "));
+    if (!family) return null;
+
+    return localizedSections.find((candidate) => {
+      if (usedLocalizedKeys.has(candidate.key)) return false;
+      const candidateFamily = divisionSectionFamily(candidate.label)
+        || divisionSectionFamily(String(candidate.key || "").replace(/-/g, " "));
+      return candidateFamily === family;
+    }) || null;
+  };
+
+  const mergedSections = structuralSections.map((section) => {
+    const localized = findLocalizedSection(section);
+
+    if (!localized) {
+      return {
+        ...section,
+        html: emptyLocalizedSectionLayout(section.html),
+        structureHtml: section.html,
+        isStructureFallback: true,
+      };
+    }
     usedLocalizedKeys.add(localized.key);
 
     return {
       ...section,
       ...localized,
       key: section.key,
+      // Media controls, link targets, video sources, posters, and ordering are
+      // shared. Apply localized CMS text to this structural skeleton below.
       html: mediaSectionKeys.has(section.key)
-        ? mergeMediaSectionLayout(localized.html, section.html)
+        ? emptyLocalizedSectionLayout(section.html)
         : mergeMissingSectionMedia(localized.html, section.html),
       structureHtml: section.html,
+      ...(mediaSectionKeys.has(section.key) ? { usesStructureLayout: true } : {}),
     };
-  }).filter(Boolean);
+  });
 
   return cleanRepeatedMediaSectionText(
     mergeDivisionProfileSections(
@@ -5217,6 +5276,38 @@ const OfficialStaticProfileGrid = ({ page, scientistProfiles }) => {
   );
 };
 
+const CanonicalRichSections = ({ page }) => {
+  const blocks = mergeSharedAssetStructure(
+    page.blocks,
+    page.structureAssetBlocks || page.sharedAssetBlocks
+  ).filter((block) => {
+    if (!block || block.hidden || !Object.hasOwn(block, "contentHtml")) return false;
+    const hasBody = Boolean(String(block.contentHtml || "").trim());
+    const hasMedia = flexibleItems(block.assets).some((asset) => !asset?.hidden && (asset?.value || asset?.sourceValue));
+    return hasBody || hasMedia;
+  });
+
+  if (!blocks.length) return null;
+
+  return (
+    <div className="space-y-7" data-cms-content-source="section-rich-content">
+      {blocks.map((block, index) => {
+        const heading = String(block.value || "").trim();
+        const html = appendNewPageAssets(
+          String(block.contentHtml || ""),
+          flexibleItems(block.assets).map((asset) => ({ ...asset, isNew: true }))
+        );
+        return (
+          <section key={block.id || block.key || `section-${index}`} className="min-w-0">
+            {heading && <h2 className="mb-4 text-xl font-extrabold leading-snug text-[#102f46]">{heading}</h2>}
+            <OfficialHtmlContent html={html} pageTitle={heading || page.title} baseTitle={page.baseTitle} pageSlug={page.slug} stripMediaHeadings={false} />
+          </section>
+        );
+      })}
+    </div>
+  );
+};
+
 const OfficialRichContent = ({ page, scientistProfiles }) => {
   const { t } = useLanguage();
   const profiles = useMemo(
@@ -5235,17 +5326,18 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
     ...(!hasImportedHtml ? pageBlocks : []),
   ];
   const pageLinks = flexibleItems(page.links);
+  const structuralHtml = page.html;
   const pageWithCmsRows = useMemo(() => ({
     ...page,
     html: applyImportedPageBlocks(
       applyImportedPageAssets(
-        page.html,
+        structuralHtml,
         page.structureAssetBlocks || page.sharedAssetBlocks,
         { applyLabels: false }
       ),
-      page.blocks
+      mergeSharedAssetStructure(page.blocks, page.structureAssetBlocks || page.sharedAssetBlocks)
     ),
-  }), [page]);
+  }), [page, structuralHtml]);
   const linkBlock = pageLinks.length
     ? [{ type: "links", heading: t("Related links"), items: pageLinks }]
     : [];
@@ -5294,7 +5386,9 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
       )}
 
       <div id={contentAnchor} className="scroll-mt-36">
-        {structuredBlocks.length ? (
+        {page.canonicalSectionContent ? (
+          <CanonicalRichSections page={page} />
+        ) : structuredBlocks.length ? (
           <FlexibleCmsBlocks
             blocks={[...structuredBlocks, ...linkBlock]}
             page={page}
@@ -5338,8 +5432,14 @@ const appendExtraItemsToSection = (html, items) => {
   const newestFirstItems = [...items].reverse();
   const liMarkup = newestFirstItems
     .map(
-      (text) =>
-        `<li data-rsac-added-item="true">${escapeExtraItemHtml(text)}</li>`
+      (item) => {
+        const value = typeof item === "object" ? String(item?.value || "") : String(item || "");
+        const richText = typeof item === "object" ? String(item?.richText || "") : "";
+        const content = richText && value
+          ? sanitizeInlineRichText(richText, value)
+          : escapeExtraItemHtml(value);
+        return `<li data-rsac-added-item="true">${content}</li>`;
+      }
     )
     .join("");
 
@@ -5449,6 +5549,25 @@ const safeImportedGroupLabel = (child) => {
   return groupLabel;
 };
 
+const setInlineCmsContent = (element, child) => {
+  const value = String(child?.value || "").trim();
+  const richText = String(child?.richText || "");
+  if (richText && value) element.innerHTML = sanitizeInlineRichText(richText, value);
+  else element.textContent = value;
+};
+
+const replaceInlineCmsTextNode = (node, child) => {
+  const value = String(child?.value || "").trim();
+  const richText = String(child?.richText || "");
+  if (!richText || !value) {
+    node.nodeValue = value;
+    return;
+  }
+  const holder = node.ownerDocument.createElement("span");
+  holder.innerHTML = sanitizeInlineRichText(richText, value);
+  node.replaceWith(...Array.from(holder.childNodes));
+};
+
 const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
@@ -5456,7 +5575,7 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
     const value = String(child?.value || "").trim();
     if (child?.hidden || !value) return null;
     const item = parsed.createElement("li");
-    item.textContent = value;
+    setInlineCmsContent(item, child);
     item.dataset.cmsChildKey = child.key || "";
     if (child.isNew || String(child.key || "").startsWith("cms-")) {
       item.dataset.rsacAddedItem = "true";
@@ -5485,20 +5604,52 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
     items.map((item) => ({ item, listIndex }))
   );
   const allowedDifference = Math.max(3, Math.ceil(importedCount * 0.2));
-  if (!sourceItems.length) return buildListFromChildren();
+  if (!sourceItems.length) {
+    const listHtml = buildListFromChildren();
+    if (!compactText(parsed.body.textContent) && !parsed.body.querySelector("img, video, audio, iframe, a[href]")) {
+      return listHtml;
+    }
+    parsed.body.insertAdjacentHTML("afterbegin", listHtml);
+    return parsed.body.innerHTML;
+  }
 
   // Legacy imports sometimes exposed every inline text node as a CMS row. In
   // that case rebuilding a list would turn one citation into author/comma/year
   // fragments. Keep the original HTML intact until the normalized CMS rows are
   // available instead of publishing malformed content.
-  if (Math.abs(sourceItems.length - importedCount) > allowedDifference) {
+  const hasStableCmsRows = children
+    .filter((child) => !(child.isNew || String(child.key || "").startsWith("cms-")))
+    .every((child) => child.key || child.sourceKeys?.length);
+  if (
+    Math.abs(sourceItems.length - importedCount) > allowedDifference &&
+    !hasStableCmsRows
+  ) {
     return html || "";
   }
 
   const nextItemsByList = candidates.map(() => []);
   const groupLabelsByList = candidates.map(() => "");
   const newItems = [];
+  const claimedSourceIndexes = new Set();
   let sourceIndex = 0;
+  const claimSourceItem = (child) => {
+    const sourceValue = compactText(child?.sourceValue || "").toLowerCase();
+    const exactIndex = sourceValue
+      ? sourceItems.findIndex(({ item }, index) =>
+          !claimedSourceIndexes.has(index) &&
+          compactText(item.textContent).toLowerCase() === sourceValue
+        )
+      : -1;
+    if (exactIndex >= 0) {
+      claimedSourceIndexes.add(exactIndex);
+      return sourceItems[exactIndex];
+    }
+    while (claimedSourceIndexes.has(sourceIndex)) sourceIndex += 1;
+    const fallback = sourceItems[sourceIndex];
+    if (fallback) claimedSourceIndexes.add(sourceIndex);
+    sourceIndex += 1;
+    return fallback;
+  };
   children.forEach((child) => {
     const isNew = child.isNew || String(child.key || "").startsWith("cms-");
     const value = String(child.value || "").trim();
@@ -5508,7 +5659,7 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
       return;
     }
 
-    const source = sourceItems[sourceIndex++];
+    const source = claimSourceItem(child);
     if (child.hidden || !value) return;
     if (!source) {
       const item = createItemFromChild(child);
@@ -5516,15 +5667,14 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
       return;
     }
     const item = source.item.cloneNode(true);
-    if (compactText(item.textContent) !== compactText(value)) item.textContent = value;
+    if (child.richText || compactText(item.textContent) !== compactText(value)) {
+      setInlineCmsContent(item, child);
+    }
     item.dataset.cmsChildKey = child.key || "";
     if (!groupLabelsByList[source.listIndex]) {
       groupLabelsByList[source.listIndex] = safeImportedGroupLabel(child);
     }
     nextItemsByList[source.listIndex].push(item);
-  });
-  sourceItems.slice(sourceIndex).forEach(({ item, listIndex }) => {
-    nextItemsByList[listIndex].push(item.cloneNode(true));
   });
   nextItemsByList[0].unshift(...newItems);
   candidates.forEach(({ list, listIndex }) => {
@@ -5539,7 +5689,7 @@ const applyImportedNumberedItems = (html, children, groupHeadingOverrides = []) 
   return parsed.body.innerHTML;
 };
 
-const applyImportedContentFields = (html, children, { insertNew = true } = {}) => {
+const applyImportedContentFields = (html, children, { insertNew = true, appendUnmatched = false } = {}) => {
   if (typeof DOMParser === "undefined" || !children?.length) return html || "";
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
   const belongsToImportedTabStrip = (node) => {
@@ -5579,6 +5729,7 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
 
     const nodes = textNodes();
     const valueKey = compactText(value).toLowerCase();
+    const sourceValueKey = compactText(child.sourceValue || "").toLowerCase();
     const rawLabel = String(child.label || "");
     const labelParts = rawLabel.split(/\s*(?:\u2192|->)\s*/u);
     const sectionLabel = /^section\s*:/iu.test(rawLabel)
@@ -5590,10 +5741,13 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
     const previewWasTruncated = /(?:\u2026|\.{3})$/u.test(previewLabel.trim());
     const previewKey = compactText(previewLabel.replace(/(?:\u2026|\.{3})$/u, "")).toLowerCase();
     const exactNode = valueKey ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === valueKey) : null;
+    const sourceNode = sourceValueKey
+      ? nodes.find((node) => compactText(node.nodeValue).toLowerCase() === sourceValueKey)
+      : null;
     const canUsePreviewMatch = previewKey && (
       !child.hidden || valueKey.length >= 80
     );
-    const matchedNode = exactNode || (canUsePreviewMatch
+    const matchedNode = exactNode || sourceNode || (canUsePreviewMatch
       ? nodes.find((node) => {
           const nodeKey = compactText(node.nodeValue).toLowerCase();
           const hasComparableLength = nodeKey.length <= Math.max(
@@ -5613,7 +5767,10 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
             nodeKey.length >= Math.ceil(previewKey.length * 0.8);
         })
       : null);
-    if (!matchedNode) return;
+    if (!matchedNode) {
+      if (appendUnmatched && !child.hidden && value) newChildren.push({ ...child, isNew: true });
+      return;
+    }
 
     if (child.hidden || !value) {
       const removable = matchedNode.parentElement?.closest("li, tr, p, h1, h2, h3, h4, h5, h6, figcaption");
@@ -5621,14 +5778,14 @@ const applyImportedContentFields = (html, children, { insertNew = true } = {}) =
       else matchedNode.nodeValue = "";
       return;
     }
-    if (!exactNode) matchedNode.nodeValue = value;
+    if (child.richText || !exactNode) replaceInlineCmsTextNode(matchedNode, child);
   });
 
   if (insertNew && newChildren.length) {
     const targetList = Array.from(parsed.body.querySelectorAll("ul, ol")).find((list) => !list.parentElement?.closest("li"));
     [...newChildren].reverse().forEach((child) => {
       const item = parsed.createElement(targetList ? "li" : "p");
-      item.textContent = child.value;
+      setInlineCmsContent(item, child);
       item.dataset.rsacAddedItem = "true";
       item.dataset.cmsChildKey = child.key || "";
       if (targetList) targetList.prepend(item);
@@ -5661,6 +5818,74 @@ const controlsImportedSectionLabel = (block) =>
     block?.assetOnly === true &&
     canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos"
   );
+
+const assetIdentity = (asset) => [
+  String(asset?.key || ""),
+  String(asset?.kind || ""),
+].join("|");
+
+const assetSourceIdentities = (asset) => new Set([
+  String(asset?.sourceValue || "").trim(),
+  String(asset?.value || "").trim(),
+].filter(Boolean));
+
+const assetsCorrespond = (left, right) => {
+  if (!left || !right || left.kind !== right.kind) return false;
+  if (left.key && right.key && assetIdentity(left) === assetIdentity(right)) return true;
+  const rightSources = assetSourceIdentities(right);
+  return [...assetSourceIdentities(left)].some((source) => rightSources.has(source));
+};
+
+const findSharedAssetBlock = (localizedBlock, sharedBlocks) => {
+  const candidates = flexibleItems(sharedBlocks).filter((block) => block.assets?.length);
+  const exact = candidates.find((block) =>
+    localizedBlock?.id && block.id && localizedBlock.id === block.id
+  );
+  if (exact) return exact;
+
+  const sourceLabel = importedBlockSourceLabel(localizedBlock);
+  const byLabel = candidates.find((block) =>
+    sourceLabel && sectionOverrideKey(importedBlockSourceLabel(block)) === sectionOverrideKey(sourceLabel)
+  );
+  if (byLabel) return byLabel;
+
+  const localizedAssets = flexibleItems(localizedBlock?.assets);
+  const ranked = candidates
+    .map((block) => ({
+      block,
+      score: flexibleItems(block.assets).filter((sharedAsset) =>
+        localizedAssets.some((localizedAsset) => assetsCorrespond(sharedAsset, localizedAsset))
+      ).length,
+    }))
+    .sort((left, right) => right.score - left.score);
+  return ranked[0]?.score ? ranked[0].block : null;
+};
+
+const mergeSharedAssetStructure = (localizedBlocks, sharedBlocks) =>
+  flexibleItems(localizedBlocks).map((block) => {
+    const sharedBlock = findSharedAssetBlock(block, sharedBlocks);
+    if (!sharedBlock) return block;
+    const localizedAssets = flexibleItems(block.assets);
+    const assets = flexibleItems(sharedBlock.assets).map((sharedAsset) => {
+      const localizedAsset = localizedAssets.find((candidate) =>
+        assetsCorrespond(sharedAsset, candidate)
+      );
+      const localizedLabels = {};
+      ["alt", "title", "caption", "text"].forEach((field) => {
+        localizedLabels[field] = localizedAsset && Object.hasOwn(localizedAsset, field)
+          ? localizedAsset[field]
+          : "";
+      });
+      return {
+        ...sharedAsset,
+        ...localizedLabels,
+        // Shared values were already applied to the structural HTML. Matching
+        // against that current value avoids section-local key collisions.
+        sourceValue: sharedAsset.value || sharedAsset.sourceValue,
+      };
+    });
+    return { ...block, assets };
+  });
 
 const applyImportedPageAssets = (html, blocks, options) =>
   applyPageAssetFields(html, flattenPageAssetFields(blocks), options);
@@ -5705,7 +5930,7 @@ const applyImportedPageBlocks = (html, blocks, { insertNewAssets = true } = {}) 
       || candidates.find((element) => compactText(element.textContent).toLowerCase().includes(labelKey));
     newChildren.forEach((child) => {
       const item = parsed.createElement("p");
-      item.textContent = child.value;
+      setInlineCmsContent(item, child);
       item.dataset.rsacAddedItem = "true";
       item.dataset.cmsChildKey = child.key || "";
       if (anchor) {
@@ -5738,9 +5963,16 @@ const resolveDivisionSectionOrder = (labels, sections) =>
   flexibleItems(labels)
     .map((label) => {
       const sourceKey = sectionOverrideKey(label);
+      const sourceFamily = divisionSectionFamily(label);
       let sectionIndex = sections.findIndex(
         (section) => sectionOverrideKey(section.label) === sourceKey
       );
+      if (sectionIndex < 0 && sourceFamily) {
+        sectionIndex = sections.findIndex((section) =>
+          divisionSectionFamily(section.label) === sourceFamily ||
+          divisionSectionFamily(String(section.key || "").replace(/-/g, " ")) === sourceFamily
+        );
+      }
       if (sectionIndex < 0 && sourceKey.includes("research paper")) {
         sectionIndex = sections.findIndex((section) =>
           ["research-papers", "research-paper-published"].includes(section.key)
@@ -5753,20 +5985,53 @@ const resolveDivisionSectionOrder = (labels, sections) =>
     })
     .filter(Boolean);
 
+const buildCanonicalDivisionSections = (page, scientistProfiles) => {
+  const blocks = mergeSharedAssetStructure(
+    page.blocks,
+    page.structureAssetBlocks || page.sharedAssetBlocks
+  );
+  const profiles = dedupeProfileCards(
+    getScientistProfileData(scientistProfiles).filter((profile) => profileBelongsToDivisionPage(profile, page))
+  );
+  const usedKeys = new Map();
+
+  return blocks.flatMap((block, index) => {
+    if (!block || block.hidden || !Object.hasOwn(block, "contentHtml")) return [];
+    const label = String(block.value || "").trim();
+    if (!label) return [];
+
+    const identity = `${block.sourceLabel || ""} ${block.label || ""} ${label}`;
+    const peopleSection = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(identity);
+    const category = canonicalizeDivisionCategory(block.sourceLabel || block.label || label);
+    const baseKey = category?.key || normalizeCategoryText(block.sourceLabel || label)
+      .replace(/[^a-z0-9\p{Script=Devanagari}]+/giu, "-")
+      .replace(/^-|-$/g, "") || `section-${index + 1}`;
+    const occurrence = (usedKeys.get(baseKey) || 0) + 1;
+    usedKeys.set(baseKey, occurrence);
+    const key = occurrence === 1 ? baseKey : `${baseKey}-${occurrence}`;
+
+    if (peopleSection) {
+      return profiles.length ? [{ key, label, type: "profiles", profiles }] : [];
+    }
+
+    const html = appendNewPageAssets(
+      String(block.contentHtml || ""),
+      flexibleItems(block.assets).map((asset) => ({ ...asset, isNew: true }))
+    );
+    if (!String(html || "").trim()) return [];
+    return [{ key, label, type: "html", html }];
+  });
+};
+
 const DivisionCategorizedContent = ({
   page,
   scientistProfiles,
 }) => {
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
-    const ordinaryBlocks = flexibleItems(page.blocks)
-      .filter((block) => block?.editorMode !== "numbered_list")
-      .map((block) => ({
-        ...block,
-        children: flexibleItems(block.children).filter((child) =>
-          !child.isNew && !String(child.key || "").startsWith("cms-")
-        ),
-      }));
+    if (page.canonicalSectionContent) {
+      return buildCanonicalDivisionSections(page, scientistProfiles);
+    }
     const preparedPage = {
       ...page,
       html: applyImportedPageAssets(
@@ -5776,13 +6041,10 @@ const DivisionCategorizedContent = ({
       ),
       structureHtml: applyImportedPageAssets(page.structureHtml, page.structureAssetBlocks),
     };
-    const built = buildDivisionSections(
-      {
-        ...preparedPage,
-        html: applyImportedPageBlocks(preparedPage.html, ordinaryBlocks, { insertNewAssets: false }),
-      },
-      scientistProfiles
+    const structureTextByKey = new Map(
+      extractPageTextFields(preparedPage.structureHtml).map((field) => [field.key, field.value])
     );
+    const built = buildDivisionSections(preparedPage, scientistProfiles);
     // Editor tab renames: content_fields section-header rows are synthetic
     // (no html text node), so a renamed header reaches the page as a
     // label -> new-name override instead.
@@ -5790,7 +6052,10 @@ const DivisionCategorizedContent = ({
     // are appended to their section as an extra list.
     const overrides = page.sectionLabelOverrides || {};
     const extras = page.sectionExtraItems || {};
-    const editablePageBlocks = flexibleItems(page.blocks);
+    const editablePageBlocks = mergeSharedAssetStructure(
+      page.blocks,
+      page.structureAssetBlocks || page.sharedAssetBlocks
+    );
     const editorSectionOrder = [];
     const headingOverridesBySource = new Map();
     editablePageBlocks
@@ -5814,6 +6079,24 @@ const DivisionCategorizedContent = ({
       }
       const override = overrides[matchKey];
       return override ? { ...next, label: override } : next;
+    });
+    const controlledSectionState = new Map();
+    editablePageBlocks
+      .filter((block) => controlsImportedSectionLabel(block))
+      .forEach((block) => {
+        const sourceLabel = block.sourceLabel || block.label || importedBlockSourceLabel(block);
+        const identity = divisionSectionFamily(sourceLabel) || sectionOverrideKey(sourceLabel);
+        if (!identity) return;
+        const state = controlledSectionState.get(identity) || { visible: false };
+        state.visible ||= !block.hidden && Boolean(String(block.value || "").trim());
+        controlledSectionState.set(identity, state);
+      });
+    nextSections = nextSections.filter((section) => {
+      const identity = divisionSectionFamily(section.label)
+        || divisionSectionFamily(String(section.key || "").replace(/-/g, " "))
+        || sectionOverrideKey(section.label);
+      const state = controlledSectionState.get(identity);
+      return !state || state.visible;
     });
     const labeledSectionKeys = new Set();
     const routedNewItems = new Map();
@@ -5841,14 +6124,24 @@ const DivisionCategorizedContent = ({
             sectionFamilyIndex(targetFamily) < 0
           ) return;
           const items = routedNewItems.get(targetFamily) || [];
-          items.push(value);
+          items.push(child);
           routedNewItems.set(targetFamily, items);
           routedChildren.add(child);
         });
-        const renderChildren = routedChildren.size
+        const selectedChildren = routedChildren.size
           ? block.children.filter((child) => !routedChildren.has(child))
           : block.children;
+        const renderChildren = selectedChildren.map((child) => {
+          const sourceKeys = [...(child.sourceKeys || []), child.key].filter(Boolean);
+          const sourceValue = sourceKeys
+            .map((key) => structureTextByKey.get(key))
+            .find(Boolean);
+          return sourceValue ? { ...child, sourceValue } : child;
+        });
         let sectionIndex = nextSections.findIndex((section) => sectionOverrideKey(section.label) === sourceKey);
+        if (sectionIndex < 0 && sourceFamily) {
+          sectionIndex = sectionFamilyIndex(sourceFamily);
+        }
         if (sectionIndex < 0 && sourceKey.includes("research paper")) {
           sectionIndex = nextSections.findIndex((section) => ["research-papers", "research-paper-published"].includes(section.key));
         }
@@ -5858,7 +6151,6 @@ const DivisionCategorizedContent = ({
         if (sectionIndex < 0) return;
         const sectionKey = nextSections[sectionIndex].key;
         editorSectionOrder.push(sectionKey);
-        if (nextSections[sectionIndex].type !== "html") return;
         const visibleLabel = controlsImportedSectionLabel(block)
           ? String(block.value || "").trim()
           : "";
@@ -5872,19 +6164,39 @@ const DivisionCategorizedContent = ({
         const isFirstVisibleLabel = visibleLabel && !labeledSectionKeys.has(sectionKey);
         const applyVisibleLabel = isFirstVisibleLabel && !preserveCombinedPublicationLabel;
         if (isFirstVisibleLabel) labeledSectionKeys.add(sectionKey);
+        if (nextSections[sectionIndex].type !== "html") {
+          if (applyVisibleLabel) {
+            nextSections = nextSections.map((section, index) =>
+              index === sectionIndex ? { ...section, label: visibleLabel } : section
+            );
+          }
+          return;
+        }
         nextSections = nextSections.map((section, index) => {
           if (index !== sectionIndex) return section;
+          const localizedBlock = { ...block, children: renderChildren };
           const editedHtml = block.editorMode === "numbered_list"
             ? applyImportedNumberedItems(
-                section.structureHtml || section.html,
+                section.isStructureFallback || section.usesStructureLayout
+                  ? section.html
+                  : section.structureHtml || section.html,
                 renderChildren,
                 headingOverridesBySource.get(sourceKey) || []
               )
-            : applyImportedContentFields(section.html, renderChildren);
+            : section.isStructureFallback || section.usesStructureLayout
+              ? applyImportedContentFields(
+                  section.html || "",
+                  renderChildren,
+                  { insertNew: true, appendUnmatched: true }
+                )
+              : applyImportedContentFields(section.html, renderChildren);
+          const editedAssets = section.isStructureFallback || section.usesStructureLayout
+            ? applyImportedPageAssets(editedHtml, [localizedBlock])
+            : editedHtml;
           return {
             ...section,
             ...(applyVisibleLabel ? { label: visibleLabel } : {}),
-            html: appendNewPageAssets(editedHtml, block.assets),
+            html: appendNewPageAssets(editedAssets, block.assets),
           };
         });
       });
@@ -6029,7 +6341,7 @@ const DivisionCategorizedContent = ({
                     : "border-transparent text-slate-600 hover:border-emerald-900/10 hover:bg-emerald-50 hover:text-[#0f6f42]"
                 }`}
               >
-                <span>{localizeOfficialText(t(section.label), language)}</span>
+                <span>{section.label}</span>
               </button>
             ))}
           </div>
@@ -6045,7 +6357,7 @@ const DivisionCategorizedContent = ({
           >
             <div className="p-4 sm:p-5 lg:p-6">
               <h2 className="mb-4 text-xl font-extrabold leading-snug text-[#102f46]">
-                {t(activeSection.label)}
+                {activeSection.label}
               </h2>
 
               {activeSection.type === "profiles" ? (
@@ -6062,6 +6374,7 @@ const DivisionCategorizedContent = ({
                 <OfficialHtmlContent
                   html={activeSection.html}
                   pageTitle={activeSection.label}
+                  baseTitle={page.baseTitle || page.title}
                   sectionKey={activeSection.key}
                 />
               )}

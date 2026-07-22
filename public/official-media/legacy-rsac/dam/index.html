@@ -1,40 +1,32 @@
 <!doctype html>
-<!--[if lt IE 7 ]> <html lang="en" class="ie6"> <![endif]-->
-<!--[if IE 7 ]>    <html lang="en" class="ie7"> <![endif]-->
-<!--[if IE 8 ]>    <html lang="en" class="ie8"> <![endif]-->
-<!--[if IE 9 ]>    <html lang="en" class="ie9"> <![endif]-->
-<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+<html lang="en">
 <head>
-<meta name="viewport" content="width = 1050, user-scalable = no" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RSAC-UP Dam Analysis Viewer</title>
 <script type="text/javascript" src="./extras/jquery.min.1.7.js"></script>
 <script type="text/javascript" src="./extras/modernizr.2.5.3.min.js"></script>
-
 </head>
 <body>
 
+<nav class="flipbook-controls" aria-label="Dam analysis page controls">
+	<button type="button" id="previous-page" aria-label="Previous page">&#8249; Previous</button>
+	<output id="page-status" aria-live="polite">Page 1 of 9</output>
+	<button type="button" id="next-page" aria-label="Next page">Next &#8250;</button>
+</nav>
+
 <div class="flipbook-viewport">
 	<div class="container">
-		<div class="flipbook">
+		<div class="flipbook" aria-label="RSAC-UP dam analysis document">
 			<div style="background-image:url(./samples/basic/pages/1.jpg)"></div>
-
 			<div style="background-image:url(./samples/basic/pages/2.jpg)"></div>
 			<div style="background-image:url(./samples/basic/pages/3.jpg)"></div>
 			<div style="background-image:url(./samples/basic/pages/4.jpg)"></div>
 			<div style="background-image:url(./samples/basic/pages/5.JPG)"></div>
 			<div style="background-image:url(./samples/basic/pages/6.JPG)"></div>
 			<div style="background-image:url(./samples/basic/pages/7.JPG)"></div>
-			
-			<div id="banner">
-				<video width="820" height="640" controls >
-				  <!-- WCAG general accessibility recommendation is that media such as background video play through only once. Loop turned on for the purposes of illustration; if removed, the end of the video will fade in the same way created by pressing the "Pause" button  -->
-				
-				<source src="Media1.mp4" type="video/mp4">
-				</video>
-				</div>
 			<div style="background-image:url(./samples/basic/pages/9.JPG)"></div>
-<div style="background-image:url(./samples/basic/pages/10.jpg)"></div>
-			
-			
+			<div style="background-image:url(./samples/basic/pages/10.jpg)"></div>
 		</div>
 	</div>
 </div>
@@ -43,34 +35,63 @@
 <script type="text/javascript">
 
 function loadApp() {
+	var flipbook = $('.flipbook');
+	var previousButton = $('#previous-page');
+	var nextButton = $('#next-page');
+	var pageStatus = $('#page-status');
+	var pageWidth = 800;
+	var pageHeight = 700;
 
-	// Create the flipbook
+	function updateControls() {
+		var page = flipbook.turn('page');
+		var total = flipbook.turn('pages');
+		pageStatus.text('Page ' + page + ' of ' + total);
+		previousButton.prop('disabled', page <= 1);
+		nextButton.prop('disabled', page >= total);
+	}
 
-	$('.flipbook').turn({
-			// Width
+	function fitFlipbook() {
+		var singlePage = window.innerWidth < 900;
+		var bookWidth = singlePage ? pageWidth : pageWidth * 2;
+		var availableWidth = Math.max(280, window.innerWidth - 24);
+		var availableHeight = Math.max(280, window.innerHeight - 86);
+		var scale = Math.min(1, availableWidth / bookWidth, availableHeight / pageHeight);
 
-			width:1600,
-			
-			// Height
+		flipbook.turn('display', singlePage ? 'single' : 'double');
+		flipbook.turn('size', bookWidth, pageHeight);
+		flipbook.css({ right: 'auto', top: 'auto' });
+		$('.flipbook-viewport .container').css({
+			width: bookWidth + 'px',
+			height: pageHeight + 'px',
+			marginLeft: -(bookWidth / 2) + 'px',
+			marginTop: -(pageHeight / 2) + 'px',
+			transform: 'scale(' + scale + ')'
+		});
+		updateControls();
+	}
 
-			height:700,
-
-			// Elevation
-
-			elevation: 50,
-			
-			// Enable gradients
-
-			gradients: true,
-			
-			// Auto center this flipbook
-
-			autoCenter: true
-
+	flipbook.turn({
+		width: pageWidth * 2,
+		height: pageHeight,
+		elevation: 50,
+		gradients: true,
+		autoCenter: true,
+		when: {
+			turned: updateControls
+		}
 	});
-}
 
-// Load the HTML4 version if there's not CSS transform
+	previousButton.on('click', function () { flipbook.turn('previous'); });
+	nextButton.on('click', function () { flipbook.turn('next'); });
+	$(document).on('keydown', function (event) {
+		if (event.keyCode === 37) flipbook.turn('previous');
+		if (event.keyCode === 39) flipbook.turn('next');
+	});
+	$(window).on('resize', fitFlipbook);
+
+	fitFlipbook();
+	updateControls();
+}
 
 yepnope({
 	test : Modernizr.csstransforms,

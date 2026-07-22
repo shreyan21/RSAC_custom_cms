@@ -12,7 +12,7 @@ export const divisionSectionDefinitions = [
   { label: "Publications", aliases: ["publications and technical reports", "publications", "publication", "प्रकाशन"] },
   { label: "Research Paper Published", aliases: ["book chapters published from international publisher", "book/chapters published from international publisher", "list of research papers", "research paper presented/published", "research paper presented published", "research papers published", "research paper published", "शोध पत्र प्रकाशित", "शोध पत्र प्रस्तुत प्रकाशित"] },
   { label: "Research Paper/ Articles", aliases: ["research paper/articles", "research paper articles", "research paper/articals", "research paper articals", "research papers", "research paper", "शोध पत्र", "शोध पत्र / लेख", "शोध पत्र/लेख", "शोध पत्र / आलेख", "शोध प्रपत्र"] },
-  { label: "Map/Photos", aliases: ["map/ photos", "map/photos", "maps photos", "map photos", "मानचित्र / तस्वीरें", "मानचित्र/तस्वीरें", "मानचित्र तस्वीरें", "नक्शे / तस्वीरें"] },
+  { label: "Map/Photos", aliases: ["map/ photos", "map/photos", "maps photos", "map photos", "related photos", "मानचित्र / तस्वीरें", "मानचित्र/तस्वीरें", "मानचित्र तस्वीरें", "नक्शे / तस्वीरें", "संबंधित तस्वीरें"] },
   { label: "Software", aliases: ["software", "सॉफ्टवेयर", "सॉफ्टवेर"] },
   { label: "Hardware", aliases: ["hardware", "हार्डवेयर"] },
   { label: "Data Bank", aliases: ["data bank", "डेटा बैंक", "डाटा बैंक"] },
@@ -98,6 +98,17 @@ export const findLocalizedDivisionBlockIndex = (data, referenceBlock, fallbackIn
   const blocks = data?.blocks || [];
   if (!blocks.length) return -1;
 
+  // Imported English/Hindi blocks share a stable ID even when their visible
+  // section labels are translated. Match that identity before comparing labels
+  // so approved Hindi rows are not replaced by an empty temporary block.
+  const referenceId = String(referenceBlock?.id || "");
+  if (referenceId) {
+    const exactIdIndex = blocks.findIndex(
+      (block) => String(block?.id || "") === referenceId
+    );
+    if (exactIdIndex >= 0) return exactIdIndex;
+  }
+
   const targetSection = divisionBlockPrimarySection(referenceBlock);
   const targetFamily = sectionFamily(targetSection);
   if (targetFamily) {
@@ -145,6 +156,9 @@ export const divisionRowsForSection = (block, referenceBlock) => {
   const blockFamily = sectionFamily(divisionBlockPrimarySection(block));
   const childFamilies = children.map((child) => sectionFamily(divisionChildSection(child)));
   const distinctFamilies = new Set(childFamilies.filter(Boolean));
+  if (!distinctFamilies.size && sharedChildKeyCount(referenceBlock, block) > 0) {
+    return children;
+  }
   if (!distinctFamilies.has(targetFamily)) {
     return blockFamily === targetFamily ? children : [];
   }
@@ -161,10 +175,8 @@ export const createLocalizedDivisionBlock = (referenceBlock, language = "hi") =>
   ...structuredClone(referenceBlock || {}),
   id: `${referenceBlock?.id || "section"}-${language}-cms`,
   value: "",
+  hidden: false,
   assets: [],
-  children: (referenceBlock?.children || []).map((child) => ({
-    ...child,
-    value: "",
-    language,
-  })),
+  contentHtml: "",
+  language,
 });

@@ -9,7 +9,7 @@ import {
 import { setUiLabels } from "../data/uiLabels";
 import { DataContext } from "./DataContextCore";
 
-const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v1";
+const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v2";
 const previewMessageType = "rsac-cms-preview:update";
 const cmsAdminOrigin = (() => {
   try {

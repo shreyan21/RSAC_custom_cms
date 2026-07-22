@@ -100,12 +100,19 @@ if (
 const cipdmInteractiveModel = cipdmMediaAssets.find(
   (asset) => asset.value === "/official-media/legacy-rsac/dam/index.html"
 );
+const cipdmInteractivePoster = cipdmMediaAssets.find(
+  (asset) => asset.key === "asset-image-0007"
+);
 if (
   !cipdmInteractiveModel ||
+  cipdmInteractiveModel.hidden !== true ||
   cipdmInteractiveModel.title !== "RSAC-UP 3D Model" ||
-  cipdmInteractiveModel.text !== "RSAC-UP 3D Model"
+  cipdmInteractiveModel.text !== "RSAC-UP 3D Model" ||
+  !cipdmInteractivePoster ||
+  cipdmInteractivePoster.hidden === true ||
+  cipdmInteractivePoster.linkedHref !== "/official-media/legacy-rsac/dam/index.html"
 ) {
-  throw new Error("CIPDM page-turning model must remain a clearly titled local CMS link.");
+  throw new Error("CIPDM page-turning model must remain a clickable poster without a duplicate text link.");
 }
 const facilityPages = english.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
 if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-image-processing-lab1" || facilityPages.at(-1)?.slug !== "service-block1") {
@@ -114,20 +121,18 @@ if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-imag
 const hindiFacilityPages = hindi.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
 const hindiSoilLab = hindiFacilityPages.find((page) => page.slug === "soil-analysis-lab1");
 const hindiSoilOverview = hindiSoilLab?.blocks?.[0];
-const hindiSoilPhotos = (hindiSoilOverview?.children || []).find((child) => child.key === "text-0003");
 const hindiSoilMapPhotos = (hindiSoilLab?.blocks || []).find(
   (block) => canonicalDivisionSection(block.sourceLabel || block.value || block.label) === "Map/Photos"
 );
 if (
-  hindiSoilPhotos?.value !== "तस्वीरें" ||
-  !hindiSoilPhotos.structural ||
-  hindiSoilPhotos.editorVisible !== false
+  !Object.hasOwn(hindiSoilOverview || {}, "contentHtml")
+  || !String(hindiSoilOverview.contentHtml || "").trim()
+  || Object.hasOwn(hindiSoilOverview, "children")
 ) {
-  throw new Error("Soil Analysis Lab duplicate legacy Hindi tabs must remain structural and excluded from the editor.");
+  throw new Error("Soil Analysis Lab Hindi CMS must expose one canonical rich-text body without legacy rows.");
 }
 if (
   !hindiSoilMapPhotos ||
-  hindiSoilMapPhotos.label !== "मानचित्र/तस्वीरें" ||
   hindiSoilMapPhotos.editorVisible === false ||
   hindiSoilMapPhotos.controlsSectionLabel === false
 ) {
@@ -204,27 +209,21 @@ if (
 const hindiDivisionPages = hindi.rsacOfficialSections.find((section) => section.key === "divisions")?.pages || [];
 const hindiDivisionBySlug = new Map(hindiDivisionPages.map((page) => [page.slug, page]));
 const hindiCipdm = hindiDivisionBySlug.get("computer-image-processing-division");
-const hindiCipdmMapBlock = (hindiCipdm?.blocks || []).find((block) =>
-  (block.children || []).some((child) => child.key === "text-0186")
+const hindiCipdmMapBlock = (hindiCipdm?.blocks || []).find(
+  (block) => canonicalDivisionSection(block.sourceLabel || block.label || block.value) === "Map/Photos"
 );
-const hindiCipdmDivisionHeading = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0185");
-const hindiCipdmRelatedLinks = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0186");
-const hindiCipdmRelatedPhotos = (hindiCipdmMapBlock?.children || []).find((child) => child.key === "text-0187");
+const mediaIdentity = (asset) => String(asset?.key || asset?.sourceValue || asset?.value || "");
 if (
-  hindiCipdmDivisionHeading?.value !== "कंप्यूटर इमेज प्रोसेसिंग डिवीजन" ||
-  hindiCipdmDivisionHeading.hidden ||
-  hindiCipdmRelatedLinks?.value !== "" ||
-  !hindiCipdmRelatedLinks.hidden ||
-  !hindiCipdmRelatedLinks.sourceKeys?.includes("text-0205") ||
-  hindiCipdmRelatedPhotos?.value !== "संबंधित तस्वीरें" ||
-  hindiCipdmRelatedPhotos.hidden ||
-  !hindiCipdmRelatedPhotos.sourceKeys?.includes("text-0206")
+  (cipdmMapBlock?.children || []).length !== 0 ||
+  (hindiCipdmMapBlock?.children || []).length !== 0 ||
+  JSON.stringify((cipdmMapBlock?.assets || []).map(mediaIdentity)) !==
+    JSON.stringify((hindiCipdmMapBlock?.assets || []).map(mediaIdentity))
 ) {
-  throw new Error("CIPDM Hindi media headings do not match the English section structure.");
+  throw new Error("CIPDM Map/Photos must contain shared media without duplicate heading rows.");
 }
 const hindiAgriculture = hindiDivisionBySlug.get("agriculture-resources-division1");
 const agricultureScientistBlock = (hindiAgriculture?.blocks || []).find(
-  (block) => block.id === "official-agriculture-resources-division1-02"
+  (block) => canonicalDivisionSection(block.sourceLabel || block.label || block.value) === "Scientific Manpower"
 );
 const leakedAgricultureFields = (agricultureScientistBlock?.children || []).filter((child) => {
   const match = String(child.key || "").match(/^text-(\d+)$/);
@@ -240,117 +239,32 @@ const sectionSequence = (page) => {
     .map((label) => ["Research Paper Published", "Research Paper/ Articles"].includes(label) ? "Research Papers" : label)
     .filter((label) => label && !seen.has(label) && seen.add(label));
 };
-const blockOwnersByChildKey = (page) => {
-  const owners = new Map();
-  for (const block of page.blocks || []) {
-    const owner = block.sourceLabel || block.label || block.value || "";
-    for (const child of block.children || []) {
-      if (child?.key && owner) owners.set(child.key, owner);
-    }
-  }
-  return owners;
-};
 for (const englishPage of divisionPages) {
   const hindiPage = hindiDivisionBySlug.get(englishPage.slug);
-  const hasIndependentOfficialHindi =
-    (hindiPage?.blocks || []).some((block) => String(block?.id || "").startsWith("official-"));
-  if (!hindiPage?.structureHtml || hindiPage.structureHtml !== englishPage.html) {
-    throw new Error(`${englishPage.slug} lacks shared English structural HTML in Hindi mode.`);
+  const englishPageBlocks = englishPage.blocks || [];
+  const hindiPageBlocks = hindiPage?.blocks || [];
+  if (!hindiPage || hindiPageBlocks.length !== englishPageBlocks.length) {
+    throw new Error(`${englishPage.slug} lacks aligned English/Hindi section structure.`);
   }
-  (englishPage.blocks || []).forEach((englishBlock, englishIndex) => {
-    const targetSection = divisionBlockPrimarySection(englishBlock);
-    if (!targetSection) return;
-    const targetFamily = divisionSectionFamily(targetSection);
-    const hindiIndex = findLocalizedDivisionBlockIndex(hindiPage, englishBlock, englishIndex);
-    if (hindiIndex < 0) {
-      const fallbackBlock = createLocalizedDivisionBlock(englishBlock);
-      const fallbackPage = { blocks: [...(hindiPage.blocks || []), fallbackBlock] };
-      const fallbackIndex = findLocalizedDivisionBlockIndex(fallbackPage, englishBlock, englishIndex);
-      if (
-        fallbackIndex < 0 ||
-        (!divisionRowsForSection(fallbackBlock, englishBlock).length && (englishBlock.children || []).length)
-      ) {
-        throw new Error(`${englishPage.slug}/${targetSection} cannot create a safe Hindi CMS section.`);
+  englishPageBlocks.forEach((englishBlock, index) => {
+    const hindiBlock = hindiPageBlocks[index];
+    if (!String(englishBlock?.id || "") || String(englishBlock.id) !== String(hindiBlock?.id || "")) {
+      throw new Error(`${englishPage.slug} has mismatched localized section IDs at position ${index + 1}.`);
+    }
+    for (const [language, block] of [["English", englishBlock], ["Hindi", hindiBlock]]) {
+      if (!Object.hasOwn(block || {}, "contentHtml") || Object.hasOwn(block || {}, "children")) {
+        throw new Error(`${englishPage.slug}/${language} section ${index + 1} is not canonical rich content.`);
       }
-      return;
     }
-    const hindiBlock = hindiPage.blocks[hindiIndex];
-    const hindiFamilies = new Set(divisionBlockSections(hindiBlock).map(divisionSectionFamily));
-    if (!hindiFamilies.has(targetFamily)) {
-      throw new Error(`${englishPage.slug}/${targetSection} opens an unrelated Hindi CMS block.`);
-    }
-    if (
-      (englishBlock.children || []).some((child) => !child.hidden) &&
-      (hindiBlock.children || []).some((child) => !child.hidden) &&
-      !divisionRowsForSection(hindiBlock, englishBlock).some((child) => !child.hidden)
-    ) {
-      throw new Error(`${englishPage.slug}/${targetSection} exposes no matching Hindi CMS rows.`);
+    const assetIdentity = (asset) => String(asset?.key || asset?.sourceValue || asset?.value || "");
+    if (JSON.stringify((englishBlock.assets || []).map(assetIdentity)) !== JSON.stringify((hindiBlock.assets || []).map(assetIdentity))) {
+      throw new Error(`${englishPage.slug} section ${index + 1} has different English/Hindi media.`);
     }
   });
-  for (const [language, page] of [["English", englishPage], ["Hindi", hindiPage]]) {
-    for (const block of page.blocks || []) {
-      for (const child of block.children || []) {
-        const childSection = divisionChildSection(child);
-        const groupSection = canonicalDivisionSection(child.groupLabel);
-        if (
-          childSection &&
-          groupSection &&
-          divisionSectionFamily(childSection) !== divisionSectionFamily(groupSection)
-        ) {
-          throw new Error(`${englishPage.slug}/${language} has ${groupSection} metadata inside ${childSection}.`);
-        }
-      }
-    }
-  }
-  const hindiCmsOwners = new Map();
-  for (const block of hindiPage.blocks || []) {
-    for (const child of block.children || []) {
-      if (String(child.key || "").startsWith("cms-")) {
-        hindiCmsOwners.set(child.key, child.sectionKey || divisionBlockPrimarySection(block));
-      }
-    }
-  }
-  for (const block of englishPage.blocks || []) {
-    for (const child of block.children || []) {
-      if (!String(child.key || "").startsWith("cms-")) continue;
-      if (!hindiCmsOwners.has(child.key)) {
-        throw new Error(`${englishPage.slug}/${child.key} exists in English CMS only.`);
-      }
-      const englishOwner = divisionSectionFamily(child.sectionKey || divisionBlockPrimarySection(block));
-      const hindiOwner = divisionSectionFamily(hindiCmsOwners.get(child.key));
-      if (englishOwner && hindiOwner && englishOwner !== hindiOwner) {
-        throw new Error(`${englishPage.slug}/${child.key} belongs to different English and Hindi sections.`);
-      }
-    }
-  }
-  if (hindiPage.html?.includes("data-rsac-shared-media")) {
-    throw new Error(`${englishPage.slug} appends shared media at page end instead of its owning section.`);
-  }
   const englishSections = sectionSequence(englishPage);
   const hindiSections = sectionSequence(hindiPage);
-  if (
-    !hasIndependentOfficialHindi &&
-    JSON.stringify(englishSections) !== JSON.stringify(hindiSections)
-  ) {
+  if (JSON.stringify(englishSections) !== JSON.stringify(hindiSections)) {
     throw new Error(`${englishPage.slug} section mismatch: English [${englishSections.join(", ")}], Hindi [${hindiSections.join(", ")}].`);
-  }
-  const englishOwners = blockOwnersByChildKey(englishPage);
-  const hindiOwners = blockOwnersByChildKey(hindiPage);
-  if (!hasIndependentOfficialHindi) {
-    for (const [key, owner] of englishOwners) {
-      if (hindiOwners.has(key) && hindiOwners.get(key) !== owner) {
-        throw new Error(`${englishPage.slug}/${key} belongs to ${owner} in English but ${hindiOwners.get(key)} in Hindi.`);
-      }
-    }
-  }
-  const managedKeys = new Set([
-    ...Object.keys(englishPage.managedSectionItems || {}),
-    ...Object.keys(hindiPage.managedSectionItems || {}),
-  ]);
-  for (const key of managedKeys) {
-    if ((englishPage.managedSectionItems?.[key]?.length || 0) !== (hindiPage.managedSectionItems?.[key]?.length || 0)) {
-      throw new Error(`${englishPage.slug}/${key} managed-item count differs between English and Hindi.`);
-    }
   }
 }
 const organisationRoles = hindi.siteSettings.organisationChart?.roles || [];

@@ -1,12 +1,19 @@
 import { pool } from "./db.js";
 import { getCollection } from "../shared/cmsCollections.js";
+import { hasCanonicalSectionContent } from "../shared/sectionRichContent.js";
 
 const imageTags = (html) => String(html || "").match(/<img\b[^>]*\bsrc\s*=\s*["'][^"']+["'][^>]*>/gi) || [];
 
 const imageSource = (tag) => tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)?.[1] || "";
 
 const compactAssetBlocks = (blocks) => (Array.isArray(blocks) ? blocks : [])
-  .map((block) => ({ assets: Array.isArray(block?.assets) ? block.assets : [] }))
+  .map((block) => ({
+    id: block?.id || "",
+    key: block?.key || "",
+    label: block?.label || "",
+    sourceLabel: block?.sourceLabel || "",
+    assets: Array.isArray(block?.assets) ? block.assets : [],
+  }))
   .filter((block) => block.assets.length);
 
 const compactSectionOrder = (blocks) => (Array.isArray(blocks) ? blocks : [])
@@ -192,10 +199,19 @@ const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
 export const localize = (entry, language) => {
   if (language !== "hi") return entry.data_en;
   const localized = { ...(entry.data_hi || {}) };
+  const englishBlocks = Array.isArray(entry.data_en?.blocks) ? entry.data_en.blocks : [];
+  const hindiBlocks = Array.isArray(entry.data_hi?.blocks) ? entry.data_hi.blocks : [];
+  const hasAlignedLocalizedBlocks = hindiBlocks.length > 0 &&
+    hindiBlocks.length === englishBlocks.length &&
+    hindiBlocks.every((block, index) =>
+      String(block?.id || "") && String(block?.id || "") === String(englishBlocks[index]?.id || "")
+    );
   const hasIndependentOfficialHindi =
     entry.collection === "pages" &&
-    Array.isArray(entry.data_hi?.blocks) &&
-    entry.data_hi.blocks.some((block) => String(block?.id || "").startsWith("official-"));
+    (
+      hasAlignedLocalizedBlocks ||
+      hindiBlocks.some((block) => String(block?.id || "").startsWith("official-"))
+    );
   const definition = getCollection(entry.collection);
   for (const field of definition?.fields || []) {
     if (
@@ -218,9 +234,13 @@ export const localize = (entry, language) => {
       localized.html = backfillSharedPageImages(
         localized.html,
         entry.data_en?.html,
-        localized.title || entry.data_en?.title
+        localized.title || ""
       );
     }
+  }
+  if (entry.collection === "profiles") {
+    localized.baseName = entry.data_en?.name || "";
+    localized.baseDeployment = entry.data_en?.deployment || "";
   }
   if (entry.collection === "site_settings") {
     localized.settings = mergeSharedSiteSettingControls(
@@ -291,6 +311,9 @@ export const assembleBootstrap = (rows, language = "en") => {
   }
   const list = (collection) => (groups.get(collection) || []).sort(bySort).map((entry) => {
     const localized = localize(entry, language);
+    const canonicalSectionContent = collection === "pages" &&
+      Array.isArray(entry.data_en?.blocks) &&
+      entry.data_en.blocks.some(hasCanonicalSectionContent);
     const hasIndependentOfficialHindi =
       collection === "pages" &&
       language === "hi" &&
@@ -300,9 +323,16 @@ export const assembleBootstrap = (rows, language = "en") => {
       id: entry.id,
       key: entry.entry_key,
       ...localized,
-      ...(collection === "pages" && language === "hi" && entry.data_en?.html
+      ...(collection === "pages" && language === "hi" && entry.data_en?.html && !canonicalSectionContent
         ? {
             structureHtml: entry.data_en.html,
+            structureAssetBlocks: compactAssetBlocks(entry.data_en.blocks),
+            structureSectionOrder: compactSectionOrder(entry.data_en.blocks),
+          }
+        : {}),
+      ...(collection === "pages" && canonicalSectionContent
+        ? {
+            canonicalSectionContent: true,
             structureAssetBlocks: compactAssetBlocks(entry.data_en.blocks),
             structureSectionOrder: compactSectionOrder(entry.data_en.blocks),
           }

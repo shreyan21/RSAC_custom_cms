@@ -58,15 +58,27 @@ export const isImportedStructuralRow = ({
   const values = [child?.value, referenceChild?.value]
     .map(normalizeEditorText)
     .filter(Boolean);
-  if (!values.length) return false;
-
   const titles = new Set(pageTitles(pageData, referencePageData));
+  const labels = new Set([...blockLabels(block), ...blockLabels(referenceBlock)]);
+
+  // Duplicate imported headings can have a deliberately blank value while the
+  // old editor label still reads "Section -> Section". Hide only those
+  // structural blanks; ordinary blank body rows remain editable.
+  if (!values.length) {
+    const structuralNames = new Set([...titles, ...labels]);
+    const rowLabelParts = [child?.label, referenceChild?.label]
+      .map((label) => String(label || ""))
+      .flatMap((label) => label.split(/\s*(?:\u2192|->)\s*/u))
+      .map(normalizeEditorText)
+      .filter(Boolean);
+    return rowLabelParts.some((label) => structuralNames.has(label));
+  }
+
   if (values.some((value) => titles.has(value))) return true;
 
   const controlsSectionLabel =
     block?.controlsSectionLabel !== false || referenceBlock?.controlsSectionLabel !== false;
   if (controlsSectionLabel) {
-    const labels = new Set([...blockLabels(block), ...blockLabels(referenceBlock)]);
     if (values.some((value) => labels.has(value))) return true;
   }
 
@@ -129,6 +141,46 @@ export const importedEditorRows = ({
   return rows;
 };
 
+export const localizedImportedEditorRows = ({
+  block,
+  referenceBlock,
+  pageData,
+  referencePageData,
+}) => {
+  const rows = importedEditorRows({
+    block,
+    referenceBlock: block,
+    pageData,
+    referencePageData: pageData,
+  });
+  const references = importedEditorRows({
+    block: referenceBlock,
+    referenceBlock,
+    pageData: referencePageData,
+    referencePageData,
+  });
+  const used = new Set();
+
+  return rows.map((row, index) => {
+    let referenceIndex = references.findIndex((candidate, position) =>
+      !used.has(position) && sourceKeysOverlap(row.child, candidate.child)
+    );
+    if (referenceIndex < 0 && index < references.length && !used.has(index)) {
+      referenceIndex = index;
+    }
+    if (referenceIndex < 0) {
+      referenceIndex = references.findIndex((_candidate, position) => !used.has(position));
+    }
+    if (referenceIndex < 0) return row;
+    used.add(referenceIndex);
+    return {
+      ...row,
+      referenceChild: references[referenceIndex].child,
+      referenceIndex,
+    };
+  });
+};
+
 export const updateImportedEditorRow = (children, row, patch) => {
   const list = Array.isArray(children) ? children : [];
   if (row.index >= 0) {
@@ -137,6 +189,7 @@ export const updateImportedEditorRow = (children, row, patch) => {
   const localized = {
     ...(row.referenceChild || row.child || {}),
     value: "",
+    richText: "",
     language: "hi",
     ...patch,
   };

@@ -10,6 +10,10 @@ const richTextOptions = {
   allowedAttributes: {
     a: ["href", "target", "rel", "title"],
     img: ["src", "alt", "title", "loading", "width", "height"],
+    table: ["class"],
+    th: ["colspan", "rowspan", "colwidth", "scope"],
+    td: ["colspan", "rowspan", "colwidth"],
+    span: ["data-rsac-tone"],
     "*": ["lang"],
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],
@@ -19,6 +23,22 @@ const richTextOptions = {
     img: sanitizeHtml.simpleTransform("img", { loading: "lazy" }, true),
   },
 };
+
+const inlineRichTextOptions = {
+  allowedTags: ["strong", "b", "em", "i", "span", "br"],
+  allowedAttributes: { span: ["data-rsac-tone"] },
+  transformTags: {
+    span: (tagName, attributes) => ({
+      tagName,
+      attribs: attributes["data-rsac-tone"] === "light"
+        ? { "data-rsac-tone": "light" }
+        : {},
+    }),
+  },
+};
+
+const cleanInlineRichText = (value) =>
+  sanitizeHtml(String(value || ""), inlineRichTextOptions).slice(0, 100000);
 
 const cleanUrl = (value) => {
   const text = String(value || "").trim();
@@ -36,7 +56,10 @@ const cleanBlocks = (blocks) => {
   if (!Array.isArray(blocks)) return [];
   return blocks.slice(0, 100).map((block) => {
     const next = { ...block, id: String(block.id || crypto.randomUUID()), type: String(block.type || "rich_text") };
-    for (const key of ["html", "text", "body"]) {
+    for (const key of ["value", "label", "sourceLabel", "heading"]) {
+      if (typeof next[key] === "string") next[key] = next[key].trim().slice(0, 50000);
+    }
+    for (const key of ["html", "text", "body", "contentHtml"]) {
       if (typeof next[key] === "string") next[key] = sanitizeHtml(next[key], richTextOptions);
     }
     for (const key of ["image", "src", "url", "href", "poster"]) {
@@ -71,6 +94,20 @@ const cleanBlocks = (blocks) => {
         hidden: Boolean(asset?.hidden),
         isNew: Boolean(asset?.isNew),
       }));
+    }
+    if (Array.isArray(next.children)) {
+      next.children = next.children.slice(0, 5000).map((child) => {
+        if (!child || typeof child !== "object") return {};
+        return {
+          ...child,
+          key: String(child.key || "").slice(0, 160),
+          label: String(child.label || "").trim().slice(0, 1000),
+          value: String(child.value || "").trim().slice(0, 50000),
+          richText: cleanInlineRichText(child.richText),
+          hidden: Boolean(child.hidden),
+          isNew: Boolean(child.isNew),
+        };
+      });
     }
     return next;
   });

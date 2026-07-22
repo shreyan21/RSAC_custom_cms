@@ -41,6 +41,29 @@ const escapeHtml = (value) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+export const sanitizeInlineRichText = (html, plainText = "") => {
+  const fallback = escapeHtml(plainText).replace(/\r?\n/g, "<br>");
+  if (!html || typeof DOMParser === "undefined") return fallback;
+
+  const parsed = new DOMParser().parseFromString(String(html), "text/html");
+  const allowed = new Set(["STRONG", "B", "EM", "I", "SPAN", "BR"]);
+  const unsafe = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED"]);
+  Array.from(parsed.body.querySelectorAll("*")).reverse().forEach((element) => {
+    if (unsafe.has(element.tagName)) {
+      element.remove();
+      return;
+    }
+    if (!allowed.has(element.tagName)) {
+      element.replaceWith(...Array.from(element.childNodes));
+      return;
+    }
+    const light = element.tagName === "SPAN" && element.dataset.rsacTone === "light";
+    Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
+    if (light) element.setAttribute("data-rsac-tone", "light");
+  });
+  return parsed.body.innerHTML || fallback;
+};
+
 const canonicalText = (value) =>
   decodeHtmlEntities(value)
     .replace(/[‘’]/g, "'")
@@ -351,7 +374,7 @@ export const flattenImportedPageTextFields = (blocks) => {
     .filter((block) => block && (Array.isArray(block.children) || block.key))
     .flatMap((block) => {
       const headingField = controlsImportedSectionLabel(block) && /^text-\d+$/u.test(String(block.key || ""))
-        ? [{ key: block.key, value: block.hidden ? "" : String(block.value || "") }]
+        ? [{ key: block.key, value: block.hidden ? "" : String(block.value || ""), richText: "" }]
         : [];
       const childFields = (Array.isArray(block.children) ? block.children : [])
         .filter((child) =>
@@ -366,9 +389,12 @@ export const flattenImportedPageTextFields = (blocks) => {
           const keys = sourceKeys.length ? sourceKeys : [child.key];
           return keys.map((key, index) => ({
             key,
-            value: block.hidden || child.hidden || index > 0
+            value: block.hidden || child.hidden || child.structural || child.editorVisible === false || index > 0
               ? ""
               : String(child.value || ""),
+            richText: block.hidden || child.hidden || child.structural || child.editorVisible === false || index > 0
+              ? ""
+              : String(child.richText || ""),
           }));
       });
       return [...headingField, ...childFields];
@@ -459,7 +485,10 @@ export const applyPageTextFields = (html, fields) => {
   const values = new Map(
     fields
       .filter((field) => field?.key && field.value !== undefined)
-      .map((field) => [field.key, String(field.value)])
+      .map((field) => [field.key, {
+        value: String(field.value),
+        richText: String(field.richText || ""),
+      }])
   );
 
   return processHtmlText(html, ({ key, raw }) => {
@@ -467,6 +496,10 @@ export const applyPageTextFields = (html, fields) => {
 
     const leading = raw.match(/^\s*/)?.[0] || "";
     const trailing = raw.match(/\s*$/)?.[0] || "";
-    return `${leading}${escapeHtml(values.get(key))}${trailing}`;
+    const field = values.get(key);
+    const content = field.richText && field.value
+      ? sanitizeInlineRichText(field.richText, field.value)
+      : escapeHtml(field.value);
+    return `${leading}${content}${trailing}`;
   });
 };

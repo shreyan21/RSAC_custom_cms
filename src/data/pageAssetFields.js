@@ -238,7 +238,22 @@ export const appendNewPageAssets = (html, fields) => {
       const image = document.createElement("img");
       image.src = value;
       image.alt = compactText(field.alt);
-      figure.append(image);
+      if (compactText(field.title)) image.title = compactText(field.title);
+      const linkedHref = safeAssetUrl(field.linkedHref, "link");
+      if (linkedHref) {
+        const link = document.createElement("a");
+        link.href = linkedHref;
+        link.className = "rsac-interactive-media-link";
+        link.setAttribute("aria-label", compactText(field.title || field.text) || "Open interactive media");
+        if (/^https?:/i.test(linkedHref)) {
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
+        link.append(image);
+        figure.append(link);
+      } else {
+        figure.append(image);
+      }
       if (compactText(field.caption)) {
         const caption = document.createElement("figcaption");
         caption.textContent = compactText(field.caption);
@@ -247,8 +262,33 @@ export const appendNewPageAssets = (html, fields) => {
       document.body.append(figure);
       return;
     }
-    if (field.kind === "video" || field.kind === "audio") {
-      const media = document.createElement(field.kind);
+    if (field.kind === "video") {
+      const figure = document.createElement("figure");
+      figure.className = "rsac-video-figure";
+      figure.dataset.rsacAddedAsset = "true";
+
+      const video = document.createElement("video");
+      video.className = "rsac-video-embed";
+      video.controls = true;
+      video.preload = "metadata";
+      video.playsInline = true;
+      video.src = value;
+      const title = compactText(field.title || field.text);
+      if (title) {
+        video.title = title;
+        video.setAttribute("aria-label", title);
+        const caption = document.createElement("figcaption");
+        caption.className = "rsac-video-figcaption";
+        caption.textContent = title;
+        figure.append(video, caption);
+      } else {
+        figure.append(video);
+      }
+      document.body.append(figure);
+      return;
+    }
+    if (field.kind === "audio") {
+      const media = document.createElement("audio");
       media.controls = true;
       media.src = value;
       media.dataset.rsacAddedAsset = "true";
@@ -269,11 +309,13 @@ export const appendNewPageAssets = (html, fields) => {
       document.body.append(frame);
       return;
     }
+    const linkText = compactText(field.text || field.title);
+    if (!linkText) return;
     const paragraph = document.createElement("p");
     paragraph.dataset.rsacAddedAsset = "true";
     const link = document.createElement("a");
     link.href = value;
-    link.textContent = compactText(field.text) || fileNameFromUrl(value) || "Open file";
+    link.textContent = linkText;
     if (/^https?:/i.test(value)) {
       link.target = "_blank";
       link.rel = "noopener noreferrer";

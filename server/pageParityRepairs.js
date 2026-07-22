@@ -9,6 +9,20 @@ const pageRepairs = new Map([
   ["training-hostels", {
     visibleBlockLabels: new Set(["Training Hostel"]),
     hiddenChildKeys: new Set(),
+    removedChildKeys: new Set(["text-0004"]),
+    redundantHeadings: {
+      en: ["Training Hostels"],
+      hi: ["प्रशिक्षण छात्रावास"],
+    },
+  }],
+  ["soil-analysis-lab1", {
+    visibleBlockLabels: new Set(),
+    hiddenChildKeys: new Set(),
+    removedChildKeys: new Set(["text-0005"]),
+    redundantHeadings: {
+      en: ["Soil Analysis Lab"],
+      hi: ["मृदा विश्लेषण प्रयोगशाला"],
+    },
   }],
   ["forest-resources-ecology-division", {
     visibleBlockLabels: new Set(),
@@ -30,6 +44,17 @@ const pageRepairs = new Map([
     ]),
   }],
 ]);
+
+const escapeRegularExpression = (value) =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const removeRedundantH3Headings = (html, headings = []) => headings.reduce(
+  (result, heading) => result.replace(
+    new RegExp(`<h3\\b[^>]*>\\s*${escapeRegularExpression(heading)}\\s*<\\/h3>`, "giu"),
+    ""
+  ),
+  String(html || "")
+);
 
 const cipdmPosterVideoLinks = new Map([
   [
@@ -69,41 +94,7 @@ const restoreCipdmVideoLinks = (value) => {
   return value;
 };
 
-const isSupplementalEditorBlock = (block) =>
-  block?.controlsSectionLabel === false || String(block?.id || "").startsWith("cms-text-");
-
-const mergeTrainingBlocks = (canonicalBlocks = [], academicBlocks = []) => {
-  const canonical = structuredClone(canonicalBlocks);
-  const supplemental = structuredClone(academicBlocks.filter(isSupplementalEditorBlock));
-  const representedKeys = new Set();
-
-  [...canonical, ...supplemental].forEach((block) => {
-    if (block?.key) representedKeys.add(block.key);
-    (block?.children || []).forEach((child) => {
-      if (child?.key) representedKeys.add(child.key);
-    });
-  });
-
-  academicBlocks.filter((block) => !isSupplementalEditorBlock(block)).forEach((block, index) => {
-    const children = (block.children || []).filter((child) => {
-      if (!child?.key || representedKeys.has(child.key)) return false;
-      representedKeys.add(child.key);
-      return true;
-    });
-    if (!children.length) return;
-
-    supplemental.push({
-      id: `parity-preserved-${block.id || index}`,
-      label: `${block.label || block.value || "Section"} additional text`,
-      value: `${block.value || block.label || "Section"} additional text`,
-      sourceLabel: block.sourceLabel || block.label || block.value || "Page content",
-      controlsSectionLabel: false,
-      children: structuredClone(children),
-    });
-  });
-
-  return [...canonical, ...supplemental];
-};
+const mergeTrainingBlocks = (canonicalBlocks = []) => structuredClone(canonicalBlocks);
 
 export const repairCmsPageParity = async (db) => {
   const { rows } = await db.query(
@@ -158,6 +149,10 @@ export const repairCmsPageParity = async (db) => {
       }
       const maxImportedChild = maxImportedChildByBlockId.get(String(block.id || ""));
       const children = (next.children || []).filter((child) => {
+        if (repair.removedChildKeys?.has(child.key)) {
+          changed = true;
+          return false;
+        }
         if (!Number.isInteger(maxImportedChild)) return true;
         const keyMatch = String(child.key || "").match(/^text-(\d+)$/);
         if (!keyMatch || Number(keyMatch[1]) <= maxImportedChild) return true;
@@ -177,6 +172,16 @@ export const repairCmsPageParity = async (db) => {
       repair.hiddenHindiChildKeys || repair.hiddenChildKeys,
       repair.maxHindiImportedChildByBlockId
     );
+    const cleanedEnglishHtml = removeRedundantH3Headings(dataEn.html, repair.redundantHeadings?.en);
+    const cleanedHindiHtml = removeRedundantH3Headings(dataHi.html, repair.redundantHeadings?.hi);
+    if (cleanedEnglishHtml !== String(dataEn.html || "")) {
+      dataEn.html = cleanedEnglishHtml;
+      changed = true;
+    }
+    if (cleanedHindiHtml !== String(dataHi.html || "")) {
+      dataHi.html = cleanedHindiHtml;
+      changed = true;
+    }
     if (!changed) continue;
 
     await db.query(
@@ -198,6 +203,7 @@ export const repairCmsPageParity = async (db) => {
   if (canonicalTraining && academicTraining) {
     const dataEn = {
       ...(academicTraining.data_en || {}),
+      html: canonicalTraining.data_en?.html || academicTraining.data_en?.html || "",
       blocks: mergeTrainingBlocks(
         canonicalTraining.data_en?.blocks,
         academicTraining.data_en?.blocks
@@ -205,13 +211,14 @@ export const repairCmsPageParity = async (db) => {
     };
     const dataHi = {
       ...(academicTraining.data_hi || {}),
+      html: canonicalTraining.data_hi?.html || academicTraining.data_hi?.html || "",
       blocks: mergeTrainingBlocks(
         canonicalTraining.data_hi?.blocks,
         academicTraining.data_hi?.blocks
       ),
     };
-    const changed = JSON.stringify(dataEn.blocks) !== JSON.stringify(academicTraining.data_en?.blocks || [])
-      || JSON.stringify(dataHi.blocks) !== JSON.stringify(academicTraining.data_hi?.blocks || []);
+    const changed = JSON.stringify(dataEn) !== JSON.stringify(academicTraining.data_en || {})
+      || JSON.stringify(dataHi) !== JSON.stringify(academicTraining.data_hi || {});
     if (changed) {
       await db.query(
         "UPDATE cms_entries SET data_en=$1,data_hi=$2,version=version+1,updated_at=now() WHERE id=$3",

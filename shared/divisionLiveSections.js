@@ -1,0 +1,103 @@
+// Public division tab contract. The CMS editor and audits use this same order
+// and wording, so legacy HTML cannot create extra or missing editor sections.
+export const divisionLiveSections = new Map([
+  ["computer-image-processing-division", [
+    ["overview", "Computer Image Processing and Data Management Division", "कंप्यूटर इमेज प्रोसेसिंग और डेटा मैनेजमेंट डिवीज़न"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["software", "Software", "सॉफ्टवेयर"],
+    ["hardware", "Hardware", "हार्डवेयर"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-papers", "Research Paper/ Articles", "शोध पत्र / लेख"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["earth-resources-division1", [
+    ["overview", "Earth Resources Division", "भू-संसाधन प्रभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["research-paper-published", "Research Paper Published", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["agriculture-resources-division1", [
+    ["overview", "Agriculture Resources Division", "कृषि संसाधन विभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-papers", "Research Paper/ Articles", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["forest-resources-ecology-division", [
+    ["overview", "Forest Resources Division", "वन संसाधन प्रभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-papers", "Research Paper/ Articles", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+  ]],
+  ["groundwater-resources-division1", [
+    ["overview", "Ground Water Resources", "भूजल संसाधन विभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["publications", "Publications and Technical Reports", "प्रकाशन"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["geo-spatial-data-bank-division1", [
+    ["overview", "Geo-Spatial Division", "भौगोलिक-स्थानिक डाटा बैंक विभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["data-bank", "Data Bank", "डाटा बैंक"],
+    ["completed-projects", "Completed Projects", "पूर्ण / सम्मिलित परियोजनाएँ"],
+    ["research-paper-published", "Research Paper Published", "शोध प्रपत्र"],
+    ["technical-reports", "Technical Reports and Atlas", "तकनीकी रिपोर्ट्स तथा एटलस"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["landuse-amp;-urban-survey-division1", [
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["overview", "Land Use And Urban Survey Division", "भूमि उपयोग और शहरी सर्वेक्षण प्रभाग"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-paper-published", "Research Paper Published", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["soil-resources-division1", [
+    ["overview", "Soil Resources Division", "मृदा संसाधन प्रभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-paper-published", "Research Papers Published", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["surface-water-resources-division1", [
+    ["overview", "Surface Division", "सतही जल संसाधन प्रभाग"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["ongoing-projects", "Ongoing Projects", "चालू परियोजनाएं"],
+    ["completed-projects", "Completed Projects", "पूर्ण परियोजनाएं"],
+    ["technical-reports", "Technical Reports", "तकनीकी रिपोर्ट"],
+    ["research-paper-published", "Research Papers Published", "शोध पत्र प्रकाशित"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+  ]],
+  ["training-division", [
+    ["overview", "Training Division", "प्रशिक्षण डिवीजन"],
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["training-programmes", "Training Programmes", "प्रशिक्षण कार्यक्रम"],
+    ["research-paper-published", "List of Research Papers", "शोध पत्र प्रकाशित"],
+    ["training-hostel", "Training Hostel", "प्रशिक्षण छात्रावास"],
+  ]],
+  ["school-of-geo-informatics-division1", [
+    ["scientific-manpower", "Scientific Manpower", "वैज्ञानिक जनशक्ति"],
+    ["map-photos", "Map/Photos", "मानचित्र / तस्वीरें"],
+    ["mtech", "M.Tech. in Remote Sensing and GIS", "रिमोट सेंसिंग एवं जीआईएस में एम.टेक."],
+  ]],
+]);
+
+export const getDivisionLiveSections = (slug) =>
+  (divisionLiveSections.get(slug) || []).map(([key, englishLabel, hindiLabel]) => ({
+    key,
+    englishLabel,
+    hindiLabel,
+  }));

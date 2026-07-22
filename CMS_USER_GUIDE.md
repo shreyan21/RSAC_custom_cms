@@ -36,7 +36,7 @@ Saved published content normally appears within 2 seconds. A hard refresh is not
 
 ## Page Builder
 
-Open **About Pages**, **Division Content**, **Facilities**, **Training and Academics**, or **All Website Pages**. Edit a page and use **Flexible page blocks**. Blocks automatically stack and resize responsively.
+Open **About Pages**, **Division Content**, **Facilities**, **Training and Academics**, or **Other Website Pages**. Each page appears in one editor only. Edit a page and use **Flexible page blocks**. Blocks automatically stack and resize responsively.
 
 - **Hero banner:** title, text, background image, and action link.
 - **Text / paragraph:** headings and formatted content.
@@ -59,11 +59,10 @@ Each block can be moved up/down, duplicated, hidden, or removed. **Section layou
 | Division Content | Every division detail page, with focused editors for each section |
 | Facilities | All 10 facility pages, descriptions, images, and page blocks |
 | Training and Academics | Training Division and School of Geo-Informatics pages |
-| All Website Pages | Combined advanced view of every full content page |
+| Other Website Pages | Policy, service, programme, and public-information pages without another dedicated editor |
 | Page Groups | Top-level page groups and introductions |
 | Divisions | Division cards and summaries |
 | Facility Ordering Data | Advanced ordering records for facility directory cards |
-| Division List Items | Form-based division research papers, completed/ongoing projects, reports, publications and training lists |
 | Scientists / Officials / Staff | People, roles, photos, contact and profile details |
 | Projects | Ongoing and completed projects |
 | Publications / Research / Reports | Papers, publications, technical reports, atlases and plans |
@@ -106,12 +105,12 @@ To edit an existing facility:
 1. Open **Facilities** under **Pages** and click **Choose page**.
 2. Choose the laboratory, library, hostel, technical cell, or service block.
 3. Choose only the section to edit, such as Overview, Hardware, Instruments, or Major Activities.
-4. Edit, search, remove, restore, or add a line. Switch to **हिन्दी** and enter Hindi separately.
+4. Edit the complete section in the rich-text box. Press Enter for another paragraph; use the toolbar for headings, lists, links, tables, quotes, bold, italic, or underline. Switch to **हिन्दी** and enter Hindi separately.
 5. Click **Save** and verify the facility page. The directory-card summary and the detail-page section text are separate fields; edit **Page heading and layout** for the card summary, or choose the exact content section for body text.
 
 Use **Add new** on the Facilities card only when creating a completely new facility page. Existing facility editing never shows raw HTML.
 
-The same three-step editor is used by **About Pages** and **Training and Academics**: choose page, choose section, edit rows.
+The same three-step editor is used by **About Pages** and **Training and Academics**: choose page, choose section, edit its complete text.
 
 ## Where Every Homepage Item Is Edited
 
@@ -151,7 +150,8 @@ The footer **Last updated** date is automatic. It reflects the newest CMS conten
 ### Change Card Pictures and Themes
 
 - **Mobile app thumbnail:** open **Mobile Apps**, edit the app, use **App thumbnail** to upload/replace its picture, then Save. Leaving it empty uses the approved contextual default.
-- **Division or facility picture:** open **All Website Pages**, edit the page, and use **Featured image**. The public card keeps its responsive crop automatically.
+- **Division picture:** open **Division Content**, choose the division, open **Page heading and layout**, and use **Featured image**.
+- **Facility picture:** open **Facilities**, choose the facility, open **Page heading and layout**, and use **Featured image**. Public cards keep their responsive crop automatically.
 - Division and facility icons, colours, and patterns are selected automatically from their subject. Water Analysis, Surface Water, Groundwater, Soil, LiDAR, Library, Data Bank, Hostel, and other cards have separate themes.
 - Advanced card colours can be changed only when necessary. Always check English, Hindi, phone, and desktop views after a visual change.
 
@@ -165,16 +165,16 @@ Open its collection, choose **Add new**, fill title and details, upload/select t
 
 ### Add a Research Paper, Completed Project, or Other Division List Item
 
-1. Open **Division List Items**. Do not edit raw page HTML for a new list record.
-2. Click **Add new**.
-3. Choose the **Division** where the item must appear.
-4. Choose **Website section**, such as Research Papers, Completed Projects, Ongoing Projects, Technical Reports, Publications, Training Programmes, or Training Hostel.
-5. In **English**, enter Item title. Add authors/officers, journal/department, description or citation, year/date, and document/web link when relevant.
-6. Select the **Hindi** tab. Enter the approved Hindi title and other Hindi text manually. Division, section, year, date and links are shared.
-7. Set Status to **Published** and click **Save**. Published items require a Hindi title.
-8. Open that division on the website and select the chosen section.
+1. Click **Division content** and choose the division.
+2. Choose **Research Papers**, **Completed Projects**, **Ongoing Projects**, **Technical Reports**, or the required section.
+3. Click **Add latest item**. A blank item appears automatically at number 1.
+4. Click that item in the small **List items** panel. The main editor moves to it. Type and format the content there.
+5. Use arrow buttons or drag the handle to reorder. Use the bin button to delete. Numbering updates automatically.
+6. Use **Bullet list** or **Numbered list** inside an item to add sub-items.
+7. Switch to **हिन्दी** and enter the approved Hindi version separately.
+8. Click **Save**, then verify the same website tab in both languages.
 
-New item automatically appears at top as number **1**. Older items continue as **2, 3, 4...**. No Sort order or raw text editing needed. If section did not exist on division page, CMS creates responsive section tab automatically. Use Draft to hide temporarily or Archive to remove it from website.
+There is no separate Division List Items editor. One section rich-text box is the only active source for that section.
 
 ### Edit an Existing Division Research Paper
 
@@ -183,11 +183,11 @@ Example: edit item 2 in Computer Image Processing Division.
 1. Click **Division content** in the CMS left menu.
 2. Choose **Computer Image Processing & Data Management Division**.
 3. Choose **Research Paper / Articles**.
-4. Only research-paper rows now appear. Edit **Item 2** directly or use the search box.
+4. One complete research-paper editor opens. Click the second numbered item and edit it directly.
 5. Switch to **हिन्दी** and edit the corresponding approved Hindi separately.
 6. Click **Save**, wait about 3 seconds, then verify the Research Paper tab on the website.
 
-To add a simple research-paper row from this same editor, click **Add item at top**. It becomes number **1** after Save. To remove an old row, use its trash button; **Restore removed items** is available before Save. For papers needing separate authors, year, journal, file, or URL fields, use **Division List Items > Add new** instead.
+To add a paper at number **1**, click **Add latest item**. Use the item panel to edit, move, or delete it. Do not type serial numbers manually.
 
 The Division Content workspace never displays raw HTML or the full page form.
 
@@ -196,16 +196,18 @@ The Division Content workspace never displays raw HTML or the full page form.
 1. Click **Division content** in the left menu and choose the division.
 2. Choose the exact section: Overview, Software, Hardware, Projects, Technical Reports, Research Papers, Map/Photos, or another listed section.
 3. The CMS opens only that section.
-4. Search its rows, edit a row, use the trash button to remove a row, or use **Add line at top**.
+4. Edit its complete content in one rich-text box. Press Enter for a paragraph or list item; no Add block or Add line action is needed.
 5. Use **Sections** to choose another section.
 6. Repeat in the Hindi tab. English and Hindi are always stored separately.
 7. Click **Save** and verify the matching website tab.
 
-Long sections use their own short scroll area and search box. For scientist names, roles, and profile photographs use **Scientists / Officials / Staff**. For uploaded public gallery photographs use **Gallery**. Those dedicated collections provide the correct photo, caption, and alt-text fields.
+Select text and use **H2**, **H3**, **H4**, **Bold**, **Italic**, **Underline**, lists, links, tables, quotes, or **Clear formatting**. **Hide section** affects only the open language. Blank Hindi stays blank; it never copies English. English typed manually in a Hindi field remains English. Photos and files are shared, while captions and alt text are separate for each language.
+
+For scientist names, roles, and profile photographs use **Scientists / Officials / Staff**. For uploaded public gallery photographs use **Gallery**. Those dedicated collections provide the correct photo, caption, and alt-text fields.
 
 ### Add an Image
 
-Use **Upload** in an image/media field. Use JPEG/WebP for photographs and PNG/SVG only where appropriate. Compress large images before upload. Add English and Hindi captions/alt text.
+Use **Upload** once in an image/media field. The same photograph or file is saved for English and Hindi. Switch language tabs to enter English and Hindi captions/alt text separately. Use JPEG/WebP for photographs and PNG/SVG only where appropriate. Compress large images before upload.
 
 Uploaded files are stored in `server/uploads` and must be backed up or deployed together with the PostgreSQL database whenever saved content contains a `/uploads/...` URL. Bundled website assets and external image URLs do not require this folder. The server creates the folder automatically when it is missing.
 

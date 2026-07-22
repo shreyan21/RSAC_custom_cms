@@ -6,6 +6,8 @@ import {
   extractPageTextFields,
   flattenImportedPageTextFields,
 } from "../src/data/pageTextFields.js";
+import { normalizeEditorText } from "../shared/importedEditorRows.js";
+import { getDivisionLiveSections } from "../shared/divisionLiveSections.js";
 import { collectDivisionSectionKeys } from "./lib/division-sections.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
@@ -17,8 +19,16 @@ const punctuationOnly = /^[\s&,.;:'"`\u0964|/()[\]{}<>\-\u2013\u2014\u2018\u2019
 const representedText = (data) => {
   const editableKeys = new Set();
   const structuralKeys = new Set();
+  const editableValues = new Set();
+  const structuralValues = new Set(
+    [data.title, data.baseTitle].map(normalizeEditorText).filter(Boolean)
+  );
 
   for (const block of data.blocks || []) {
+    [block.label, block.value, block.sourceLabel, block.heading]
+      .map(normalizeEditorText)
+      .filter(Boolean)
+      .forEach((value) => structuralValues.add(value));
     if (block.key) {
       if (
         block.editorVisible === false ||
@@ -31,12 +41,17 @@ const representedText = (data) => {
       const target = child.editorVisible === false || child.structural
         ? structuralKeys
         : editableKeys;
+      const valueTarget = child.editorVisible === false || child.structural
+        ? structuralValues
+        : editableValues;
       if (child.key) target.add(child.key);
       for (const sourceKey of child.sourceKeys || []) target.add(sourceKey);
+      const normalizedValue = normalizeEditorText(child.value);
+      if (normalizedValue) valueTarget.add(normalizedValue);
     }
   }
 
-  return { editableKeys, structuralKeys };
+  return { editableKeys, structuralKeys, editableValues, structuralValues };
 };
 
 const client = new pg.Client({ connectionString: process.env.CMS_DATABASE_URL });
@@ -56,7 +71,12 @@ try {
   for (const row of rows) {
     for (const [language, data] of [["English", row.data_en], ["Hindi", row.data_hi]]) {
       if (!data?.html) continue;
-      const { editableKeys, structuralKeys: cmsStructuralKeys } = representedText(data);
+      const {
+        editableKeys,
+        structuralKeys: cmsStructuralKeys,
+        editableValues,
+        structuralValues,
+      } = representedText(data);
       const usesCategorizedContent = row.data_en?.sectionKey === "divisions" || /^training-division-?$/u.test(row.entry_key);
       const structuralKeys = new Set([
         ...extractPageStructuralTextKeys(data.html),
@@ -65,8 +85,12 @@ try {
       const categorizedSections = usesCategorizedContent
         ? collectDivisionSectionKeys(data.html, data.title, row.entry_key)
         : null;
+      const contractSlug = row.entry_key === "training-division-" ? "training-division" : row.entry_key;
+      const liveSectionKeys = new Set(getDivisionLiveSections(contractSlug).map((section) => section.key));
       const visibleKeys = categorizedSections
-        ? new Set(categorizedSections.sections.flatMap((section) => section.textKeys || []))
+        ? new Set(categorizedSections.sections
+            .filter((section) => !liveSectionKeys.size || liveSectionKeys.has(section.key))
+            .flatMap((section) => section.textKeys || []))
         : null;
       const fields = extractPageTextFields(data.html);
       checkedFields += fields.length;
@@ -77,7 +101,13 @@ try {
           punctuationOnly.test(value) ||
           (visibleKeys && !visibleKeys.has(field.key))
         ) return false;
-        return !editableKeys.has(field.key) && !structuralKeys.has(field.key);
+        const normalizedValue = normalizeEditorText(value);
+        const removableMediaHeading = /^(?:related photos?|photos?|map photos|संबंधित तस्वीरें|तस्वीरें|मानचित्र तस्वीरें)$/u.test(normalizedValue);
+        return !editableKeys.has(field.key) &&
+          !structuralKeys.has(field.key) &&
+          !editableValues.has(normalizedValue) &&
+          !structuralValues.has(normalizedValue) &&
+          !removableMediaHeading;
       });
       if (missing.length) {
         failures.push(`${language} ${row.entry_key}: ${missing.slice(0, 4).map((field) => field.value).join(" | ")}`);

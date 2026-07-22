@@ -1,16 +1,79 @@
-/* Basic sample */
+*{
+	box-sizing:border-box;
+}
+
+html,
+body{
+	width:100%;
+	height:100%;
+}
 
 body{
 	overflow:hidden;
-	background-color:#fcfcfc;
+	background:#eef5f2;
+	color:#102f46;
+	font-family:Arial,Helvetica,sans-serif;
 	margin:0;
 	padding:0;
 }
 
+.flipbook-controls{
+	align-items:center;
+	background:#fff;
+	border-bottom:1px solid #cbdad3;
+	display:flex;
+	gap:14px;
+	height:62px;
+	justify-content:center;
+	left:0;
+	padding:8px 12px;
+	position:fixed;
+	right:0;
+	top:0;
+	z-index:10000;
+}
+
+.flipbook-controls button{
+	background:#0f6f42;
+	border:2px solid #0f6f42;
+	border-radius:6px;
+	color:#fff;
+	cursor:pointer;
+	font:700 15px/1 Arial,Helvetica,sans-serif;
+	min-height:42px;
+	padding:9px 16px;
+}
+
+.flipbook-controls button:hover,
+.flipbook-controls button:focus-visible{
+	background:#0a5734;
+	border-color:#0a5734;
+	outline:3px solid #f5a623;
+	outline-offset:2px;
+}
+
+.flipbook-controls button:disabled{
+	background:#e5ece8;
+	border-color:#c5d2cc;
+	color:#66756e;
+	cursor:not-allowed;
+	outline:0;
+}
+
+#page-status{
+	font-size:15px;
+	font-weight:700;
+	min-width:108px;
+	text-align:center;
+}
+
 .flipbook-viewport{
+	bottom:0;
 	overflow:hidden;
-	width:100%;
-	height:100%;
+	left:0;
+	position:fixed;
+	right:0;
+	top:62px;
 }
 
 .flipbook-viewport .container{
@@ -18,18 +81,19 @@ body{
 	top:50%;
 	left:50%;
 	margin:auto;
+	transform-origin:center center;
 }
 
 .flipbook-viewport .flipbook{
 	width:922px;
 	height:600px;
-	right:800px;
-	top:-350px;
+	right:auto;
+	top:auto;
 }
 
 .flipbook-viewport .page{
-	width:461px;
-	height:600px;
+	width:800px;
+	height:700px;
 	background-color:white;
 	background-repeat:no-repeat;
 	background-size:100% 100%;
@@ -64,4 +128,20 @@ body{
 	-o-box-shadow:0 0 20px #ccc;
 	-ms-box-shadow:0 0 20px #ccc;
 	box-shadow:0 0 20px #ccc;
+}
+
+@media (max-width:520px){
+	.flipbook-controls{
+		gap:8px;
+	}
+
+	.flipbook-controls button{
+		font-size:13px;
+		padding:8px 10px;
+	}
+
+	#page-status{
+		font-size:13px;
+		min-width:88px;
+	}
 }

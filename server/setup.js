@@ -5,6 +5,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
 import { repairCmsPageParity } from "./pageParityRepairs.js";
+import { migrateDivisionAndFacilityRichContent } from "./sectionRichContentMigration.js";
 
 const envPath = resolve(".env.local");
 loadEnv({ path: envPath, quiet: true });
@@ -81,6 +82,10 @@ if (existingCount === 0 || current.CMS_FORCE_SEED === "true") {
 }
 const repairedPages = await repairCmsPageParity(appDb);
 if (repairedPages) console.log(`Repaired ${repairedPages} imported CMS ${repairedPages === 1 ? "entry" : "entries"}.`);
+const richContentMigration = await migrateDivisionAndFacilityRichContent(appDb);
+if (richContentMigration.entriesChanged) {
+  console.log(`Migrated ${richContentMigration.sectionsChanged} localized Division, Facility, and Academics sections to canonical rich content.`);
+}
 await appDb.end();
 
 const output = [

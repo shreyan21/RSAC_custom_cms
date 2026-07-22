@@ -5,6 +5,7 @@ export const hiTranslations = {
   // Social / misc
   "Follow Us": "हमें फ़ॉलो करें",
   "opens in new tab": "नई विंडो में खुलता है",
+  "Interactive content": "इंटरैक्टिव सामग्री",
 
   // Read-aloud / text-to-speech (screen reader page + site-wide button)
   Listen: "सुनें",
@@ -308,6 +309,7 @@ export const hiTranslations = {
   Duration: "अवधि",
   Tenure: "कार्यकाल",
   "Time Period": "समयावधि",
+  Qualification: "योग्यता",
   "Area of Specialization": "विशेषज्ञता का क्षेत्र",
   Experience: "अनुभव",
   "Experience in Years": "अनुभव वर्षों में",
@@ -317,6 +319,8 @@ export const hiTranslations = {
   "Educational Qualification": "शैक्षिक योग्यता",
   "Contact No.": "संपर्क संख्या",
   "E-Mail": "ई-मेल",
+  Role: "भूमिका",
+  Department: "विभाग",
   "Email-id": "ईमेल आईडी",
   "E-mail ID": "ईमेल आईडी",
   Detail: "विवरण",
