@@ -344,6 +344,17 @@ textarea { resize: vertical; }
 .workspace-card__meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .workspace-card__meta .status { color: inherit; font-size: 10px; }
 .workspace-section-grid { grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); }
+.workspace-order-note { margin: -4px 0 18px; border-left: 3px solid var(--cms-accent); background: #eef5f8; padding: 10px 12px; color: #526d7d; font-size: 13px; line-height: 1.5; }
+.workspace-section-card { min-height: 132px; align-content: stretch; overflow: hidden; padding: 0; }
+.workspace-section-card__open { width: 100%; min-height: 88px; display: grid; align-content: center; gap: 8px; border: 0; background: transparent; padding: 16px; text-align: left; color: inherit; }
+.workspace-section-card__open:focus-visible { outline: 3px solid color-mix(in srgb, var(--cms-accent) 32%, transparent); outline-offset: -3px; }
+.workspace-section-card__order { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #dbe5e9; background: #f7fafb; padding: 7px 9px 7px 16px; }
+.workspace-section-card__order > span { color: #526f7f; font-size: 11px; font-weight: 850; }
+.workspace-order-buttons { display: flex; gap: 5px; }
+.workspace-order-buttons button { width: 34px; height: 32px; display: inline-grid; place-items: center; border: 1px solid #c7d7df; border-radius: 6px; background: white; color: #17445c; }
+.workspace-order-buttons button:hover:not(:disabled), .workspace-order-buttons button:focus-visible { border-color: var(--cms-accent); color: var(--cms-accent); }
+.workspace-order-buttons button:disabled { cursor: not-allowed; opacity: .4; }
+.workspace-order-buttons svg { width: 16px; height: 16px; }
 .workspace-reference { max-width: 680px; display: grid; justify-items: start; gap: 10px; border: 1px solid #cbdde5; border-radius: 8px; background: white; padding: 24px; }
 .workspace-reference > svg { width: 40px; height: 40px; color: var(--cms-accent); }
 .workspace-reference h3, .workspace-reference p { margin: 0; }

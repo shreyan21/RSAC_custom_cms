@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Languages, Save, Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Eye, EyeOff, Languages, Save, Search, UserRound } from "lucide-react";
 import FieldInput from "./FieldInput";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 import SectionItemManager from "./SectionItemManager";
+import { reorderDivisionPageSections } from "./divisionSectionOrder";
 import { fieldHelpText } from "./fieldHelpText";
 import { pageCardIconOptions } from "../../shared/cmsCollections";
 import useLivePreview from "./useLivePreview";
@@ -226,6 +227,13 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     }
   };
 
+  const moveSection = (sourceIndex, direction) => {
+    const visibleIndex = visibleSectionBlocks.findIndex(({ index }) => index === sourceIndex);
+    const target = visibleSectionBlocks[visibleIndex + direction];
+    if (!target) return;
+    setDraft((current) => reorderDivisionPageSections(current, sourceIndex, target.index));
+  };
+
   if (!draft) {
     return (
       <section className="division-workspace">
@@ -239,14 +247,16 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   if (sectionIndex === null) {
     return (
       <section className="division-workspace">
-        <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose one section. Each section has one complete editor per language.</p></div><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button></div>
+        <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose one section. Each section has one complete editor per language.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : "Pages"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save order"}</button></div></div>
+        <p className="workspace-order-note">Use the arrow buttons to change the section order on the website. The same order is kept for English and Hindi; select Save order when finished.</p>
         <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => setSectionIndex("page-details")}><strong>Page heading and layout</strong><span>Edit the title, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
           const localizedIndex = findLocalizedDivisionBlockIndex(draft.dataHi, block, index);
           const localizedBlock = localizedIndex >= 0 ? draft.dataHi?.blocks?.[localizedIndex] : null;
           const mediaCount = (block.assets || []).filter((asset) => !asset.hidden).length;
           const status = isPeopleSection(block) ? "Open people controls" : `${contentTextLength(block) ? "English ready" : "English blank"} | ${contentTextLength(localizedBlock) ? "Hindi ready" : "Hindi blank"}${mediaCount ? ` | ${mediaCount} media` : ""}`;
-          return <button type="button" className="workspace-card" key={block.id || `${sectionLabel}-${index}`} onClick={() => setSectionIndex(index)}><strong>{sectionLabel}</strong><span>{status}</span></button>;
+          const visibleIndex = visibleSectionBlocks.findIndex((item) => item.index === index);
+          return <article className="workspace-card workspace-section-card" key={block.id || `${sectionLabel}-${index}`}><button type="button" className="workspace-section-card__open" onClick={() => setSectionIndex(index)}><strong>{sectionLabel}</strong><span>{status}</span></button><div className="workspace-section-card__order"><span>Position {visibleIndex + 1}</span><div className="workspace-order-buttons"><button type="button" disabled={visibleIndex === 0} title={`Move ${sectionLabel} up`} aria-label={`Move ${sectionLabel} up`} onClick={() => moveSection(index, -1)}><ArrowUp /></button><button type="button" disabled={visibleIndex === visibleSectionBlocks.length - 1} title={`Move ${sectionLabel} down`} aria-label={`Move ${sectionLabel} down`} onClick={() => moveSection(index, 1)}><ArrowDown /></button></div></div></article>;
         })}</div>
       </section>
     );
