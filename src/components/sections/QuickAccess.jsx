@@ -1,31 +1,11 @@
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowRight,
-  FileText,
-  HelpCircle,
-  Images,
-  Map as MapIcon,
-  Phone,
-  ScrollText,
-  ShieldCheck,
-  Waves,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuickLinks, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 import MaskReveal from "../motion/MaskReveal";
 import { RevealStagger, RevealItem } from "../motion/RevealStagger";
-
-const iconMap = {
-  images: Images,
-  help: HelpCircle,
-  notices: ScrollText,
-  flood: Waves,
-  map: MapIcon,
-  document: FileText,
-  shield: ShieldCheck,
-  phone: Phone,
-};
 
 const QuickAccess = () => {
   const { t } = useLanguage();
@@ -72,7 +52,7 @@ const QuickAccess = () => {
           className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
         >
           {links.map((link) => {
-            const Icon = iconMap[link.iconKey] || FileText;
+            const Icon = resolveCmsIcon(link.iconKey || link.icon);
             const path = link.path || "/";
             const accent = link.accent || "#0b6fa4";
 
@@ -109,7 +89,7 @@ const QuickAccess = () => {
                     </p>
                   </div>
                   <span className="mt-auto inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 transition group-hover:text-[#102f46]">
-                    {c.openLabel || t("Open")}
+                    {link.buttonLabel || c.openLabel || t("Open")}
                     <ArrowRight
                       className="h-3.5 w-3.5 transition group-hover:translate-x-0.5"
                       aria-hidden="true"

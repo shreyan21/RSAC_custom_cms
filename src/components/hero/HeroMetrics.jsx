@@ -1,14 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Database, Layers3, Map, Satellite } from "lucide-react";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
-
-const iconMap = {
-  database: Database,
-  layers: Layers3,
-  map: Map,
-  satellite: Satellite,
-};
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 
 const accentDots = ["bg-[#ff9933]", "bg-[#0b6fa4]", "bg-[#b7892f]", "bg-[#138808]"];
 
@@ -60,7 +53,7 @@ const HeroMetrics = () => {
             ))}
 
             {capabilities.map((item) => {
-              const Icon = iconMap[item.icon] || Layers3;
+              const Icon = resolveCmsIcon(item.icon, resolveCmsIcon("layers"));
 
               return (
                 <span

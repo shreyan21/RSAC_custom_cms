@@ -171,10 +171,25 @@ const alignLocalizedBlockOwners = (localizedBlocks, englishBlocks) => {
 const sharedSiteSettingPaths = [
   ["appearance", "homeHeadingSize"],
   ["appearance", "homeBodySize"],
+  ["hero", "primaryAction", "icon"],
+  ["hero", "secondaryAction", "icon"],
+  ["missionPulse", "primaryAction", "icon"],
+  ["missionPulse", "secondaryAction", "icon"],
+  ["about", "primaryAction", "icon"],
+  ["about", "secondaryAction", "icon"],
   ["homeSectionTypography"],
   ["location", "cardEyebrowSize"],
   ["hiddenHomeSections"],
   ["homeSectionOrder"],
+];
+
+const sharedSiteSettingRowIconPaths = [
+  ["hero", "capabilityTags"],
+  ["about", "capabilities"],
+  ["floodSection", "programmes"],
+  ["pageContent", "placeholder", "links"],
+  ["footer", "socialLinks"],
+  ["homeSections", "navigation"],
 ];
 
 const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
@@ -191,6 +206,26 @@ const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
       target = target[key];
     }
     target[path.at(-1)] = source;
+  }
+
+  for (const path of sharedSiteSettingRowIconPaths) {
+    let englishRows = englishSettings;
+    let localizedRows = merged;
+    for (const key of path) {
+      englishRows = englishRows?.[key];
+      localizedRows = localizedRows?.[key];
+    }
+    if (!Array.isArray(englishRows) || !Array.isArray(localizedRows)) continue;
+
+    let target = merged;
+    for (const key of path.slice(0, -1)) {
+      target[key] = { ...(target[key] || {}) };
+      target = target[key];
+    }
+    target[path.at(-1)] = localizedRows.map((row, index) => ({
+      ...row,
+      icon: englishRows[index]?.icon ?? row?.icon,
+    }));
   }
 
   return merged;
@@ -287,8 +322,8 @@ const orderPagesLike = (pages, records, recordSortOrders = new Map()) => {
   });
 };
 
-export const readPublishedEntries = async () => {
-  const { rows } = await pool.query(
+export const readPublishedEntries = async (queryable = pool) => {
+  const { rows } = await queryable.query(
     `SELECT id, collection, entry_key, sort_order, data_en, data_hi, version, updated_at,
             (SELECT max(updated_at) FROM cms_entries) AS content_version
        FROM cms_entries
@@ -374,14 +409,16 @@ export const assembleBootstrap = (rows, language = "en") => {
   const sections = list("page_sections").map((section) => {
     const sectionPages = pages
       .filter((page) => page.sectionKey === section.key)
+      .filter((page) =>
+        section.key !== "divisions" || Boolean(matchingOrderingRecord(page, divisions))
+      )
       .map((page) => {
         if (section.key !== "divisions") return page;
         const division = matchingOrderingRecord(page, divisions);
-        if (!division) return page;
         return {
           ...page,
-          title: division.title || page.title,
-          summary: division.lead || page.summary,
+          cardTitle: division.title || page.title,
+          cardSummary: division.lead || page.summary,
           highlights: division.highlights?.length ? division.highlights : page.highlights,
         };
       });

@@ -5,6 +5,7 @@ import { uiLabelDefaults } from "../src/data/uiLabels.js";
 const manualHindi = {
   // Kept here only for the one-time CMS migration. The public website reads
   // these values back from PostgreSQL and never imports this map.
+  "Open interactive content": "\u0907\u0902\u091f\u0930\u0948\u0915\u094d\u091f\u093f\u0935 \u0938\u093e\u092e\u0917\u094d\u0930\u0940 \u0916\u094b\u0932\u0947\u0902",
   "ID": "आईडी",
   "Profile": "प्रोफ़ाइल",
   "Profile Details": "प्रोफ़ाइल विवरण",

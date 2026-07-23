@@ -1,38 +1,12 @@
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  Bird,
-  Building2,
-  Database,
-  Droplets,
-  Globe2,
-  Layers3,
-  Map as MapIcon,
-  ScanLine,
-  Satellite,
-  ShieldCheck,
-  Sprout,
-  Trees,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 import { RevealStagger, RevealItem } from "../motion/RevealStagger";
 import MaskReveal from "../motion/MaskReveal";
-
-const iconMap = {
-  satellite: Satellite,
-  map: MapIcon,
-  scan: ScanLine,
-  trees: Trees,
-  sprout: Sprout,
-  building2: Building2,
-  droplets: Droplets,
-  shield: ShieldCheck,
-  layers: Layers3,
-  database: Database,
-  bird: Bird,
-  globe: Globe2,
-};
 
 // Restrained official accent set — blue, green, gold, teal. No rainbow.
 const accentPalette = ["#0b6fa4", "#0f6f42", "#b7892f", "#0f766e"];
@@ -189,8 +163,19 @@ const ServicesSection = () => {
           className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
             {activeTab.items.map((item, index) => {
-              const Icon = iconMap[item.icon] || Satellite;
+              const Icon = resolveCmsIcon(item.icon || item.iconKey);
               const accentHex = accentPalette[index % accentPalette.length];
+              const destination = item.path || item.url;
+              const external = Boolean(item.url) || /^https?:\/\//i.test(destination || "");
+              const actionClass = "mt-3 inline-flex min-h-8 items-center gap-1.5 text-xs font-bold text-[#0f6f42] transition hover:text-[#0b6fa4]";
+              const actionContent = destination && (
+                <>
+                  {item.buttonLabel || t("View details")}
+                  {external
+                    ? <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    : <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                </>
+              );
 
               return (
                 <RevealItem
@@ -224,6 +209,9 @@ const ServicesSection = () => {
                     <p className="mt-2 text-sm leading-relaxed text-slate-600">
                       {item.description}
                     </p>
+                    {destination && (external
+                      ? <a className={actionClass} href={destination} target="_blank" rel="noopener noreferrer">{actionContent}</a>
+                      : <Link className={actionClass} to={destination}>{actionContent}</Link>)}
                   </div>
 
                   <div

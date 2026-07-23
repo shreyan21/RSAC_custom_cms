@@ -163,7 +163,14 @@ export const repairCmsPageParity = async (db) => {
         changed = true;
         return { ...child, hidden: true };
       });
-      return { ...next, children };
+      if (!Object.hasOwn(next, "children")) return next;
+      if (children.length || !Object.hasOwn(next, "contentHtml")) {
+        return { ...next, children };
+      }
+      const withoutEmptyLegacyRows = { ...next };
+      delete withoutEmptyLegacyRows.children;
+      changed = true;
+      return withoutEmptyLegacyRows;
     });
     dataEn.blocks = repairBlocks(dataEn.blocks, true, repair.hiddenChildKeys);
     dataHi.blocks = repairBlocks(
@@ -172,6 +179,19 @@ export const repairCmsPageParity = async (db) => {
       repair.hiddenHindiChildKeys || repair.hiddenChildKeys,
       repair.maxHindiImportedChildByBlockId
     );
+    if (row.entry_key === "soil-analysis-lab1") {
+      dataHi.blocks = dataHi.blocks.map((block, index) => {
+        if (
+          index !== 0 ||
+          String(block.value || "").trim() !==
+            "\u092e\u0943\u0926\u093e \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923 \u092a\u094d\u0930\u092f\u094b\u0917\u0936\u093e\u0932\u093e"
+        ) {
+          return block;
+        }
+        changed = true;
+        return { ...block, value: "" };
+      });
+    }
     const cleanedEnglishHtml = removeRedundantH3Headings(dataEn.html, repair.redundantHeadings?.en);
     const cleanedHindiHtml = removeRedundantH3Headings(dataHi.html, repair.redundantHeadings?.hi);
     if (cleanedEnglishHtml !== String(dataEn.html || "")) {

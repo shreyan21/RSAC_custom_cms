@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import pg from "pg";
 import { repairCmsPageParity } from "./pageParityRepairs.js";
 import { migrateDivisionAndFacilityRichContent } from "./sectionRichContentMigration.js";
+import { repairDivisionPageConsistency } from "./divisionPageSync.js";
 
 const envPath = resolve(".env.local");
 loadEnv({ path: envPath, quiet: true });
@@ -85,6 +86,10 @@ if (repairedPages) console.log(`Repaired ${repairedPages} imported CMS ${repaire
 const richContentMigration = await migrateDivisionAndFacilityRichContent(appDb);
 if (richContentMigration.entriesChanged) {
   console.log(`Migrated ${richContentMigration.sectionsChanged} localized Division, Facility, and Academics sections to canonical rich content.`);
+}
+const divisionPageRepair = await repairDivisionPageConsistency(appDb);
+if (divisionPageRepair.created || divisionPageRepair.updated) {
+  console.log(`Synchronized ${divisionPageRepair.created} new and ${divisionPageRepair.updated} existing division pages.`);
 }
 await appDb.end();
 

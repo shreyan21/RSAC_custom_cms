@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, GripVertical, ListPlus, Pencil, Trash2 } from "luci
 import {
   addLatestSectionItem,
   inspectSectionItems,
+  matchSectionListStructure,
   moveSectionItem,
   removeSectionItem,
 } from "./sectionItemHtml";
@@ -10,17 +11,22 @@ import {
 const itemSectionPattern = /update|project|report|paper|publication|article|programme|program|activity|software|hardware|download|notice|tender|faq|\u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e|\u0930\u093f\u092a\u094b\u0930\u094d\u091f|\u0936\u094b\u0927|\u092a\u094d\u0930\u0915\u093e\u0936\u0928|\u0915\u093e\u0930\u094d\u092f\u0915\u094d\u0930\u092e|\u0917\u0924\u093f\u0935\u093f\u0927\u093f|\u0938\u0949\u092b\u094d\u091f\u0935\u0947\u092f\u0930|\u0939\u093e\u0930\u094d\u0921\u0935\u0947\u092f\u0930/iu;
 const orderedSectionPattern = /update|project|report|paper|publication|article|programme|program|download|notice|tender|faq|\u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e|\u0930\u093f\u092a\u094b\u0930\u094d\u091f|\u0936\u094b\u0927|\u092a\u094d\u0930\u0915\u093e\u0936\u0928|\u0915\u093e\u0930\u094d\u092f\u0915\u094d\u0930\u092e/iu;
 
-const supportsSectionItems = ({ html, label, editorMode }) => {
+const supportsSectionItems = ({ html, referenceHtml, label, editorMode }) => {
   const inspected = inspectSectionItems(html);
-  return Boolean(inspected.items.length || editorMode === "numbered_list" || itemSectionPattern.test(String(label || "")));
+  const referenceInspected = inspectSectionItems(referenceHtml || "");
+  return Boolean(inspected.items.length || referenceInspected.items.length || editorMode === "numbered_list" || itemSectionPattern.test(String(label || "")));
 };
 
-export default function SectionItemManager({ html, label, editorMode, onChange, onFocusItem }) {
+export default function SectionItemManager({ html, referenceHtml = "", label, editorMode, onChange, onFocusItem }) {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const inspected = useMemo(() => inspectSectionItems(html), [html]);
+  const layoutMatch = useMemo(
+    () => matchSectionListStructure(html, referenceHtml),
+    [html, referenceHtml]
+  );
   const ordered = inspected.type ? inspected.type === "ordered" : editorMode === "numbered_list" || orderedSectionPattern.test(String(label || ""));
 
-  if (!supportsSectionItems({ html, label, editorMode })) return null;
+  if (!supportsSectionItems({ html, referenceHtml, label, editorMode })) return null;
 
   const move = (fromIndex, toIndex) => {
     if (toIndex < 0 || toIndex >= inspected.items.length) return;
@@ -30,6 +36,15 @@ export default function SectionItemManager({ html, label, editorMode, onChange, 
 
   return (
     <section className="section-item-manager" aria-labelledby="section-item-manager-title">
+      {layoutMatch.changed && (
+        <div className="section-layout-match">
+          <div>
+            <strong>Hindi list layout differs from English</strong>
+            <p>Match the headings and list blocks while keeping every Hindi word unchanged.</p>
+          </div>
+          <button type="button" className="secondary" onClick={() => onChange(layoutMatch.html)}>Match English layout</button>
+        </div>
+      )}
       <div className="section-item-manager__head">
         <div>
           <h3 id="section-item-manager-title">List items</h3>

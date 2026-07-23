@@ -3,6 +3,7 @@ import pg from "pg";
 import { cmsGroups } from "../admin/src/cmsGroups.js";
 import { collections } from "../shared/cmsCollections.js";
 import { validateEntryPayload } from "../server/contentValidation.js";
+import { divisionMatchesPage } from "../server/divisionPageSync.js";
 import { canonicalDivisionSection } from "../src/data/divisionSectionLabels.js";
 
 loadEnv({ path: ".env.local", quiet: true });
@@ -13,7 +14,7 @@ if (!process.env.CMS_DATABASE_URL) {
 
 const supportedFieldTypes = new Set([
   "blocks", "boolean", "color", "date", "email", "json", "list", "media",
-  "number", "richtext", "select", "text", "textarea", "url",
+  "number", "richtext", "select", "suggestions", "text", "textarea", "url",
 ]);
 const allowedStatuses = new Set(["draft", "published", "archived"]);
 const virtualDashboardCollections = new Set([
@@ -21,10 +22,12 @@ const virtualDashboardCollections = new Set([
 ]);
 const intentionallyHiddenCollections = new Set([
   "division_section_items",
+  "downloads",
 ]);
 const problems = [];
 const legacyFields = new Map();
 const databaseCounts = new Map();
+const activeDivisionPageSlugs = new Set();
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const hasValue = (value) => {
@@ -111,6 +114,28 @@ try {
     rowsByCollection.get(row.collection).push(row);
   }
 
+  const divisionRows = rowsByCollection.get("divisions") || [];
+  const divisionPageRows = (rowsByCollection.get("pages") || [])
+    .filter((row) => row.data_en?.sectionKey === "divisions");
+  divisionPageRows
+    .filter((row) => row.status !== "archived")
+    .forEach((row) => activeDivisionPageSlugs.add(String(row.data_en?.slug || row.entry_key)));
+  for (const division of divisionRows.filter((row) => row.status !== "archived")) {
+    const page = divisionPageRows.find((candidate) => divisionMatchesPage(division, candidate));
+    if (!page) {
+      problems.push(`Division ${division.entry_key} has no matching website page.`);
+    } else if (page.status !== division.status) {
+      problems.push(
+        `Division ${division.entry_key} is ${division.status} but its page ${page.entry_key} is ${page.status}.`
+      );
+    }
+  }
+  for (const page of divisionPageRows.filter((row) => row.status !== "archived")) {
+    if (!divisionRows.some((division) => divisionMatchesPage(division, page))) {
+      problems.push(`Division page ${page.entry_key} has no matching division card.`);
+    }
+  }
+
   for (const definition of collections) {
     const collectionRows = rowsByCollection.get(definition.id) || [];
     databaseCounts.set(definition.id, collectionRows.length);
@@ -178,8 +203,8 @@ try {
         if (field.localized !== false && !typeMatches(field, hindiValue)) problems.push(`${label} has the wrong Hindi type for ${field.name}.`);
         if (field.type === "select") {
           const allowed = new Set((field.options || []).map(optionValue));
-          if (hasValue(englishValue) && !allowed.has(String(englishValue))) problems.push(`${label} has invalid ${field.name} option ${englishValue}.`);
-          if (field.localized !== false && hasValue(hindiValue) && !allowed.has(String(hindiValue))) problems.push(`${label} has invalid Hindi ${field.name} option ${hindiValue}.`);
+          if (hasValue(englishValue) && !field.allowCustom && !allowed.has(String(englishValue))) problems.push(`${label} has invalid ${field.name} option ${englishValue}.`);
+          if (field.localized !== false && hasValue(hindiValue) && !field.allowCustom && !allowed.has(String(hindiValue))) problems.push(`${label} has invalid Hindi ${field.name} option ${hindiValue}.`);
         }
         if (field.type === "blocks") {
           for (const [language, blocks] of [["English", englishValue], ["Hindi", hindiValue]]) {
@@ -241,6 +266,17 @@ try {
 
   const portalDefinitions = (await apiRequest("/api/admin/collections")).payload.data;
   if (!Array.isArray(portalDefinitions)) throw new Error("collection index did not return an array");
+  const divisionField = portalDefinitions
+    .find((definition) => definition.id === "division_section_items")?.fields
+    ?.find((field) => field.name === "divisionSlug");
+  const portalDivisionSlugs = new Set(
+    (divisionField?.options || []).map((option) => String(option?.value || option))
+  );
+  for (const slug of activeDivisionPageSlugs) {
+    if (!portalDivisionSlugs.has(slug)) {
+      problems.push(`Division selector is missing live page ${slug}.`);
+    }
+  }
   const schemaDefinitions = (await apiRequest("/api/admin/schema")).payload.collections;
   const auditRows = (await apiRequest("/api/admin/audit")).payload.data;
   const feedbackRows = (await apiRequest("/api/admin/feedback")).payload.data;

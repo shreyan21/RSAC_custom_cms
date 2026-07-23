@@ -1,8 +1,33 @@
-import { useRef, useState } from "react";
-import { Plus, Search, Trash2, Upload } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Plus, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
+import EditorTooltipButton from "./EditorTooltipButton";
 import { api, mediaPreviewUrl } from "./api";
+import { formatRichTextHtml } from "./formatRichText";
+import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
+
+const iconColumns = cmsIconOptions.map(({ value, label }) => [value, label]);
+const buttonSuggestions = cmsButtonLabelSuggestions;
+
+function SuggestionInput({ id, value, options = [], language = "en", onChange }) {
+  const generatedId = useId();
+  const listId = id || generatedId;
+  const values = options.map((option) => {
+    if (typeof option === "string") return option;
+    if (Array.isArray(option)) return option[0];
+    return language === "hi" ? option.hi : option.en;
+  }).filter(Boolean);
+
+  return (
+    <>
+      <input list={listId} value={value || ""} onChange={(event) => onChange(event.target.value)} />
+      <datalist id={listId}>
+        {values.map((option) => <option value={option} key={option} />)}
+      </datalist>
+    </>
+  );
+}
 
 function JsonEditor({ field, value, onChange, onError }) {
   const [text, setText] = useState(() => typeof value === "string" ? value : JSON.stringify(value || {}, null, 2));
@@ -27,12 +52,14 @@ const settingsGroups = [
       ["hero.highlights", "Hero description lines", "list"],
       ["hero.stats", "Hero statistics", "rows", [["label", "Label"], ["value", "Value"]]],
       ["hero.domains", "Domain labels", "list"],
-      ["hero.capabilityTags", "Capability labels", "rows", [["label", "Label"], ["icon", "Icon name"]]],
+      ["hero.capabilityTags", "Capability labels", "rows", [["label", "Label"], ["icon", "Icon", "shared-select", iconColumns]]],
       ["hero.leaders", "Leader portraits", "rows", [["name", "Name"], ["role", "Role"], ["alt", "Image description"], ["image", "Portrait", "media"], ["objectPosition", "Photo position"]]],
-      ["hero.primaryAction.label", "Primary button label"],
+      ["hero.primaryAction.label", "Primary button label", "suggestions", buttonSuggestions],
       ["hero.primaryAction.path", "Primary button path"],
-      ["hero.secondaryAction.label", "Secondary button label"],
+      ["hero.primaryAction.icon", "Primary button icon", "select", iconColumns],
+      ["hero.secondaryAction.label", "Secondary button label", "suggestions", buttonSuggestions],
       ["hero.secondaryAction.path", "Secondary button path"],
+      ["hero.secondaryAction.icon", "Secondary button icon", "select", iconColumns],
     ],
   },
   {
@@ -80,10 +107,12 @@ const settingsGroups = [
       ["missionPulse.panelLinkLabel", "Division link label"],
       ["missionPulse.cardViewLabel", "Closed card label"],
       ["missionPulse.cardOpenLabel", "Open card label"],
-      ["missionPulse.primaryAction.label", "Primary button label"],
+      ["missionPulse.primaryAction.label", "Primary button label", "suggestions", buttonSuggestions],
       ["missionPulse.primaryAction.path", "Primary button path"],
-      ["missionPulse.secondaryAction.label", "Secondary button label"],
+      ["missionPulse.primaryAction.icon", "Primary button icon", "select", iconColumns],
+      ["missionPulse.secondaryAction.label", "Secondary button label", "suggestions", buttonSuggestions],
       ["missionPulse.secondaryAction.path", "Secondary button path"],
+      ["missionPulse.secondaryAction.icon", "Secondary button icon", "select", iconColumns],
     ],
   },
   {
@@ -92,15 +121,17 @@ const settingsGroups = [
       ["about.eyebrow", "Small heading"],
       ["about.title", "Section heading"],
       ["about.body", "Description", "textarea"],
-      ["about.capabilities", "About cards", "rows", [["title", "Card heading"], ["text", "Card text", "textarea"], ["icon", "Icon name"]]],
+      ["about.capabilities", "About cards", "rows", [["title", "Card heading"], ["text", "Card text", "textarea"], ["icon", "Icon", "shared-select", iconColumns]]],
       ["about.snapshotEyebrow", "Snapshot small heading"],
       ["about.snapshotTitle", "Snapshot heading"],
       ["about.facts", "Institution facts", "rows", [["label", "Label"], ["value", "Value"]]],
       ["about.note", "Highlighted note", "textarea"],
-      ["about.primaryAction.label", "First button label"],
+      ["about.primaryAction.label", "First button label", "suggestions", buttonSuggestions],
       ["about.primaryAction.path", "First button path"],
-      ["about.secondaryAction.label", "Second button label"],
+      ["about.primaryAction.icon", "First button icon", "select", iconColumns],
+      ["about.secondaryAction.label", "Second button label", "suggestions", buttonSuggestions],
       ["about.secondaryAction.path", "Second button path"],
+      ["about.secondaryAction.icon", "Second button icon", "select", iconColumns],
     ],
   },
   {
@@ -135,7 +166,7 @@ const settingsGroups = [
       ["location.locality", "Locality"],
       ["location.address", "Address", "textarea"],
       ["location.mapQuery", "Map search text", "textarea"],
-      ["location.directionsLabel", "Directions button label"],
+      ["location.directionsLabel", "Directions button label", "suggestions", buttonSuggestions],
     ],
   },
   {
@@ -177,7 +208,7 @@ const settingsGroups = [
       ["pageContent.gallery.eyebrow", "Small heading"],
       ["pageContent.gallery.title", "Main heading"],
       ["pageContent.gallery.intro", "Gallery page subheading (clear or hide in Page Headings)", "textarea"],
-      ["pageContent.gallery.actionLabel", "View-all button label"],
+      ["pageContent.gallery.actionLabel", "View-all button label", "suggestions", buttonSuggestions],
       ["pageContent.gallery.emptyText", "Empty gallery message", "textarea"],
       ["pageContent.gallery.imageAlt", "Default image alt text"],
       ["pageContent.gallery.backLabel", "Back button label"],
@@ -214,10 +245,10 @@ const settingsGroups = [
       ["pageContent.downloads.title", "Downloads page heading"],
       ["pageContent.downloads.intro", "Downloads page introduction", "textarea"],
       ["pageContent.downloads.emptyText", "Empty downloads message", "textarea"],
-      ["pageContent.downloads.openLabel", "Open document button label"],
+      ["pageContent.downloads.openLabel", "Open document button label", "suggestions", buttonSuggestions],
       ["pageContent.downloads.backLabel", "Downloads page back label"],
       ["pageContent.contact.backLabel", "Contact page back label"],
-      ["pageContent.contact.downloadLabel", "Mobile app download label"],
+      ["pageContent.contact.downloadLabel", "Mobile app download label", "suggestions", buttonSuggestions],
       ["pageContent.contact.mobileAppsHeading", "Mobile apps section heading"],
       ["pageContent.contact.mobileAppsIntro", "Mobile apps section introduction", "textarea"],
       ["pageContent.contact.unavailableLabel", "Unavailable app message", "textarea"],
@@ -244,7 +275,7 @@ const settingsGroups = [
       ["pageContent.technicalStaff.backLabel", "Technical staff page back label"],
       ["pageContent.organisationChart.backLabel", "Organisation chart back label"],
       ["pageContent.placeholder.body", "Missing-page message", "textarea"],
-      ["pageContent.placeholder.links", "Missing-page helpful links", "rows", [["label", "Link label"], ["path", "Website path"]]],
+      ["pageContent.placeholder.links", "Missing-page helpful links", "rows", [["label", "Link label"], ["path", "Website path"], ["icon", "Icon", "shared-select", iconColumns]]],
     ],
   },
   {
@@ -272,7 +303,7 @@ const settingsGroups = [
       ["floodSection.intro", "Flood page introduction", "textarea"],
       ["floodSection.note", "Season note", "textarea"],
       ["floodSection.programmeHeading", "Programme heading"],
-      ["floodSection.programmes", "Flood programmes", "rows", [["title", "Title"], ["description", "Description", "textarea"], ["icon", "Icon name"]]],
+      ["floodSection.programmes", "Flood programmes", "rows", [["title", "Title"], ["description", "Description", "textarea"], ["icon", "Icon", "shared-select", iconColumns]]],
       ["floodSection.archiveHeading", "Archive heading"],
       ["floodSection.archiveNote", "Archive note", "textarea"],
       ["floodSection.archives", "Flood archive years", "rows", [["year", "Year"], ["url", "Archive URL"]]],
@@ -300,6 +331,7 @@ const settingsGroups = [
     fields: [
       ["footer.contactHeading", "Contact heading"],
       ["footer.contactHeadingSize", "Contact heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
+      ["footer.socialLinks", "Social links", "rows", [["name", "Name"], ["url", "Website URL"], ["icon", "Icon", "shared-select", [["facebook", "Facebook"], ["twitter", "X / Twitter"]]]]],
       ["footer.relatedLinks", "Related institution links", "rows", [["name", "Link name"], ["url", "Website URL"]]],
       ["footer.about", "Footer description", "textarea"],
       ["footer.ownership", "Ownership statement", "textarea"],
@@ -329,6 +361,12 @@ const homepageSections = [
 const sharedSettingsPaths = new Set([
   "appearance.homeHeadingSize",
   "appearance.homeBodySize",
+  "hero.primaryAction.icon",
+  "hero.secondaryAction.icon",
+  "missionPulse.primaryAction.icon",
+  "missionPulse.secondaryAction.icon",
+  "about.primaryAction.icon",
+  "about.secondaryAction.icon",
   "location.cardEyebrowSize",
   "footer.contactHeadingSize",
   "organisationChart.image",
@@ -373,9 +411,19 @@ const setAtPath = (value, path, nextValue) => {
   return output;
 };
 
-function SettingsRowsEditor({ label, rows, columns, onChange, onBusy, onError }) {
+function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onSharedRowsChange, onBusy, onError }) {
   const items = Array.isArray(rows) ? rows : [];
+  const sharedItems = Array.isArray(sharedRows) ? sharedRows : items;
   const update = (index, name, nextValue) => onChange(items.map((item, position) => position === index ? { ...item, [name]: nextValue } : item));
+  const updateColumn = (index, name, nextValue, type) => {
+    update(index, name, nextValue);
+    if (type !== "shared-select" || !onSharedRowsChange) return;
+    const length = Math.max(items.length, sharedItems.length);
+    onSharedRowsChange(Array.from({ length }, (_unused, position) => {
+      const item = sharedItems[position] || items[position] || {};
+      return position === index ? { ...item, [name]: nextValue } : item;
+    }));
+  };
 
   return (
     <div className="nested-rows settings-rows">
@@ -387,16 +435,18 @@ function SettingsRowsEditor({ label, rows, columns, onChange, onBusy, onError })
             <button type="button" title={`Remove ${label} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button>
           </header>
           <div className="settings-row-fields">
-            {columns.map(([name, fieldLabel, type = "text"]) => (
+            {columns.map(([name, fieldLabel, type = "text", options = []]) => (
               <label key={name}>
                 <span>{fieldLabel}</span>
                 {type === "media"
-                  ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={item[name]} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} />
+                  ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={item[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
                   : type === "list"
-                    ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => update(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean))} />
+                    ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => updateColumn(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean), type)} />
                   : type === "textarea"
-                    ? <textarea rows="3" value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} />
-                    : <input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}
+                    ? <textarea rows="3" value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />
+                    : type === "select" || type === "shared-select"
+                      ? <select value={(type === "shared-select" ? sharedItems[index]?.[name] : item[name]) || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)}><option value="">Select</option>{options.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                      : <input value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />}
               </label>
             ))}
           </div>
@@ -518,7 +568,7 @@ function HomepageTypographyEditor({ value, onChange }) {
   );
 }
 
-function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, onBusy, onError }) {
+function SettingsEditor({ field, value, language, onChange, sharedValue, onSharedChange, onBusy, onError }) {
   const sharedSettings = sharedValue && typeof sharedValue === "object" ? sharedValue : value;
   const updateSharedSettings = onSharedChange || onChange;
   return (
@@ -542,8 +592,10 @@ function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, o
                 key={path}
                 label={label}
                 rows={getAtPath(value, path)}
+                sharedRows={getAtPath(sharedSettings, path)}
                 columns={columns}
                 onChange={(nextValue) => onChange(setAtPath(value, path, nextValue))}
+                onSharedRowsChange={(nextValue) => updateSharedSettings(setAtPath(sharedSettings, path, nextValue))}
                 onBusy={onBusy}
                 onError={onError}
               />
@@ -555,7 +607,9 @@ function SettingsEditor({ field, value, onChange, sharedValue, onSharedChange, o
               <label key={path}>
                 <span>{label}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "select"
-                  ? <select value={getAtPath(source, path) || "normal"} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  : type === "suggestions"
+                  ? <SuggestionInput value={getAtPath(source, path)} options={columns} language={language} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} />
                   : type === "media"
                   ? <FieldInput field={{ name: path, label, type: "media" }} value={getAtPath(source, path)} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} onBusy={onBusy} onError={onError} />
                   : type === "list"
@@ -603,8 +657,42 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
   return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([...sections, { heading: "", body: "" }])}><Plus /> Add page section</button></div>;
 }
 
+function RichTextField({ value, onChange }) {
+  const editorRef = useRef(null);
+  const runCommand = (command) => {
+    editorRef.current?.focus();
+    document.execCommand(command);
+  };
+  const formatText = () => {
+    if (!editorRef.current) return;
+    const formatted = formatRichTextHtml(editorRef.current.innerHTML);
+    editorRef.current.innerHTML = formatted;
+    onChange(formatted);
+    editorRef.current.focus();
+  };
+  return (
+    <div className="rich-field">
+      <div className="rich-toolbar">
+        <EditorTooltipButton label="Bold" description="Makes the selected text thicker for emphasis." onClick={() => runCommand("bold")}><strong>B</strong></EditorTooltipButton>
+        <EditorTooltipButton label="Italic" description="Slants the selected text for gentle emphasis." onClick={() => runCommand("italic")}><em>I</em></EditorTooltipButton>
+        <EditorTooltipButton label="Bullet list" description="Turns the selected lines into a bulleted list." onClick={() => runCommand("insertUnorderedList")}>List</EditorTooltipButton>
+        <EditorTooltipButton label="Format text" description="Cleans spacing and empty formatting without changing the wording." onClick={formatText}><Sparkles /> Format text</EditorTooltipButton>
+      </div>
+      <div
+        ref={editorRef}
+        className="rich-editor"
+        contentEditable
+        suppressContentEditableWarning
+        dangerouslySetInnerHTML={{ __html: value || "" }}
+        onBlur={(event) => onChange(event.currentTarget.innerHTML)}
+      />
+    </div>
+  );
+}
+
 export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {
   const fileRef = useRef(null);
+  const suggestionId = useId();
   const upload = async (file) => {
     if (!file) return;
     onBusy(true);
@@ -619,8 +707,9 @@ export default function FieldInput({ field, value, referenceValue, language = "e
   if (field.type === "blocks") return <BlockEditor value={value} referenceValue={referenceValue} language={language} pageData={pageData} referencePageData={referencePageData} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;
   if (field.type === "select") return <select value={value || field.defaultValue || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
+  if (field.type === "suggestions") return <SuggestionInput id={suggestionId} value={value} options={field.options} language={language} onChange={onChange} />;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
-  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} />;
+  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} language={language} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && field.name === "sections") return <SectionListEditor value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
   if (field.type === "json") return <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />;
@@ -629,7 +718,7 @@ export default function FieldInput({ field, value, referenceValue, language = "e
     const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";
     return <div className="color-field"><input type="color" value={color} aria-label={`${field.label} colour picker`} onChange={(event) => onChange(event.target.value)} /><input value={value || ""} placeholder="#0f6f42" pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></div>;
   }
-  if (field.type === "richtext") return <div className="rich-field"><div className="rich-toolbar"><button type="button" onClick={() => document.execCommand("bold")}><strong>B</strong></button><button type="button" onClick={() => document.execCommand("italic")}><em>I</em></button><button type="button" onClick={() => document.execCommand("insertUnorderedList")}>List</button></div><div className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: value || "" }} onBlur={(event) => onChange(event.currentTarget.innerHTML)} /></div>;
+  if (field.type === "richtext") return <RichTextField value={value} onChange={onChange} />;
   if (["textarea"].includes(field.type)) return <textarea rows="6" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
   return <input type={["email", "number", "date"].includes(field.type) ? field.type : "text"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />;
 }

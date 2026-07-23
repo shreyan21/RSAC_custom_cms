@@ -1,15 +1,9 @@
 import {
   ArrowRight,
-  Building2,
   Database,
-  Droplets,
   Map,
-  Mountain,
   Orbit,
   Satellite,
-  ShieldCheck,
-  Sprout,
-  Trees,
   X,
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -17,17 +11,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { cmsIconMap } from "../icons/cmsIconRegistry";
 import MaskReveal from "../motion/MaskReveal";
-
-const icons = {
-  database: Database,
-  droplets: Droplets,
-  sprout: Sprout,
-  trees: Trees,
-  mountain: Mountain,
-  building2: Building2,
-  shield: ShieldCheck,
-};
 
 const panelPlacements = {
   overlay:
@@ -54,7 +39,7 @@ const DomainBriefPanel = ({
   placement = "inline",
 }) => {
   const panelRef = useRef(null);
-  const Icon = icons[domain.icon] || Database;
+  const Icon = cmsIconMap[domain.icon] || Database;
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -168,6 +153,8 @@ const MissionPulse = () => {
     missionPulse.primaryAction?.label && missionPulse.primaryAction?.path;
   const hasSecondaryAction =
     missionPulse.secondaryAction?.label && missionPulse.secondaryAction?.path;
+  const PrimaryActionIcon = cmsIconMap[missionPulse.primaryAction?.icon] || Satellite;
+  const SecondaryActionIcon = cmsIconMap[missionPulse.secondaryAction?.icon] || Map;
   const hasIntro =
     missionPulse.eyebrow ||
     missionPulse.title ||
@@ -250,7 +237,7 @@ const MissionPulse = () => {
                 to={missionPulse.primaryAction.path}
                 className="group inline-flex min-h-11 items-center gap-2 rounded-lg bg-orange-200 px-4 py-2.5 text-sm font-extrabold text-[#071b2e] transition duration-300 hover:-translate-y-0.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-orange-200"
               >
-                <Satellite className="h-4 w-4" aria-hidden="true" />
+                <PrimaryActionIcon className="h-4 w-4" aria-hidden="true" />
                 {missionPulse.primaryAction.label}
                 <ArrowRight
                   className="h-4 w-4 transition group-hover:translate-x-1"
@@ -263,7 +250,7 @@ const MissionPulse = () => {
                 to={missionPulse.secondaryAction.path}
                 className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/18 bg-white/[0.06] px-4 py-2.5 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 hover:border-orange-200/40 hover:bg-white/[0.1] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-orange-200"
               >
-                <Map className="h-4 w-4 text-orange-200" aria-hidden="true" />
+                <SecondaryActionIcon className="h-4 w-4 text-orange-200" aria-hidden="true" />
                 {missionPulse.secondaryAction.label}
               </Link>
               )}
@@ -328,7 +315,7 @@ const MissionPulse = () => {
                 role="list"
               >
                 {domains.map((domain, index) => {
-                  const Icon = icons[domain.icon] || Database;
+                  const Icon = cmsIconMap[domain.icon] || Database;
                   const isActive = activeId === domain.id;
 
                   return (
@@ -415,7 +402,7 @@ const MissionPulse = () => {
               className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:hidden"
             >
               {domains.map((domain) => {
-                const Icon = icons[domain.icon] || Database;
+                const Icon = cmsIconMap[domain.icon] || Database;
                 const isActive = activeId === domain.id;
 
                 return (

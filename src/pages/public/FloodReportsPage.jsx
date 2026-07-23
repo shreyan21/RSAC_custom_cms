@@ -3,25 +3,17 @@ import {
   CalendarDays,
   FileText,
   Info,
-  Map as MapIcon,
-  Radar,
-  ScanLine,
   Waves,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
+import { resolveCmsIcon } from "../../components/icons/cmsIconRegistry";
 import { getCmsFloodReportsByYear } from "../../data/customCmsClient";
 import { useFloodData, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useDialog } from "../../hooks/useDialog";
-
-const programmeIcons = {
-  radar: Radar,
-  map: MapIcon,
-  scan: ScanLine,
-};
 
 const localizeReportMeta = (meta, t, isHindi) => {
   if (!meta || !isHindi) {
@@ -110,7 +102,7 @@ const FloodReportsPage = () => {
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {floodSection.programmes.map((programme) => {
-            const Icon = programmeIcons[programme.icon] || Waves;
+            const Icon = resolveCmsIcon(programme.icon, Waves);
 
             return (
               <article

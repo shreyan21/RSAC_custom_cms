@@ -1,4 +1,5 @@
-import { ArrowUpRight, Globe2 } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { resolveCmsIcon } from "../components/icons/cmsIconRegistry";
 import PageShell from "../components/layout/PageShell";
 import BackButton from "../components/navigation/BackButton";
 import MobileAppsGrid from "../components/sections/MobileAppsGrid";
@@ -23,7 +24,7 @@ const GeoportalsPage = () => {
     >
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {geoportals.map((portal) => {
-          const Icon = portal.icon || Globe2;
+          const Icon = resolveCmsIcon(portal.iconKey || portal.icon);
           const accentHex = portal.accentHex || "#0b6fa4";
 
           return (
@@ -73,7 +74,7 @@ const GeoportalsPage = () => {
                 rel="noopener noreferrer"
                 className="relative z-[1] mt-8 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-bold text-[#0f6f42] transition duration-300 group-hover:border-[#0f6f42]/35 group-hover:bg-emerald-50"
               >
-                {t("Open Portal")}
+                {t(portal.buttonLabel || c.actionLabel || "Open Portal")}
                 <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
               </a>
 

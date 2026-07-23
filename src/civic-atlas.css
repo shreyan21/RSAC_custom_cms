@@ -302,6 +302,10 @@ html:not(.rsac-high-contrast) .page-shell-surface::before {
   box-shadow: 0 8px 24px -20px rgba(8, 32, 50, 0.62);
 }
 
+.rsac-page-heading__actions :is(a, button):empty {
+  display: none;
+}
+
 /* Home bands: quiet surfaces, one geospatial language */
 
 .rsac-home-section {

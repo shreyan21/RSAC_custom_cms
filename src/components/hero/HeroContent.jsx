@@ -1,17 +1,11 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Database, Layers3, Map, Satellite } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { cmsIconMap } from "../icons/cmsIconRegistry";
 import HeroLeaderPortraits from "./HeroLeaderPortraits";
 import MaskReveal from "../motion/MaskReveal";
-
-const iconMap = {
-  database: Database,
-  layers: Layers3,
-  map: Map,
-  satellite: Satellite,
-};
 
 const HeroContent = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -21,8 +15,8 @@ const HeroContent = () => {
   const riseIn = shouldReduceMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 28 }, animate: { opacity: 1, y: 0 } };
-  const PrimaryIcon = iconMap[hero.primaryAction.icon] || Map;
-  const SecondaryIcon = iconMap[hero.secondaryAction.icon] || Satellite;
+  const PrimaryIcon = cmsIconMap[hero.primaryAction.icon] || cmsIconMap.map;
+  const SecondaryIcon = cmsIconMap[hero.secondaryAction.icon] || cmsIconMap.satellite;
   const lead = (hero.highlights || []).filter(Boolean).join("  ·  ");
 
   return (

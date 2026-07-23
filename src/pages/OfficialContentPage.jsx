@@ -831,58 +831,54 @@ const getProfileDurationValue = (profile) =>
       ""
   );
 
+const getFlatProfileDetails = (profile) => [
+  getProfileDurationValue(profile)
+    ? { label: "Duration", value: getProfileDurationValue(profile) }
+    : null,
+  profile.employeeId || profile.employee_id
+    ? { label: "Employee Id", value: profile.employeeId || profile.employee_id }
+    : null,
+  profile.designation || profile.role
+    ? { label: "Designation", value: profile.designation || profile.role }
+    : null,
+  profile.qualification
+    ? { label: "Qualification", value: profile.qualification }
+    : null,
+  profile.deployment || profile.department
+    ? { label: "Deployment", value: profile.deployment || profile.department }
+    : null,
+  profile.specialization
+    ? { label: "Area of Specialization", value: profile.specialization }
+    : null,
+  profile.experience
+    ? { label: "Experience", value: profile.experience }
+    : null,
+  profile.publications
+    ? { label: "Publications", value: profile.publications }
+    : null,
+  profile.contact
+    ? { label: "Contact No.", value: profile.contact }
+    : null,
+  profile.email
+    ? { label: "E-Mail", value: profile.email }
+    : null,
+].filter(Boolean);
+
 const getProfileDetails = (profile) => {
-  const durationValue = getProfileDurationValue(profile);
+  const structuredDetails = Array.isArray(profile.details)
+    ? profile.details
+        .map((detail) =>
+          typeof detail === "string"
+            ? { label: "Detail", value: detail }
+            : detail
+        )
+        .filter((detail) => detail?.label && detail?.value)
+    : [];
 
-  if (Array.isArray(profile.details)) {
-    const details = profile.details
-      .map((detail) =>
-        typeof detail === "string"
-          ? { label: "Detail", value: detail }
-          : detail
-      )
-      .filter((detail) => detail?.label && detail?.value);
-    const hasDuration = details.some((detail) =>
-      ["duration", "tenure", "timeperiod"].some((label) =>
-        normalizeLabel(detail.label).includes(label)
-      )
-    );
-
-    return durationValue && !hasDuration
-      ? [{ label: "Duration", value: durationValue }, ...details]
-      : details;
-  }
-
-  return [
-    durationValue ? { label: "Duration", value: durationValue } : null,
-    profile.employeeId || profile.employee_id
-      ? { label: "Employee Id", value: profile.employeeId || profile.employee_id }
-      : null,
-    profile.designation
-      ? { label: "Designation", value: profile.designation }
-      : null,
-    profile.qualification
-      ? { label: "Qualification", value: profile.qualification }
-      : null,
-    profile.deployment
-      ? { label: "Deployment", value: profile.deployment }
-      : null,
-    profile.specialization
-      ? { label: "Area of Specialization", value: profile.specialization }
-      : null,
-    profile.experience
-      ? { label: "Experience", value: profile.experience }
-      : null,
-    profile.publications
-      ? { label: "Publications", value: profile.publications }
-      : null,
-    profile.contact
-      ? { label: "Contact No.", value: profile.contact }
-      : null,
-    profile.email
-      ? { label: "E-Mail", value: profile.email }
-      : null,
-  ].filter(Boolean);
+  return mergeProfileDetailRows(
+    structuredDetails,
+    getFlatProfileDetails(profile)
+  );
 };
 
 const getProfileField = (profile, labels) => {
@@ -1260,12 +1256,9 @@ const canonicalFormerDetailLabel = (label) => {
   return normalized;
 };
 
-// Merge a CMS override into a page/roster profile so that EVERY edited CMS
-// field reaches the card. The page profile carries a parsed `details` array,
-// and getProfileDetails ignores flat fields once that array exists — so the
-// override's flat columns (experience, designation, contact, …) must be folded
-// into the detail rows: replace a row with the same canonical label, append
-// the rest.
+// Merge a CMS override into a page/roster profile so every edited CMS field
+// reaches the card. Replace a row with the same canonical label and append the
+// remaining CMS rows.
 const applyFormerProfileOverride = (profile, override) => {
   const baseDetails = getProfileDetails(profile);
   const overrideRows = [
@@ -1360,7 +1353,20 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
     });
   });
 
-  return mergedProfiles;
+  return mergedProfiles
+    .map((profile, index) => {
+      const keys = getFormerProfileNameKeys(profile);
+      const overrideIndex = overrideEntries.findIndex((entry) =>
+        formerKeysOverlap(entry.keys, keys)
+      );
+      return {
+        profile,
+        index,
+        rank: overrideIndex < 0 ? Number.MAX_SAFE_INTEGER : overrideIndex,
+      };
+    })
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .map(({ profile }) => profile);
 };
 
 const dedupeFormerSectionProfiles = (profiles, mode) => {
@@ -6522,7 +6528,9 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
           )}
 
           {visiblePages.map((page) => {
-            const theme = getOfficialCardTheme(section, page);
+            const cardTitle = page.cardTitle || page.title;
+            const cardSummary = page.cardSummary || page.summary || page.preview;
+            const theme = getOfficialCardTheme(section, { ...page, title: cardTitle });
             const CardIcon = theme.icon || FileText;
 
             return (
@@ -6538,7 +6546,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                         ? "official-index-card--warm p-4"
                         : "p-4"
                 }`}
-                aria-label={`${t("Open")} ${localizeOfficialText(page.title, language)}`}
+                aria-label={`${t("Open")} ${localizeOfficialText(cardTitle, language)}`}
               >
                 <span className="rsac-shine-layer" aria-hidden="true" />
                 <div
@@ -6572,11 +6580,11 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
 
                 <div className="official-index-card__body">
                   <h2 className="official-index-card__title mt-4 text-xl font-extrabold leading-snug text-[#102f46]">
-                    {localizeOfficialText(page.title, language)}
+                    {localizeOfficialText(cardTitle, language)}
                   </h2>
 
                   <p className="official-index-card__summary mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
-                    {localizeOfficialText(page.summary || page.preview, language)}
+                    {localizeOfficialText(cardSummary, language)}
                   </p>
 
                   <div className="mt-auto flex flex-wrap gap-3 pt-5">

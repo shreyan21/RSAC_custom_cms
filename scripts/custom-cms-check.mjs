@@ -127,9 +127,15 @@ const hindiSoilMapPhotos = (hindiSoilLab?.blocks || []).find(
 if (
   !Object.hasOwn(hindiSoilOverview || {}, "contentHtml")
   || !String(hindiSoilOverview.contentHtml || "").trim()
-  || Object.hasOwn(hindiSoilOverview, "children")
+  || (hindiSoilOverview.children || []).length
 ) {
   throw new Error("Soil Analysis Lab Hindi CMS must expose one canonical rich-text body without legacy rows.");
+}
+if (
+  String(hindiSoilOverview?.value || "").trim() ===
+  "\u092e\u0943\u0926\u093e \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923 \u092a\u094d\u0930\u092f\u094b\u0917\u0936\u093e\u0932\u093e"
+) {
+  throw new Error("Soil Analysis Lab retains the obsolete duplicate Hindi section heading.");
 }
 if (
   !hindiSoilMapPhotos ||

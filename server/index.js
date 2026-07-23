@@ -15,6 +15,11 @@ import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
 import { preserveStoredUndeclaredFields, validateEntryPayload } from "./contentValidation.js";
+import {
+  liveDivisionOptions,
+  syncDivisionPage,
+  syncDivisionStatusFromPage,
+} from "./divisionPageSync.js";
 
 const app = express();
 const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: true });
@@ -519,15 +524,27 @@ app.put("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (
 
 app.get("/api/admin/collections", async (_req, res, next) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT collection, count(*) FILTER (WHERE status <> 'archived')::int AS total,
-              count(*) FILTER (WHERE status='published')::int AS published,
-              count(*) FILTER (WHERE status='draft')::int AS drafts,
-              count(*) FILTER (WHERE data_hi <> '{}'::jsonb)::int AS hindi
-       FROM cms_entries GROUP BY collection`
-    );
+    const [{ rows }, divisionOptions] = await Promise.all([
+      pool.query(
+        `SELECT collection, count(*) FILTER (WHERE status <> 'archived')::int AS total,
+                count(*) FILTER (WHERE status='published')::int AS published,
+                count(*) FILTER (WHERE status='draft')::int AS drafts,
+                count(*) FILTER (WHERE data_hi <> '{}'::jsonb)::int AS hindi
+         FROM cms_entries GROUP BY collection`
+      ),
+      liveDivisionOptions(pool),
+    ]);
     const counts = new Map(rows.map((row) => [row.collection, row]));
-    res.json({ data: collections.map((item) => ({ ...item, counts: counts.get(item.id) || { total: 0, published: 0, drafts: 0, hindi: 0 } })) });
+    const definitions = collections.map((item) => ({
+      ...item,
+      fields: item.id === "division_section_items"
+        ? item.fields.map((field) =>
+          field.name === "divisionSlug" ? { ...field, options: divisionOptions } : field
+        )
+        : item.fields,
+      counts: counts.get(item.id) || { total: 0, published: 0, drafts: 0, hindi: 0 },
+    }));
+    res.json({ data: definitions });
   } catch (error) { next(error); }
 });
 
@@ -565,6 +582,12 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
         [definition.id, entryKey, status, effectiveSortOrder, dataEn, dataHi, req.cmsUser.id]
       );
       await audit(client, req, "create", result.rows[0], null, result.rows[0]);
+      if (definition.id === "divisions") {
+        const synced = await syncDivisionPage(client, result.rows[0], { actorId: req.cmsUser.id });
+        if (synced.changed) {
+          await audit(client, req, "sync_division_page", synced.row, synced.before, synced.row);
+        }
+      }
       return result.rows[0];
     });
     invalidatePublicContentCache();
@@ -590,6 +613,23 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
         [entryKey, status, sortOrder, nextDataEn, nextDataHi, req.cmsUser.id, req.params.id]
       );
       await audit(client, req, "update", updated.rows[0], before.rows[0], updated.rows[0]);
+      if (definition.id === "divisions") {
+        const synced = await syncDivisionPage(client, updated.rows[0], {
+          previousDivisionData: before.rows[0].data_en,
+          actorId: req.cmsUser.id,
+        });
+        if (synced.changed) {
+          await audit(client, req, "sync_division_page", synced.row, synced.before, synced.row);
+        }
+      } else if (definition.id === "pages") {
+        const synced = await syncDivisionStatusFromPage(client, updated.rows[0], {
+          previousPageData: before.rows[0].data_en,
+          actorId: req.cmsUser.id,
+        });
+        if (synced.changed) {
+          await audit(client, req, "sync_division_status", synced.row, synced.before, synced.row);
+        }
+      }
       return updated.rows[0];
     });
     invalidatePublicContentCache();
@@ -604,6 +644,23 @@ app.delete("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, asyn
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
       const archived = await client.query("UPDATE cms_entries SET status='archived', version=version+1, updated_by=$1 WHERE id=$2 RETURNING *", [req.cmsUser.id, req.params.id]);
       await audit(client, req, "archive", archived.rows[0], before.rows[0], archived.rows[0]);
+      if (req.params.collection === "divisions") {
+        const synced = await syncDivisionPage(client, archived.rows[0], {
+          previousDivisionData: before.rows[0].data_en,
+          actorId: req.cmsUser.id,
+        });
+        if (synced.changed) {
+          await audit(client, req, "sync_division_page", synced.row, synced.before, synced.row);
+        }
+      } else if (req.params.collection === "pages") {
+        const synced = await syncDivisionStatusFromPage(client, archived.rows[0], {
+          previousPageData: before.rows[0].data_en,
+          actorId: req.cmsUser.id,
+        });
+        if (synced.changed) {
+          await audit(client, req, "sync_division_status", synced.row, synced.before, synced.row);
+        }
+      }
       return archived.rows[0];
     });
     invalidatePublicContentCache();

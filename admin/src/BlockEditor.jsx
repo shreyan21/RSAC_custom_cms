@@ -7,6 +7,7 @@ import {
   updateImportedEditorRow,
 } from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
+import EditorTooltipButton from "./EditorTooltipButton";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 
 const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", mediaSize: "normal", spacing: "normal" });
@@ -37,6 +38,7 @@ function BlockDisplayControls({ block, onChange }) {
   return (
     <fieldset className="block-display-controls">
       <legend>Section layout</legend>
+      <p className="block-controls-help">These controls change only this section's visual size, spacing, columns, and frame.</p>
       <label>Text size<select value={block.textSize || "normal"} onChange={(event) => onChange({ textSize: event.target.value })}>{displayOptions.textSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       <label>Image size<select value={block.mediaSize || "normal"} onChange={(event) => onChange({ mediaSize: event.target.value })}>{displayOptions.mediaSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       <label>Spacing<select value={block.spacing || "normal"} onChange={(event) => onChange({ spacing: event.target.value })}>{displayOptions.spacing.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
@@ -71,10 +73,10 @@ function RichBlockEditor({ value, onChange }) {
   return (
     <div className="rich-field">
       <div className="rich-toolbar">
-        <button type="button" title="Bold" onClick={() => document.execCommand("bold")}><strong>B</strong></button>
-        <button type="button" title="Italic" onClick={() => document.execCommand("italic")}><em>I</em></button>
-        <button type="button" onClick={() => document.execCommand("insertUnorderedList")}>Bullet list</button>
-        <button type="button" onClick={() => document.execCommand("insertOrderedList")}>Numbered list</button>
+        <EditorTooltipButton label="Bold" description="Makes the selected text thicker for emphasis." onClick={() => document.execCommand("bold")}><strong>B</strong></EditorTooltipButton>
+        <EditorTooltipButton label="Italic" description="Slants the selected text for gentle emphasis." onClick={() => document.execCommand("italic")}><em>I</em></EditorTooltipButton>
+        <EditorTooltipButton label="Bullet list" description="Turns the selected lines into a bulleted list." onClick={() => document.execCommand("insertUnorderedList")}>Bullet list</EditorTooltipButton>
+        <EditorTooltipButton label="Numbered list" description="Turns the selected lines into a numbered list." onClick={() => document.execCommand("insertOrderedList")}>Numbered list</EditorTooltipButton>
       </div>
       <div className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: value || "" }} onBlur={(event) => onChange(event.currentTarget.innerHTML)} />
     </div>
@@ -208,6 +210,8 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
   const blocks = Array.isArray(value) ? value : [];
   const referenceBlocks = Array.isArray(referenceValue) ? referenceValue : blocks;
   const [focusedIndex, setFocusedIndex] = useState(null);
+  const [newBlockType, setNewBlockType] = useState("");
+  const selectedBlockType = blockTypes.find((type) => type.value === newBlockType);
   const update = (index, patch) => onChange(blocks.map((block, position) => position === index ? { ...block, ...patch } : block));
   const move = (index, offset) => {
     const target = index + offset;
@@ -243,6 +247,7 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
               <div className="icon-actions"><button type="button" title="Move up" onClick={() => move(index, -1)}><ArrowUp /></button><button type="button" title="Move down" onClick={() => move(index, 1)}><ArrowDown /></button><button type="button" title="Duplicate" onClick={() => onChange([...blocks.slice(0, index + 1), { ...structuredClone(block), id: crypto.randomUUID() }, ...blocks.slice(index + 1)])}><Copy /></button><button type="button" className="danger-icon" title="Remove block" onClick={() => { onChange(blocks.filter((_item, position) => position !== index)); setFocusedIndex(null); }}><Trash2 /></button></div>
             </div>
             {isOpen && <div className="block-row__body">
+              <p className="block-type-help">{blockTypes.find((type) => type.value === block.type)?.description || "This section controls the matching visible content on the website."}</p>
               {!isImported && !isPeopleReference && <BlockDisplayControls block={block} onChange={(patch) => update(index, patch)} />}
               {isPeopleReference ? (
                 <div className="collection-reference"><strong>Use the dedicated people collection</strong><p>Open <b>Scientists / Officials / Staff</b> to add, edit, remove, reorder, or replace profile photographs. This prevents names, roles, and photos from becoming disconnected.</p></div>
@@ -265,7 +270,7 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
           </section>
         );
       })}
-      {focusedIndex === null && <div className="add-block"><Plus aria-hidden="true" /><select defaultValue="" onChange={(event) => { if (event.target.value) onChange([...blocks, newBlock(event.target.value)]); event.target.value = ""; }}><option value="">Add page block</option>{blockTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></div>}
+      {focusedIndex === null && <div className="add-block"><Plus aria-hidden="true" /><div><label htmlFor="new-page-block">Add a website section</label><select id="new-page-block" value={newBlockType} onChange={(event) => setNewBlockType(event.target.value)}><option value="">Choose section type</option>{blockTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select><p>{selectedBlockType?.description || "Choose a section type to see what it adds to the page."}</p></div><button type="button" className="primary" disabled={!newBlockType} onClick={() => { onChange([...blocks, newBlock(newBlockType)]); setNewBlockType(""); }}>Add section</button></div>}
     </div>
   );
 }

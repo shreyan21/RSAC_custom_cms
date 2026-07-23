@@ -3,22 +3,14 @@ import {
   ArrowRight,
   Building2,
   GraduationCap,
-  Layers3,
-  Ruler,
-  Satellite,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { cmsIconMap, resolveCmsIcon } from "../icons/cmsIconRegistry";
 import ScrollScale from "../motion/ScrollScale";
 import { RevealStagger, RevealItem } from "../motion/RevealStagger";
 import MaskReveal from "../motion/MaskReveal";
-
-const icons = {
-  layers: Layers3,
-  ruler: Ruler,
-  satellite: Satellite,
-};
 
 // Restrained official accent set — green, blue, gold. Keeps cards distinct
 // without the startup-style rainbow.
@@ -34,6 +26,12 @@ const AboutSection = () => {
   const secondaryAction = about.secondaryAction === undefined
     ? { label: t("Organisation Chart"), path: "/organisation-chart" }
     : about.secondaryAction;
+  const PrimaryActionIcon = primaryAction?.icon
+    ? cmsIconMap[primaryAction.icon] || ArrowRight
+    : null;
+  const SecondaryActionIcon = secondaryAction?.icon
+    ? cmsIconMap[secondaryAction.icon] || ArrowRight
+    : null;
 
   return (
     <section
@@ -83,7 +81,7 @@ const AboutSection = () => {
 
           <RevealStagger className="mt-8 space-y-4" amount={0.15}>
             {about.capabilities.map((item, index) => {
-              const Icon = icons[item.icon] || Satellite;
+              const Icon = resolveCmsIcon(item.icon, resolveCmsIcon("satellite"));
               const accentHex = accentPalette[index % accentPalette.length];
 
               return (
@@ -179,6 +177,7 @@ const AboutSection = () => {
                 to={primaryAction.path}
                 className="geo-btn-saffron group inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f97316]"
               >
+                {PrimaryActionIcon && <PrimaryActionIcon className="h-4 w-4" aria-hidden="true" />}
                 {primaryAction.label}
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" aria-hidden="true" />
               </Link>
@@ -188,6 +187,7 @@ const AboutSection = () => {
                 to={secondaryAction.path}
                 className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-[#102f46] transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b6fa4]"
               >
+                {SecondaryActionIcon && <SecondaryActionIcon className="h-4 w-4" aria-hidden="true" />}
                 {secondaryAction.label}
               </Link>
             )}

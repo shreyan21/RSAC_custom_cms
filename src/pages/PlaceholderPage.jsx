@@ -1,9 +1,8 @@
-import { ArrowRight, Compass, Home, Map, Search } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
 import { Link } from "react-router-dom";
+import { resolveCmsIcon } from "../components/icons/cmsIconRegistry";
 import { useSiteSettings } from "../hooks/useData";
 import { useLanguage } from "../hooks/useLanguage";
-
-const iconMap = { home: Home, map: Map, compass: Compass, search: Search };
 
 const PlaceholderPage = ({ title }) => {
   const { t } = useLanguage();
@@ -41,7 +40,7 @@ const PlaceholderPage = ({ title }) => {
 
         <ul className="mx-auto mt-10 grid max-w-lg gap-3 sm:grid-cols-2">
           {c.links.map(({ label, path, icon }) => {
-            const Icon = iconMap[icon] || Compass;
+            const Icon = resolveCmsIcon(icon, resolveCmsIcon("compass"));
             return (
             <li key={path}>
               <Link

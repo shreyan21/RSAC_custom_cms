@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Globe2 } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useGeoportals, useSiteSettings } from "../../hooks/useData";
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 import { RevealStagger, RevealItem } from "../motion/RevealStagger";
 import MaskReveal from "../motion/MaskReveal";
 
@@ -55,7 +56,7 @@ const GeoportalSection = () => {
 
         <RevealStagger className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {geoportals.map((portal) => {
-            const Icon = portal.icon || Globe2;
+            const Icon = resolveCmsIcon(portal.iconKey || portal.icon);
             const accentHex = portal.accentHex || "#0b6fa4";
 
             return (
@@ -109,7 +110,7 @@ const GeoportalSection = () => {
                   rel="noopener noreferrer"
                   className="mt-6 inline-flex min-h-9 items-center gap-2 rounded-lg bg-[#0f6f42]/8 px-3.5 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#0f6f42] transition duration-300 group-hover:bg-[#0f6f42] group-hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0f6f42]"
                 >
-                  {sectionContent.actionLabel}
+                  {portal.buttonLabel || sectionContent.actionLabel}
                   <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                 </a>
 

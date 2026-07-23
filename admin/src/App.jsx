@@ -5,9 +5,16 @@ import {
   Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Users, X,
 } from "lucide-react";
 import upEmblem from "../../src/assets/images/up-emblem.webp";
+import rsacLogo from "../../src/assets/images/rsac-logo.webp";
 import { api, setCsrfToken, websiteUrl } from "./api";
 import FieldInput from "./FieldInput";
+import { fieldHelpText } from "./fieldHelpText";
 import { cmsGroups } from "./cmsGroups";
+import {
+  hasMatchingSection,
+  projectSection,
+  publicationSection,
+} from "./divisionSectionCounts";
 import useLivePreview from "./useLivePreview";
 
 const DivisionContentWorkspace = lazy(() => import("./DivisionContentWorkspace"));
@@ -116,20 +123,6 @@ const buildPageViews = (definitions, pageEntries) => {
   ];
 };
 
-const blockLabel = (block) => String(
-  block?.sourceLabel || block?.heading || block?.value || block?.label || ""
-).replace(/^Section:\s*/i, "").trim();
-
-const hasVisibleBlockRows = (block) =>
-  (block?.children || []).some((child) => !child.hidden && String(child.value || "").trim());
-
-const projectSection = (block) => /\bprojects?\b/i.test(blockLabel(block));
-const publicationSection = (block) =>
-  /research|paper|publication|technical reports?|atlas/i.test(blockLabel(block));
-
-const hasMatchingSection = (entry, sectionFilter) =>
-  (entry.dataEn?.blocks || []).some((block) => sectionFilter(block) && hasVisibleBlockRows(block));
-
 const countsFor = (entries) => {
   const active = entries.filter((entry) => entry.status !== "archived");
   return {
@@ -228,7 +221,7 @@ function Login({ onLogin }) {
     <main className="login-page">
       <section className="login-panel" aria-labelledby="cms-login-title">
         <div className="government-identity"><img src={upEmblem} alt="Government of Uttar Pradesh emblem" /><span>Government of Uttar Pradesh</span></div>
-        <div className="identity-mark"><ShieldCheck /><div><strong>RSAC-UP</strong><span>Custom Content Management</span></div></div>
+        <div className="identity-mark"><img className="cms-brand-logo" src={rsacLogo} alt="" /><div><strong>RSAC-UP</strong><span>Custom Content Management</span></div></div>
         <h1 id="cms-login-title">Editor sign in</h1>
         <p>Manage approved English and Hindi website content from one secure portal.</p>
         {error && <div className="alert error" role="alert">{error}</div>}
@@ -265,7 +258,12 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
       const method = payload.id ? "PUT" : "POST";
       const path = payload.id ? `/api/admin/content/${storageId}/${payload.id}` : `/api/admin/content/${storageId}`;
       const result = await api(path, { method, body: JSON.stringify(payload) });
-      notify(payload.status === "published" ? "Published. Open website tabs are updating now." : "Saved as Draft. It is not visible on website.", "success");
+      const statusMessage = payload.status === "published"
+        ? "Published. Open live website tabs are updating now."
+        : payload.status === "archived"
+          ? "Archived. It has been removed from the live website."
+          : "Saved as Draft. It is hidden from the live website; a private Preview can still show it.";
+      notify(statusMessage, "success");
       onSaved(result.data);
     } catch (error) { notify(error.message, "error"); }
     finally { setBusy(false); }
@@ -282,13 +280,13 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
       <header className="editor-head">
         <button type="button" className="back-button" onClick={onClose}><ArrowLeft /> Back</button>
         <div><span>{definition.label}</span><h2>{draft.id ? titleOf(draft) : `Add ${definition.label}`}</h2></div>
-        <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button></div>
+        <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy} onClick={preview}><Eye /> Private preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} {draft.status === "published" ? "Publish changes" : draft.status === "archived" ? "Save as archived" : "Save as draft"}</button></div>
       </header>
       <div className="editor-body">
         <aside className="editor-meta">
           <h3>Publishing</h3>
-          <label>Visibility<select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value })}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived</option></select></label>
-          <p>{draft.status === "published" ? "Changes become public after Save." : "Draft content stays hidden from website."}</p>
+          <label>Visibility<select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived - hidden</option></select></label>
+          <p>{draft.status === "published" ? "Changes become public after Save." : "This stays hidden from the live website after Save. Private preview remains available for checking."}</p>
           <details className="editor-advanced"><summary>Advanced options</summary>{!definition.autoNewestFirst && <label>Sort order<input type="number" value={draft.sortOrder ?? 0} onChange={(event) => setDraft({ ...draft, sortOrder: Number(event.target.value) })} /></label>}{!definition.autoNewestFirst && <label>Internal key<input value={draft.entryKey || ""} onChange={(event) => setDraft({ ...draft, entryKey: event.target.value })} placeholder="Generated automatically" /></label>}<small>Lower order appears first. Do not change existing internal keys.</small></details>
         </aside>
         <section className="editor-fields">
@@ -302,9 +300,9 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
             const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined;
             const sharedSettingsValue = definition.id === "site_settings" && field.name === "settings" ? draft.dataEn?.settings : undefined;
             const setSharedSettingsValue = sharedSettingsValue === undefined ? undefined : (value) => setDraft((current) => ({ ...current, dataEn: { ...current.dataEn, settings: value } }));
-            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
           })}
-          {definition.fields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{definition.fields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}</span><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>; })}</details>}
+          {definition.fields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{definition.fields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>; })}</details>}
         </section>
       </div>
     </div>
@@ -411,6 +409,7 @@ export default function App() {
   const saveDivisionPage = async (draft) => {
     const result = await api(`/api/admin/content/pages/${draft.id}`, { method: "PUT", body: JSON.stringify(draft) });
     setEntries((current) => current.map((entry) => entry.id === result.data.id ? result.data : entry));
+    await loadCollections();
     return result.data;
   };
   const filteredEntries = useMemo(() => entries.filter((entry) => `${titleOf(entry)} ${entry.entryKey}`.toLowerCase().includes(search.toLowerCase())), [entries, search]);
@@ -427,7 +426,7 @@ export default function App() {
     <div className="admin-app">
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
-        <div className="brand"><ShieldCheck /><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
+        <div className="brand"><img className="cms-brand-logo" src={rsacLogo} alt="" /><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
         <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{divisionWorkspaceDefinition && navButton("content_workspace", <FileText />, "Division content", () => openCollection(divisionWorkspaceDefinition))}{navButton("guide", <BookOpen />, "Editor guide")}{navButton("feedback", <MessageSquare />, "Website feedback")}{navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>

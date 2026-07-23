@@ -2,7 +2,9 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
-import { Bold, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered, Quote, Redo2, RemoveFormatting, Table2, Underline, Undo2, Unlink } from "lucide-react";
+import { Bold, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered, Quote, Redo2, RemoveFormatting, Sparkles, Table2, Underline, Undo2, Unlink } from "lucide-react";
+import EditorTooltipButton from "./EditorTooltipButton";
+import { formatRichTextHtml } from "./formatRichText";
 
 const extensions = [
   StarterKit.configure({
@@ -18,8 +20,32 @@ const extensions = [
   TableCell,
 ];
 
-const ToolbarButton = ({ active = false, disabled = false, label, onClick, children }) => (
-  <button type="button" className={active ? "active" : ""} disabled={disabled} title={label} aria-label={label} onClick={onClick}>{children}</button>
+const toolDescriptions = {
+  "Add column": "Adds a new column immediately after the selected table cell.",
+  "Add or edit link": "Adds or changes a clickable web, file, email, or page link.",
+  "Add row": "Adds a new row immediately after the selected table cell.",
+  Bold: "Makes the selected text thicker for emphasis.",
+  "Bullet list": "Turns the selected lines into a bulleted list.",
+  "Clear formatting": "Removes headings and text styles while keeping the wording.",
+  "Delete column": "Removes the table column containing the selected cell.",
+  "Delete row": "Removes the table row containing the selected cell.",
+  "Delete table": "Removes the complete table and its cells.",
+  "Format text": "Cleans spacing and empty formatting without changing the wording.",
+  "Heading 2": "Turns the current line into a main section heading.",
+  "Heading 3": "Turns the current line into a subsection heading.",
+  "Heading 4": "Turns the current line into a smaller heading.",
+  "Insert 3 by 3 table": "Adds a three-column table with a header row.",
+  Italic: "Slants the selected text for gentle emphasis.",
+  "Numbered list": "Turns the selected lines into a numbered list.",
+  Quote: "Formats the selected text as a quotation.",
+  Redo: "Restores the most recently undone change.",
+  "Remove link": "Removes the link but keeps its visible text.",
+  Underline: "Adds a line below the selected text.",
+  Undo: "Reverses the most recent editor change.",
+};
+
+const ToolbarButton = ({ label, ...props }) => (
+  <EditorTooltipButton label={label} description={toolDescriptions[label]} {...props} />
 );
 
 const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value, onChange, ariaLabel }, ref) {
@@ -85,6 +111,12 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
     else editor.chain().focus().extendMarkRange("link").setLink({ href: href.trim() }).run();
   };
 
+  const formatText = () => {
+    const formatted = formatRichTextHtml(editor.getHTML());
+    editor.commands.setContent(formatted, { emitUpdate: true });
+    editor.commands.focus("start");
+  };
+
   return (
     <div className="section-rich-editor">
       <div className="section-rich-editor__toolbar" role="toolbar" aria-label={`${ariaLabel} formatting`}>
@@ -93,8 +125,8 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Heading 2" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 /></ToolbarButton><ToolbarButton label="Heading 3" active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><Heading3 /></ToolbarButton><ToolbarButton label="Heading 4" active={state.h4} onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}><Heading4 /></ToolbarButton></div>
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Bullet list" active={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()}><List /></ToolbarButton><ToolbarButton label="Numbered list" active={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered /></ToolbarButton><ToolbarButton label="Quote" active={state.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote /></ToolbarButton></div>
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Add or edit link" active={state.link} onClick={setLink}><Link2 /></ToolbarButton><ToolbarButton label="Remove link" disabled={!state.link} onClick={() => editor.chain().focus().unsetLink().run()}><Unlink /></ToolbarButton><ToolbarButton label="Insert 3 by 3 table" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></ToolbarButton></div>
-        {state.table && <div className="section-rich-editor__table-tools" aria-label="Table tools"><button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>Add row</button><button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>Add column</button><button type="button" onClick={() => editor.chain().focus().deleteRow().run()}>Delete row</button><button type="button" onClick={() => editor.chain().focus().deleteColumn().run()}>Delete column</button><button type="button" onClick={() => editor.chain().focus().deleteTable().run()}>Delete table</button></div>}
-        <div className="section-rich-editor__toolgroup"><ToolbarButton label="Clear formatting" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}><RemoveFormatting /></ToolbarButton></div>
+        {state.table && <div className="section-rich-editor__table-tools" aria-label="Table tools"><ToolbarButton label="Add row" onClick={() => editor.chain().focus().addRowAfter().run()}>Add row</ToolbarButton><ToolbarButton label="Add column" onClick={() => editor.chain().focus().addColumnAfter().run()}>Add column</ToolbarButton><ToolbarButton label="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>Delete row</ToolbarButton><ToolbarButton label="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>Delete column</ToolbarButton><ToolbarButton label="Delete table" onClick={() => editor.chain().focus().deleteTable().run()}>Delete table</ToolbarButton></div>}
+        <div className="section-rich-editor__toolgroup"><ToolbarButton label="Clear formatting" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}><RemoveFormatting /></ToolbarButton><ToolbarButton label="Format text" disabled={editor.isEmpty} onClick={formatText}><Sparkles /><span>Format text</span></ToolbarButton></div>
       </div>
       <EditorContent editor={editor} />
       <p className="section-rich-editor__help">Press Enter for a new paragraph. Select text before applying a heading, style, or link.</p>

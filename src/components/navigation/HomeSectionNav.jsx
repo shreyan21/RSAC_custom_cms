@@ -1,31 +1,9 @@
-import {
-  Activity,
-  Building2,
-  ClipboardCheck,
-  Layers3,
-  MapPinned,
-  Orbit,
-  RadioTower,
-  Route,
-  Smartphone,
-} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 import { scrollToTarget } from "../../utils/scroll";
-
-const iconMap = {
-  building: Building2,
-  activity: Activity,
-  clipboard: ClipboardCheck,
-  layers: Layers3,
-  map: MapPinned,
-  orbit: Orbit,
-  radio: RadioTower,
-  route: Route,
-  phone: Smartphone,
-};
 
 const defaultHiddenHomeSections = [
   "leadership",
@@ -113,7 +91,7 @@ const HomeSectionNav = () => {
         className="mx-auto flex max-w-4xl items-center justify-start gap-1 overflow-x-auto sm:justify-center"
       >
         {navItems.map(({ label, href, icon }) => {
-          const Icon = iconMap[icon] || Orbit;
+          const Icon = resolveCmsIcon(icon, resolveCmsIcon("orbit"));
           const navClass =
             "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 transition duration-300 hover:bg-emerald-50 hover:text-[#0f6f42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f6f42] sm:text-sm";
           const isInternalRoute =

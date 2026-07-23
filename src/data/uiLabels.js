@@ -206,6 +206,7 @@ const additionalUiLabelDefaults = [
   "Switch to Hindi",
   "Stay in English",
   "Open in new tab",
+  "Open interactive content",
   "Interactive content",
   "This document is opened within this website.",
   "Document",

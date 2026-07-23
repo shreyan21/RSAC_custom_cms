@@ -8,6 +8,133 @@ const parseContent = (html, documentRef) => {
   return container;
 };
 
+const headingTags = new Set(["H2", "H3", "H4"]);
+const simpleContentTags = new Set(["P", "BLOCKQUOTE", "UL", "OL"]);
+
+const hasVisibleContent = (node) =>
+  String(node?.textContent || "").replace(/\u00a0/gu, " ").trim()
+  || node?.querySelector?.("img,video,audio,iframe");
+
+const contentUnit = (node) => {
+  if (node.tagName === "LI" && node.children.length === 1 && node.firstElementChild?.tagName === "P") {
+    return { html: node.firstElementChild.innerHTML, tagName: "P" };
+  }
+  return { html: node.innerHTML, tagName: node.tagName };
+};
+
+const nodeUnits = (node) => {
+  if (node.tagName === "UL" || node.tagName === "OL") {
+    return Array.from(node.children)
+      .filter((child) => child.tagName === "LI" && hasVisibleContent(child))
+      .map((child) => ({ ...contentUnit(child), containerTag: node.tagName }));
+  }
+  return hasVisibleContent(node) ? [{ ...contentUnit(node), containerTag: node.tagName }] : [];
+};
+
+const sectionSegments = (container) => {
+  const segments = [{ heading: null, nodes: [] }];
+  for (const node of Array.from(container.children)) {
+    if (!hasVisibleContent(node)) continue;
+    if (headingTags.has(node.tagName)) {
+      segments.push({ heading: node, nodes: [] });
+      continue;
+    }
+    if (!simpleContentTags.has(node.tagName)) return null;
+    segments[segments.length - 1].nodes.push(node);
+  }
+  return segments;
+};
+
+const appendUnit = (parent, tagName, unit, referenceNode) => {
+  const document = parent.ownerDocument;
+  const element = document.createElement(tagName.toLowerCase());
+  const referenceStrong = referenceNode?.children?.length === 1
+    && referenceNode.firstElementChild?.tagName === "STRONG";
+  element.innerHTML = referenceStrong && !/<strong\b/iu.test(unit.html)
+    ? `<strong>${unit.html}</strong>`
+    : unit.html;
+  parent.append(element);
+};
+
+export const matchSectionListStructure = (localizedHtml, referenceHtml, documentRef) => {
+  const original = String(localizedHtml || "");
+  if (!original.trim() || !String(referenceHtml || "").trim()) {
+    return { html: original, changed: false, compatible: false };
+  }
+
+  const localized = parseContent(original, documentRef);
+  const reference = parseContent(referenceHtml, documentRef);
+  if (localized.querySelector("table") || reference.querySelector("table")) {
+    return { html: original, changed: false, compatible: false };
+  }
+
+  const localizedSegments = sectionSegments(localized);
+  const referenceSegments = sectionSegments(reference);
+  if (!localizedSegments || !referenceSegments || localizedSegments.length !== referenceSegments.length) {
+    return { html: original, changed: false, compatible: false };
+  }
+
+  const output = localized.ownerDocument.createElement("div");
+  for (let segmentIndex = 0; segmentIndex < referenceSegments.length; segmentIndex += 1) {
+    const referenceSegment = referenceSegments[segmentIndex];
+    const localizedSegment = localizedSegments[segmentIndex];
+    if (Boolean(referenceSegment.heading) !== Boolean(localizedSegment.heading)) {
+      return { html: original, changed: false, compatible: false };
+    }
+    if (referenceSegment.heading) {
+      appendUnit(output, referenceSegment.heading.tagName, contentUnit(localizedSegment.heading), referenceSegment.heading);
+    }
+
+    const referenceCount = referenceSegment.nodes.reduce((total, node) => total + nodeUnits(node).length, 0);
+    const localizedUnits = localizedSegment.nodes.flatMap(nodeUnits);
+    const extraCount = localizedUnits.length - referenceCount;
+    const canKeepLeadingIntroduction = segmentIndex === 0
+      && extraCount > 0
+      && extraCount <= 2
+      && referenceSegment.nodes.some((node) => node.tagName === "UL" || node.tagName === "OL");
+    const extraUnitsAreParagraphs = localizedUnits
+      .slice(0, Math.max(0, extraCount))
+      .every((unit) => unit.containerTag === "P" || unit.containerTag === "BLOCKQUOTE");
+    if (extraCount < 0 || (extraCount > 0 && (!canKeepLeadingIntroduction || !extraUnitsAreParagraphs))) {
+      return { html: original, changed: false, compatible: false };
+    }
+
+    localizedUnits.slice(0, extraCount).forEach((unit) => appendUnit(output, "P", unit));
+    let cursor = extraCount;
+    for (const referenceNode of referenceSegment.nodes) {
+      if (referenceNode.tagName === "UL" || referenceNode.tagName === "OL") {
+        const list = output.ownerDocument.createElement(referenceNode.tagName.toLowerCase());
+        const referenceItems = Array.from(referenceNode.children).filter((child) => child.tagName === "LI" && hasVisibleContent(child));
+        for (const referenceItem of referenceItems) {
+          const item = output.ownerDocument.createElement("li");
+          const unit = localizedUnits[cursor];
+          if (!unit) return { html: original, changed: false, compatible: false };
+          if (referenceItem.children.length === 1 && referenceItem.firstElementChild?.tagName === "P") {
+            appendUnit(item, "P", unit, referenceItem.firstElementChild);
+          } else {
+            item.innerHTML = unit.html;
+          }
+          list.append(item);
+          cursor += 1;
+        }
+        output.append(list);
+      } else {
+        const unit = localizedUnits[cursor];
+        if (!unit) return { html: original, changed: false, compatible: false };
+        appendUnit(output, referenceNode.tagName, unit, referenceNode);
+        cursor += 1;
+      }
+    }
+  }
+
+  const html = output.innerHTML;
+  return {
+    html,
+    changed: html !== original,
+    compatible: true,
+  };
+};
+
 const findManagedList = (container) => {
   const lists = Array.from(container.querySelectorAll("ol, ul"));
   return lists.find((list) => !list.closest("table") && !list.parentElement?.closest("ol, ul")) || null;

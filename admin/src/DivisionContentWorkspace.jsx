@@ -4,6 +4,7 @@ import FieldInput from "./FieldInput";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 import SectionItemManager from "./SectionItemManager";
+import { fieldHelpText } from "./fieldHelpText";
 import { pageCardIconOptions } from "../../shared/cmsCollections";
 import useLivePreview from "./useLivePreview";
 import {
@@ -134,6 +135,11 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   );
   const itemName = workspaceKind === "facilities" ? "facility" : workspaceKind === "about-us" ? "page" : workspaceKind === "academics" ? "training page" : "division";
   const searchPlaceholder = workspaceKind === "facilities" ? "Search laboratory, library, hostel..." : workspaceKind === "about-us" ? "Search chairman, vision, organisation..." : workspaceKind === "academics" ? "Search training or academics..." : "Search Computer Image, Agriculture, Training...";
+  const visibilityLabel = (status) => status === "archived"
+    ? "Archived"
+    : status === "draft"
+      ? "Hidden draft"
+      : "Visible";
 
   const openPage = (page) => {
     setDraft(structuredClone(page));
@@ -194,7 +200,14 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
     try {
       const saved = await onSave(draft);
       setDraft(structuredClone(saved));
-      notify("Published content saved. Open website tabs are updating now.", "success");
+      notify(
+        saved.status === "published"
+          ? "Published content saved. Open website tabs are updating now."
+          : saved.status === "archived"
+            ? "Archived. This page is no longer visible on the website."
+            : "Saved as a hidden draft. This page is not visible on the website.",
+        "success"
+      );
     } catch (error) {
       notify(error.message, "error");
     } finally {
@@ -218,7 +231,7 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>No page HTML. Choose the {itemName} whose content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> Collections</button></div>
         <label className="workspace-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
-        <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span>Open sections</span></button>)}</div>
+        <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span className="workspace-card__meta"><span>Open sections</span>{workspaceKind === "facilities" && <span className={`status ${page.status || "published"}`}>{visibilityLabel(page.status)}</span>}</span></button>)}</div>
       </section>
     );
   }
@@ -242,13 +255,14 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
   if (sectionIndex === "page-details") {
     return (
       <section className="division-workspace division-workspace-editor">
-        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>Edit heading, introduction, media, sizing, or hide an unwanted repeated profile card by its exact visible name.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>{workspaceKind === "divisions" ? "The main heading controls the opened division page. Its directory-card name is edited separately in Divisions." : "Edit the page heading, introduction, media, sizing, and layout."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        {workspaceKind === "facilities" && <div className="workspace-publishing"><label>Facility card visibility<select value={draft.status || "published"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Visible on website</option><option value="draft">Hidden draft</option><option value="archived">Archived</option></select></label><div><span className={`status ${draft.status || "published"}`}>{visibilityLabel(draft.status)}</span><p>{draft.status === "published" ? "The facility card and page are public after Save." : draft.status === "archived" ? "The card and page stay stored in CMS but are removed from the public website." : "The card and page stay editable here but are hidden from the public website."}</p></div></div>}
         <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
         <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
         <div className="editor-fields">
           {pageFields.map((field) => {
             const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
-            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
           })}
         </div>
       </section>
@@ -271,9 +285,10 @@ export default function DivisionContentWorkspace({ pages, workspaceKind = "divis
       <div className="workspace-editor-toolbar"><button className="secondary" type="button" onClick={toggleSectionVisibility}>{currentBlock?.hidden ? <Eye /> : <EyeOff />} {currentBlock?.hidden ? "Show section" : "Hide section"} in {language === "hi" ? "Hindi" : "English"}</button></div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
       {currentBlock?.hidden && <p className="workspace-language-note workspace-language-note--hidden">This section is hidden only in {language === "hi" ? "Hindi" : "English"}. Other language remains unchanged.</p>}
-      {controlsVisibleSectionLabel(currentBlock) && <label className="field-row"><span>Section heading</span>{language === "hi" && englishBlock?.value && <small className="english-field-reference">English: {englishBlock.value}</small>}<input value={typeof currentBlock?.value === "string" ? currentBlock.value : ""} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
+      {controlsVisibleSectionLabel(currentBlock) && <label className="field-row"><span>Section heading</span><small className="field-help">Controls the heading shown directly above this section's text and media.</small>{language === "hi" && englishBlock?.value && <small className="english-field-reference">English: {englishBlock.value}</small>}<input value={typeof currentBlock?.value === "string" ? currentBlock.value : ""} onChange={(event) => updateSectionHeading(event.target.value)} /></label>}
       <SectionItemManager
         html={String(currentBlock?.contentHtml || "")}
+        referenceHtml={language === "hi" ? String(englishBlock?.contentHtml || "") : ""}
         label={label}
         editorMode={currentBlock?.editorMode}
         onChange={updateSectionContent}
