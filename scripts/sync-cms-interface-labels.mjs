@@ -71,7 +71,6 @@ const manualHindi = {
   "Enter a valid email Id.": "मान्य ईमेल आईडी दर्ज करें।",
   "Enter a valid phone number.": "मान्य दूरभाष संख्या दर्ज करें।",
   "Thank you!": "धन्यवाद!",
-  "Your email app has opened with your feedback. Please confirm to send it.": "आपका ईमेल ऐप आपकी प्रतिक्रिया के साथ खुल गया है। कृपया भेजने की पुष्टि करें।",
   "Your feedback has been recorded successfully. Thank you for your suggestions.": "आपकी प्रतिक्रिया सफलतापूर्वक दर्ज हो गई है। आपके सुझावों के लिए धन्यवाद।",
   "Sending...": "भेजा जा रहा है...",
   "Send another response": "एक और प्रतिक्रिया भेजें",

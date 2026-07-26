@@ -7,12 +7,14 @@ import {
   moveSectionItem,
   removeSectionItem,
 } from "../admin/src/sectionItemHtml.js";
+import { validateEntryPayload } from "../server/contentValidation.js";
 
 const document = new JSDOM("<!doctype html>").window.document;
 
 let listHtml = "<ol><li><p>Older</p><ul><li>Nested detail</li></ul></li><li><p>Oldest</p></li></ol>";
 listHtml = addLatestSectionItem(listHtml, true, document);
 assert.deepEqual(inspectSectionItems(listHtml, document).items.map((item) => item.summary), ["Blank item", "OlderNested detail", "Oldest"]);
+assert.match(listHtml, /<li data-rsac-added-item="true">/u);
 listHtml = moveSectionItem(listHtml, 0, 2, document);
 assert.deepEqual(inspectSectionItems(listHtml, document).items.map((item) => item.summary), ["OlderNested detail", "Oldest", "Blank item"]);
 assert.match(listHtml, /<ul><li>Nested detail<\/li><\/ul>/u);
@@ -22,11 +24,23 @@ assert.deepEqual(inspectSectionItems(listHtml, document).items.map((item) => ite
 let tableHtml = "<table><thead><tr><th>S.No.</th><th>Project</th></tr></thead><tbody><tr><td>1</td><td>Older</td></tr><tr><td>2</td><td>Oldest</td></tr></tbody></table>";
 tableHtml = addLatestSectionItem(tableHtml, true, document);
 assert.deepEqual(inspectSectionItems(tableHtml, document).items.map((item) => item.summary), ["Blank row", "Older", "Oldest"]);
+assert.match(tableHtml, /<tr data-rsac-added-item="true">/u);
 tableHtml = moveSectionItem(tableHtml, 2, 0, document);
 assert.deepEqual(inspectSectionItems(tableHtml, document).items.map((item) => item.summary), ["Oldest", "Blank row", "Older"]);
 tableHtml = removeSectionItem(tableHtml, 1, document);
 assert.deepEqual(inspectSectionItems(tableHtml, document).items.map((item) => item.summary), ["Oldest", "Older"]);
 assert.deepEqual(Array.from(document.createRange().createContextualFragment(tableHtml).querySelectorAll("tbody td:first-child")).map((cell) => cell.textContent), ["1", "2"]);
+
+const validatedPage = validateEntryPayload("pages", {
+  dataEn: {
+    title: "Ordering test",
+    slug: "ordering-test",
+    sectionKey: "divisions",
+    blocks: [{ id: "ordering-test", type: "rich_text", contentHtml: listHtml }],
+  },
+  dataHi: {},
+});
+assert.match(validatedPage.dataEn.blocks[0].contentHtml, /data-rsac-added-item="true"/u);
 
 const referenceLayout = "<p><strong>Introduction</strong></p><ul><li><p>First</p></li><li><p>Second</p></li></ul><h4>Software</h4><ul><li>Third</li></ul>";
 const localizedLayout = "<p>Extra introduction</p><p>Translated introduction</p><p>Translated first</p><p>Translated second</p><h3>Translated software</h3><p>Translated third</p>";

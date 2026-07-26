@@ -2,10 +2,9 @@ import { cmsRequest } from "./customCmsClient";
 
 export const submitCmsFeedback = async (record) => {
   try {
-    await cmsRequest("/api/feedback", { method: "POST", body: JSON.stringify(record) });
-    return true;
+    return await cmsRequest("/api/feedback", { method: "POST", body: JSON.stringify(record) });
   } catch {
-    return false;
+    return null;
   }
 };
 

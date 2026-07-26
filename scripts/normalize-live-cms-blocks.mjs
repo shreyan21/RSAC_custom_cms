@@ -291,10 +291,26 @@ const normalizeDivisionData = (data, language, slug, englishData = data) => {
       assets,
     };
   });
+  const customBlocks = englishBlocks
+    .filter((block) => String(block?.id || "").startsWith("cms-section-"))
+    .map((referenceBlock) => {
+      if (language === "en") return structuredClone(referenceBlock);
+      const localizedBlock = sourceBlocks.find((block) => block?.id === referenceBlock.id);
+      return localizedBlock
+        ? structuredClone(localizedBlock)
+        : {
+            ...structuredClone(referenceBlock),
+            value: "",
+            heading: "",
+            contentHtml: "",
+            assets: localizedAssets(referenceBlock.assets || [], sourceBlocks),
+            language: "hi",
+          };
+    });
 
   return cleanStructuralEditorData({
     ...data,
-    blocks: removeRepeatedMediaRows(blocks),
+    blocks: removeRepeatedMediaRows([...blocks, ...customBlocks]),
   });
 };
 

@@ -15,6 +15,7 @@ import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
 import { preserveStoredUndeclaredFields, validateEntryPayload } from "./contentValidation.js";
+import { feedbackMailConfigured, sendFeedbackNotification } from "./feedbackMailer.js";
 import {
   liveDivisionOptions,
   syncDivisionPage,
@@ -27,6 +28,15 @@ const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: tru
 // Create runtime storage before static serving or upload middleware can use it.
 // The folder is intentionally gitignored and may not exist on a fresh checkout.
 ensureUploadDirectory();
+
+await pool.query(`
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_status text NOT NULL DEFAULT 'pending';
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_attempts integer NOT NULL DEFAULT 0;
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivered_at timestamptz;
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_error text NOT NULL DEFAULT '';
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS last_delivery_attempt_at timestamptz
+`);
 
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -53,6 +63,32 @@ const previewSessions = new Map();
 const publicBootstrapCache = new Map();
 const publicContentSubscribers = new Set();
 let contentVersionCache = { checkedAt: 0, value: "" };
+
+const deliverFeedback = async (feedback) => {
+  let delivery;
+  try {
+    delivery = await sendFeedbackNotification(feedback);
+  } catch (error) {
+    console.error("Feedback email delivery failed:", error.message);
+    delivery = {
+      status: "failed",
+      error: String(error.message || "Email delivery failed").slice(0, 1000),
+    };
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE cms_feedback
+        SET delivery_status=$2,
+            delivery_attempts=delivery_attempts+1,
+            delivered_at=CASE WHEN $2='sent' THEN now() ELSE delivered_at END,
+            delivery_error=$3,
+            last_delivery_attempt_at=now()
+      WHERE id=$1
+      RETURNING *`,
+    [feedback.id, delivery.status, delivery.error || ""]
+  );
+  return rows[0];
+};
 
 const broadcastPublicContentUpdate = () => {
   const message = `event: content\ndata: ${JSON.stringify({ updatedAt: new Date().toISOString() })}\n\n`;
@@ -343,15 +379,39 @@ app.get("/api/content/:collection", async (req, res, next) => {
 app.post("/api/feedback", publicFormLimiter, async (req, res, next) => {
   try {
     const clean = (value, max = 300) => String(value || "").trim().slice(0, max);
+    if (clean(req.body?.website, 200)) {
+      return res.status(201).json({ ok: true, delivery: "filtered" });
+    }
     const name = clean(req.body?.name, 160);
+    const email = clean(req.body?.email);
+    const phone = clean(req.body?.phone, 40);
+    const address = clean(req.body?.address, 1000);
+    const country = clean(req.body?.country);
+    const state = clean(req.body?.state);
+    const district = clean(req.body?.district);
     const comments = clean(req.body?.comments, 5000);
-    if (!name || !comments) return res.status(400).json({ error: "Name and comments are required" });
+    const language = req.body?.language === "hi" ? "hi" : "en";
+    if (![name, email, phone, address, country, state, district, comments].every(Boolean)) {
+      return res.status(400).json({ error: "Complete all required feedback fields" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) {
+      return res.status(400).json({ error: "Enter a valid email address" });
+    }
+    if (!/^[\d+\-\s()]{7,}$/u.test(phone)) {
+      return res.status(400).json({ error: "Enter a valid phone number" });
+    }
     const { rows } = await pool.query(
-      `INSERT INTO cms_feedback (name, email, phone, address, country, state, district, comments, ip_address)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-      [name, clean(req.body?.email), clean(req.body?.phone, 40), clean(req.body?.address, 1000), clean(req.body?.country), clean(req.body?.state), clean(req.body?.district), comments, req.ip]
+      `INSERT INTO cms_feedback
+         (name, email, phone, address, country, state, district, comments, ip_address, language)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [name, email, phone, address, country, state, district, comments, req.ip, language]
     );
-    res.status(201).json({ ok: true, id: rows[0].id });
+    const feedback = await deliverFeedback(rows[0]);
+    res.status(201).json({
+      ok: true,
+      id: feedback.id,
+      delivery: feedback.delivery_status,
+    });
   } catch (error) { next(error); }
 });
 
@@ -728,6 +788,21 @@ app.get("/api/admin/feedback", async (_req, res, next) => {
   try {
     const { rows } = await pool.query("SELECT * FROM cms_feedback ORDER BY created_at DESC LIMIT 500");
     res.json({ data: rows });
+  } catch (error) { next(error); }
+});
+
+app.post("/api/admin/feedback/:id/send", writeLimiter, requireCsrf, async (req, res, next) => {
+  try {
+    if (!feedbackMailConfigured()) {
+      return res.status(503).json({ error: "Feedback email is not configured on this server" });
+    }
+    const { rows } = await pool.query("SELECT * FROM cms_feedback WHERE id=$1", [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: "Feedback record not found" });
+    const feedback = await deliverFeedback(rows[0]);
+    if (feedback.delivery_status !== "sent") {
+      return res.status(502).json({ error: "Email delivery failed; feedback remains saved in CMS" });
+    }
+    res.json({ data: feedback });
   } catch (error) { next(error); }
 });
 

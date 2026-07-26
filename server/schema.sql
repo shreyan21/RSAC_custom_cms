@@ -63,8 +63,21 @@ CREATE TABLE IF NOT EXISTS cms_feedback (
   district text NOT NULL DEFAULT '',
   comments text NOT NULL,
   ip_address inet,
+  language text NOT NULL DEFAULT 'en',
+  delivery_status text NOT NULL DEFAULT 'pending',
+  delivery_attempts integer NOT NULL DEFAULT 0,
+  delivered_at timestamptz,
+  delivery_error text NOT NULL DEFAULT '',
+  last_delivery_attempt_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_status text NOT NULL DEFAULT 'pending';
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivered_at timestamptz;
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_error text NOT NULL DEFAULT '';
+ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS last_delivery_attempt_at timestamptz;
 
 CREATE TABLE IF NOT EXISTS cms_site_visits (
   visit_day date PRIMARY KEY,

@@ -258,7 +258,10 @@ for (const englishPage of divisionPages) {
       throw new Error(`${englishPage.slug} has mismatched localized section IDs at position ${index + 1}.`);
     }
     for (const [language, block] of [["English", englishBlock], ["Hindi", hindiBlock]]) {
-      if (!Object.hasOwn(block || {}, "contentHtml") || Object.hasOwn(block || {}, "children")) {
+      const unsupportedChildren = (block?.children || []).filter(
+        (child) => !String(child?.key || "").startsWith("profile-content:")
+      );
+      if (!Object.hasOwn(block || {}, "contentHtml") || unsupportedChildren.length) {
         throw new Error(`${englishPage.slug}/${language} section ${index + 1} is not canonical rich content.`);
       }
     }

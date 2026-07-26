@@ -1,9 +1,8 @@
 import { useId, useRef, useState } from "react";
-import { Plus, Search, Sparkles, Trash2, Upload } from "lucide-react";
+import { Plus, Search, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
-import EditorTooltipButton from "./EditorTooltipButton";
+import SectionRichTextEditor from "./SectionRichTextEditor";
 import { api, mediaPreviewUrl } from "./api";
-import { formatRichTextHtml } from "./formatRichText";
 import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
 
@@ -657,39 +656,6 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
   return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([...sections, { heading: "", body: "" }])}><Plus /> Add page section</button></div>;
 }
 
-function RichTextField({ value, onChange }) {
-  const editorRef = useRef(null);
-  const runCommand = (command) => {
-    editorRef.current?.focus();
-    document.execCommand(command);
-  };
-  const formatText = () => {
-    if (!editorRef.current) return;
-    const formatted = formatRichTextHtml(editorRef.current.innerHTML);
-    editorRef.current.innerHTML = formatted;
-    onChange(formatted);
-    editorRef.current.focus();
-  };
-  return (
-    <div className="rich-field">
-      <div className="rich-toolbar">
-        <EditorTooltipButton label="Bold" description="Makes the selected text thicker for emphasis." onClick={() => runCommand("bold")}><strong>B</strong></EditorTooltipButton>
-        <EditorTooltipButton label="Italic" description="Slants the selected text for gentle emphasis." onClick={() => runCommand("italic")}><em>I</em></EditorTooltipButton>
-        <EditorTooltipButton label="Bullet list" description="Turns the selected lines into a bulleted list." onClick={() => runCommand("insertUnorderedList")}>List</EditorTooltipButton>
-        <EditorTooltipButton label="Format text" description="Cleans spacing and empty formatting without changing the wording." onClick={formatText}><Sparkles /> Format text</EditorTooltipButton>
-      </div>
-      <div
-        ref={editorRef}
-        className="rich-editor"
-        contentEditable
-        suppressContentEditableWarning
-        dangerouslySetInnerHTML={{ __html: value || "" }}
-        onBlur={(event) => onChange(event.currentTarget.innerHTML)}
-      />
-    </div>
-  );
-}
-
 export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {
   const fileRef = useRef(null);
   const suggestionId = useId();
@@ -718,7 +684,7 @@ export default function FieldInput({ field, value, referenceValue, language = "e
     const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";
     return <div className="color-field"><input type="color" value={color} aria-label={`${field.label} colour picker`} onChange={(event) => onChange(event.target.value)} /><input value={value || ""} placeholder="#0f6f42" pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></div>;
   }
-  if (field.type === "richtext") return <RichTextField value={value} onChange={onChange} />;
+  if (field.type === "richtext") return <SectionRichTextEditor value={value} onChange={onChange} ariaLabel={field.label} />;
   if (["textarea"].includes(field.type)) return <textarea rows="6" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
   return <input type={["email", "number", "date"].includes(field.type) ? field.type : "text"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />;
 }

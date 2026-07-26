@@ -2,6 +2,21 @@ const text = (name, label, options = {}) => ({ name, label, type: "text", locali
 const textarea = (name, label, options = {}) => ({ name, label, type: "textarea", localized: true, ...options });
 const plain = (name, label, options = {}) => ({ name, label, type: "text", localized: false, ...options });
 
+const typographySizeOptions = [
+  { value: "tiny", label: "Extra small" },
+  { value: "compact", label: "Small" },
+  { value: "normal", label: "Normal" },
+  { value: "large", label: "Large" },
+  { value: "xlarge", label: "Extra large" },
+];
+
+const typographyFontOptions = [
+  { value: "Inter", label: "Inter - Clean and modern" },
+  { value: "Plus Jakarta Sans", label: "Plus Jakarta Sans - Friendly and modern" },
+  { value: "System Sans", label: "System Sans - Simple" },
+  { value: "System Serif", label: "System Serif - Traditional" },
+];
+
 const divisionOptions = [
   ["agriculture-resources-division1", "Agriculture Resources Division"],
   ["computer-image-processing-division", "Computer Image Processing & Data Management"],
@@ -141,8 +156,14 @@ export const collections = [
       { name: "html", label: "Legacy imported page content", type: "richtext", localized: true, advanced: true },
       { name: "blocks", label: "Flexible page blocks", type: "blocks", localized: true },
       { name: "featuredImage", label: "Featured image", type: "media", localized: false },
-      { name: "headingSize", label: "Page heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
-      { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
+      { name: "eyebrowSize", label: "Small heading size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "headingSize", label: "Page heading size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "contentSize", label: "Body text size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "pageFont", label: "Page font family", type: "select", localized: false, options: typographyFontOptions },
+      { name: "headingFont", label: "Heading font family", type: "select", localized: false, options: typographyFontOptions },
+      { name: "bodyFontSize", label: "Exact body font size (13-22 px, optional)", type: "number", localized: false },
+      { name: "headingFontSize", label: "Exact main heading size (24-72 px, optional)", type: "number", localized: false },
+      { name: "eyebrowFontSize", label: "Exact small heading size (11-28 px, optional)", type: "number", localized: false },
       { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
       { name: "mediaSize", label: "Content image size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }, { value: "full", label: "Full width" }] },
       { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
@@ -313,7 +334,7 @@ export const collections = [
   {
     id: "page_display_settings",
     label: "Page Headings and Subheadings",
-    description: "Rename, resize, hide, or adjust any route, and add optional text, photos, galleries, cards, tables or downloads before or after its existing content.",
+    description: "Rename, resize, hide, or adjust one route or a page group. Use /divisions/* or /facilities/* to style a complete group, then add optional content before or after it.",
     fields: [
       plain("path", "Page path", { required: true }),
       text("eyebrow", "Small heading / flag text"),
@@ -322,9 +343,14 @@ export const collections = [
       { name: "hideEyebrow", label: "Hide small heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "hideTitle", label: "Hide main heading", type: "boolean", localized: false, booleanLabel: "Hidden" },
       { name: "hideIntro", label: "Hide subheading / introduction", type: "boolean", localized: false, booleanLabel: "Hidden" },
-      { name: "eyebrowSize", label: "Small heading / flag size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
-      { name: "headingSize", label: "Heading size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
-      { name: "contentSize", label: "Body text size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }] },
+      { name: "eyebrowSize", label: "Small heading / flag size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "headingSize", label: "Heading size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "contentSize", label: "Body text size", type: "select", localized: false, options: typographySizeOptions },
+      { name: "pageFont", label: "Page or page-group font family", type: "select", localized: false, options: typographyFontOptions },
+      { name: "headingFont", label: "Heading font family", type: "select", localized: false, options: typographyFontOptions },
+      { name: "bodyFontSize", label: "Exact body font size (13-22 px, optional)", type: "number", localized: false },
+      { name: "headingFontSize", label: "Exact main heading size (24-72 px, optional)", type: "number", localized: false },
+      { name: "eyebrowFontSize", label: "Exact small heading size (11-28 px, optional)", type: "number", localized: false },
       { name: "contentWidth", label: "Content width", type: "select", localized: false, options: [{ value: "compact", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }] },
       { name: "mediaSize", label: "Content image size", type: "select", localized: false, options: [{ value: "compact", label: "Small" }, { value: "normal", label: "Normal" }, { value: "large", label: "Large" }, { value: "full", label: "Full width" }] },
       { name: "contentSpacing", label: "Content spacing", type: "select", localized: false, options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "relaxed", label: "Relaxed" }] },
@@ -338,7 +364,7 @@ export const collections = [
     description: "Change the complete website font, base text size, spacing, backgrounds and card appearance.",
     singleton: true,
     fields: [
-      { name: "siteFont", label: "Complete website font", type: "select", localized: false, defaultValue: "Inter", options: [{ value: "Inter", label: "Inter - Clean and modern" }, { value: "Plus Jakarta Sans", label: "Plus Jakarta Sans - Friendly and modern" }, { value: "System Sans", label: "System Sans - Simple" }, { value: "System Serif", label: "System Serif - Traditional" }] },
+      { name: "siteFont", label: "Complete website font", type: "select", localized: false, defaultValue: "Inter", options: typographyFontOptions },
       { name: "bodyFont", label: "Advanced body font override", type: "select", localized: false, advanced: true, options: ["Inter", "Plus Jakarta Sans", "System Sans", "System Serif"] },
       { name: "headingFont", label: "Advanced heading font override", type: "select", localized: false, advanced: true, options: ["Plus Jakarta Sans", "Inter", "System Sans", "System Serif"] },
       { name: "hindiFont", label: "Advanced Hindi font override", type: "select", localized: false, advanced: true, options: ["Noto Sans Devanagari", "System Devanagari"] },

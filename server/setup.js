@@ -112,6 +112,17 @@ const output = [
   `CMS_ADMIN_USERNAME=${cmsAdminUsername}`,
   `CMS_ADMIN_PASSWORD=${cmsAdminPassword}`,
   "",
+  "# Feedback email delivery. Values are supplied by the SDC/department mail administrator.",
+  `FEEDBACK_RECIPIENTS=${current.FEEDBACK_RECIPIENTS || ""}`,
+  `FEEDBACK_FROM_NAME=${current.FEEDBACK_FROM_NAME || "RSAC-UP Website"}`,
+  `FEEDBACK_FROM_EMAIL=${current.FEEDBACK_FROM_EMAIL || ""}`,
+  `FEEDBACK_SMTP_HOST=${current.FEEDBACK_SMTP_HOST || ""}`,
+  `FEEDBACK_SMTP_PORT=${current.FEEDBACK_SMTP_PORT || "587"}`,
+  `FEEDBACK_SMTP_SECURE=${current.FEEDBACK_SMTP_SECURE || "false"}`,
+  `FEEDBACK_SMTP_REQUIRE_TLS=${current.FEEDBACK_SMTP_REQUIRE_TLS || "true"}`,
+  `FEEDBACK_SMTP_USER=${current.FEEDBACK_SMTP_USER || ""}`,
+  `FEEDBACK_SMTP_PASSWORD=${current.FEEDBACK_SMTP_PASSWORD || ""}`,
+  "",
 ].join("\n");
 await writeFile(envPath, output, "utf8");
 console.log("Custom CMS database ready. Local admin credentials stored only in .env.local.");

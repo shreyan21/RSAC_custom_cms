@@ -194,6 +194,7 @@ export const addLatestSectionItem = (html, ordered = true, documentRef) => {
       const template = rows[0] || table.querySelector("tr");
       const columnCount = Math.max(1, template?.cells?.length || 1);
       const row = container.ownerDocument.createElement("tr");
+      row.dataset.rsacAddedItem = "true";
       for (let index = 0; index < columnCount; index += 1) {
         const cell = container.ownerDocument.createElement("td");
         cell.append(container.ownerDocument.createElement("p"));
@@ -215,6 +216,7 @@ export const addLatestSectionItem = (html, ordered = true, documentRef) => {
     container.append(list);
   }
   const item = container.ownerDocument.createElement("li");
+  item.dataset.rsacAddedItem = "true";
   item.append(container.ownerDocument.createElement("p"));
   list.prepend(item);
   return container.innerHTML;

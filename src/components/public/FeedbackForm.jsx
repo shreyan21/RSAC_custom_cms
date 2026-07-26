@@ -15,10 +15,11 @@ const initialForm = {
   district: "",
   phone: "",
   comments: "",
+  website: "",
 };
 
 const FeedbackForm = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   // false | "cms" (stored successfully)
@@ -45,7 +46,7 @@ const FeedbackForm = () => {
     badEmail: t("Enter a valid email Id."),
     badPhone: t("Enter a valid phone number."),
     okTitle: t("Thank you!"),
-    okBody: t("Your email app has opened with your feedback. Please confirm to send it."),
+    okBodySent: t("Your feedback has been recorded successfully. Thank you for your suggestions."),
     okBodyStored: t("Your feedback has been recorded successfully. Thank you for your suggestions."),
     sending: t("Sending..."),
     again: t("Send another response"),
@@ -84,7 +85,7 @@ const FeedbackForm = () => {
 
     // Store the submission in the custom CMS so it is available to authorised staff.
     setSubmitting(true);
-    const stored = await submitCmsFeedback({
+    const result = await submitCmsFeedback({
       name: form.name.trim(),
       email: form.email.trim(),
       address: form.address.trim(),
@@ -93,11 +94,13 @@ const FeedbackForm = () => {
       district: form.district.trim(),
       phone: form.phone.trim(),
       comments: form.comments.trim(),
+      website: form.website,
+      language,
     });
     setSubmitting(false);
 
-    if (stored) {
-      setSent("cms");
+    if (result?.ok) {
+      setSent(result.delivery === "sent" ? "sent" : "stored");
       return;
     }
 
@@ -119,7 +122,7 @@ const FeedbackForm = () => {
         />
         <h2 className="mt-3 text-xl font-extrabold text-[#102f46]">{L.okTitle}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-          {sent === "cms" ? L.okBodyStored : L.okBody}
+          {sent === "sent" ? L.okBodySent : L.okBodyStored}
         </p>
         <button
           type="button"
@@ -159,6 +162,17 @@ const FeedbackForm = () => {
       <h2 className="text-2xl font-extrabold text-[#102f46]">{L.title}</h2>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{L.intro}</p>
       <p className="mt-1 text-xs font-semibold text-[#c2410c]">{L.mandatory}</p>
+      <div hidden aria-hidden="true">
+        <label htmlFor="fb-website">Website</label>
+        <input
+          id="fb-website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.website}
+          onChange={setField("website")}
+        />
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>

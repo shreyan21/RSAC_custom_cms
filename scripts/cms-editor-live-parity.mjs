@@ -68,8 +68,9 @@ try {
     if (isDivision && !contract.length) {
       problems.push(`${row.entry_key} has no public division section contract.`);
     }
-    if (isDivision && englishBlocks.length !== contract.length) {
-      problems.push(`${row.entry_key} has ${englishBlocks.length} CMS sections but public site has ${contract.length}.`);
+    const englishContractBlocks = englishBlocks.filter((block) => !String(block?.id || "").startsWith("cms-section-"));
+    if (isDivision && englishContractBlocks.length !== contract.length) {
+      problems.push(`${row.entry_key} has ${englishContractBlocks.length} standard CMS sections but public site has ${contract.length}.`);
     }
 
     for (const [language, blocks] of [
@@ -94,21 +95,27 @@ try {
         if (!Object.hasOwn(block || {}, "contentHtml")) {
           problems.push(`${row.entry_key} ${language} ${heading} has no canonical rich-text field.`);
         }
-        if (Object.hasOwn(block || {}, "children")) {
+        const unsupportedChildren = (block?.children || []).filter(
+          (child) => !String(child?.key || "").startsWith("profile-content:")
+        );
+        if (unsupportedChildren.length) {
           problems.push(`${row.entry_key} ${language} ${heading} still exposes legacy item rows.`);
         }
 
-        if (isDivision) {
-          const expected = contract[index];
-          const expectedHeading = language === "English"
-            ? expected?.englishLabel
-            : expected?.hindiLabel;
-          if (blockHeading(block) !== expectedHeading) {
+        if (isDivision && !String(block?.id || "").startsWith("cms-section-")) {
+          const heading = blockHeading(block);
+          const expected = contract.find((section) =>
+            language === "English"
+              ? section.englishLabel === heading || section.englishLabel === String(block?.sourceLabel || "").trim()
+              : section.hindiLabel === heading || section.englishLabel === String(block?.sourceLabel || "").trim()
+          );
+          const expectedHeading = language === "English" ? expected?.englishLabel : expected?.hindiLabel;
+          if (!expected || heading !== expectedHeading) {
             problems.push(
-              `${row.entry_key} ${language} section ${index + 1} is "${blockHeading(block)}"; expected "${expectedHeading}".`
+              `${row.entry_key} ${language} section ${index + 1} is "${heading}" and does not match its public section contract.`
             );
           }
-          if (String(block?.sourceLabel || "").trim() !== expected?.englishLabel) {
+          if (expected && String(block?.sourceLabel || "").trim() !== expected.englishLabel) {
             problems.push(`${row.entry_key} ${language} ${expectedHeading} has stale source ownership.`);
           }
         }

@@ -19,7 +19,7 @@ const AdministrationPage = () => {
       ]}
       actions={<BackButton fallback="/manpower" label={c.backLabel} />}
     >
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {administrationProfiles.map((profile, index) => (
           <ProfileFlipCard
             key={`${profile.profileType || "administration"}-${profile.id || profile.employeeId || profile.name}-${index}`}

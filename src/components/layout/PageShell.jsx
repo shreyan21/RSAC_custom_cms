@@ -5,33 +5,56 @@ import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "../../hooks/useData";
 
 const headingClasses = {
+  tiny: "mt-3 text-[1.25rem] md:text-[1.55rem]",
   compact: "mt-3 text-[1.5rem] md:text-[1.9rem]",
   normal: "mt-3 text-[1.9rem] md:text-[2.5rem]",
   large: "mt-3 text-[2.5rem] md:text-[3.35rem]",
+  xlarge: "mt-3 text-[3rem] md:text-[4.1rem]",
 };
 
 const introClasses = {
+  tiny: "text-xs md:text-sm",
   compact: "text-sm md:text-base",
   normal: "text-base md:text-lg",
   large: "text-lg md:text-xl",
+  xlarge: "text-xl md:text-2xl",
 };
 
 const soloEyebrowClasses = {
+  tiny: "rsac-kicker--small",
   compact: "rsac-kicker--normal",
   normal: "rsac-kicker--large",
   large: "rsac-kicker--page-large",
+  xlarge: "rsac-kicker--page-xlarge",
 };
 
 const eyebrowSizeClasses = {
+  tiny: "rsac-kicker--tiny",
   compact: "rsac-kicker--small",
   normal: "rsac-kicker--normal",
   large: "rsac-kicker--large",
+  xlarge: "rsac-kicker--page-large",
 };
 
 const eyebrowBarHeights = {
+  tiny: "0.8rem",
   compact: "1rem",
   normal: "1.2rem",
   large: "1.5rem",
+  xlarge: "1.8rem",
+};
+
+const fontStacks = {
+  Inter: '"Inter Variable", Inter, "Noto Sans Devanagari Variable", "Noto Sans Devanagari", sans-serif',
+  "Plus Jakarta Sans": '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", sans-serif',
+  "System Sans": '"Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Segoe UI", Arial, sans-serif',
+  "System Serif": 'Georgia, "Noto Serif Devanagari", "Nirmala UI", serif',
+};
+
+const clampedPixels = (value, minimum, maximum) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return undefined;
+  return `${Math.min(maximum, Math.max(minimum, number))}px`;
 };
 
 const contentWidthClasses = {
@@ -66,6 +89,11 @@ const PageShell = ({
   eyebrowSize: pageEyebrowSize,
   headingSize: pageHeadingSize = "normal",
   contentSize = "normal",
+  pageFont,
+  headingFont,
+  bodyFontSize,
+  headingFontSize,
+  eyebrowFontSize,
   contentWidth = "normal",
   mediaSize = "normal",
   contentSpacing = "normal",
@@ -98,14 +126,30 @@ const PageShell = ({
       : "1.05rem";
   const EyebrowTag = !resolvedTitle ? "h1" : "p";
   const resolvedContentSize = display?.contentSize || contentSize || "normal";
+  const resolvedPageFont = display?.pageFont || pageFont;
+  const resolvedHeadingFont = display?.headingFont || headingFont;
+  const resolvedBodyFontSize = clampedPixels(display?.bodyFontSize || bodyFontSize, 13, 22);
+  const resolvedHeadingFontSize = clampedPixels(display?.headingFontSize || headingFontSize, 24, 72);
+  const resolvedEyebrowFontSize = clampedPixels(display?.eyebrowFontSize || eyebrowFontSize, 11, 28);
   const resolvedContentWidth = display?.contentWidth || contentWidth || "normal";
   const resolvedMediaSize = display?.mediaSize || mediaSize || "normal";
   const resolvedContentSpacing = display?.contentSpacing || contentSpacing || "normal";
+  const pageStyle = {
+    ...(fontStacks[resolvedPageFont] ? { "--rsac-page-font": fontStacks[resolvedPageFont] } : {}),
+    ...(fontStacks[resolvedHeadingFont] ? { "--rsac-page-heading-font": fontStacks[resolvedHeadingFont] } : {}),
+    ...(resolvedBodyFontSize ? { "--rsac-page-body-size": resolvedBodyFontSize } : {}),
+    ...(resolvedHeadingFontSize ? { "--rsac-page-heading-size": resolvedHeadingFontSize } : {}),
+    ...(resolvedEyebrowFontSize ? { "--rsac-page-eyebrow-size": resolvedEyebrowFontSize } : {}),
+  };
 
   return (
     <main
       id="main-content"
       tabIndex={-1}
+      style={pageStyle}
+      data-rsac-custom-body-size={Boolean(resolvedBodyFontSize)}
+      data-rsac-custom-heading-size={Boolean(resolvedHeadingFontSize)}
+      data-rsac-custom-eyebrow-size={Boolean(resolvedEyebrowFontSize)}
       className={`page-shell-enter page-shell-surface min-h-screen px-5 pb-12 sm:px-8 md:px-12 lg:px-20 ${
         isCompact
           ? "pt-28 sm:pt-32 lg:pt-32"
@@ -145,8 +189,12 @@ const PageShell = ({
                     ? headingClasses[headingSize] || headingClasses.normal
                     : headingSize === "compact"
                       ? "mt-4 text-[1.9rem] md:text-[2.55rem]"
+                      : headingSize === "tiny"
+                        ? "mt-4 text-[1.55rem] md:text-[1.95rem]"
                       : headingSize === "large"
                         ? "mt-4 text-[2.8rem] md:text-[3.8rem]"
+                        : headingSize === "xlarge"
+                          ? "mt-4 text-[3.2rem] md:text-[4.5rem]"
                         : "mt-4 text-[2.35rem] md:text-[3.2rem]"
                 }`}
               >

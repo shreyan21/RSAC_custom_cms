@@ -61,7 +61,6 @@ const AdministrationPage = lazy(() =>
 );
 const LeadershipPage = lazy(() => import("./pages/people/LeadershipPage"));
 const ManpowerPage = lazy(() => import("./pages/people/ManpowerPage"));
-const ScientistsPage = lazy(() => import("./pages/people/ScientistsPage"));
 const TechnicalStaffPage = lazy(() =>
   import("./pages/people/TechnicalStaffPage")
 );
@@ -390,7 +389,7 @@ function App() {
 
         <Route
           path="/scientists"
-          element={officialContentRoute(<ScientistsPage />)}
+          element={<Navigate to="/about-us/scientific-manpower" replace />}
         />
 
         <Route

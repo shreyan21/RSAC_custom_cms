@@ -186,7 +186,6 @@ const additionalUiLabelDefaults = [
   "Enter a valid email Id.",
   "Enter a valid phone number.",
   "Thank you!",
-  "Your email app has opened with your feedback. Please confirm to send it.",
   "Your feedback has been recorded successfully. Thank you for your suggestions.",
   "Sending...",
   "Send another response",

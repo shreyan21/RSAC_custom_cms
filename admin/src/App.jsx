@@ -1,12 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Archive, ArrowLeft, BookOpen, Check, ChevronRight, ExternalLink, FileText,
+  Archive, ArrowLeft, BookOpen, Check, ChevronRight, FileText,
   Eye, History, Languages, LayoutDashboard, LoaderCircle, LogOut, Menu, MessageSquare,
   Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Users, X,
 } from "lucide-react";
 import upEmblem from "../../src/assets/images/up-emblem.webp";
 import rsacLogo from "../../src/assets/images/rsac-logo.webp";
-import { api, setCsrfToken, websiteUrl } from "./api";
+import { api, setCsrfToken } from "./api";
 import FieldInput from "./FieldInput";
 import { fieldHelpText } from "./fieldHelpText";
 import { cmsGroups } from "./cmsGroups";
@@ -220,8 +220,9 @@ function Login({ onLogin }) {
   return (
     <main className="login-page">
       <section className="login-panel" aria-labelledby="cms-login-title">
+        <img className="login-corner-logo" src={rsacLogo} alt="RSAC-UP logo" />
         <div className="government-identity"><img src={upEmblem} alt="Government of Uttar Pradesh emblem" /><span>Government of Uttar Pradesh</span></div>
-        <div className="identity-mark"><img className="cms-brand-logo" src={rsacLogo} alt="" /><div><strong>RSAC-UP</strong><span>Custom Content Management</span></div></div>
+        <div className="identity-mark"><div><strong>RSAC-UP</strong><span>Custom Content Management</span></div></div>
         <h1 id="cms-login-title">Editor sign in</h1>
         <p>Manage approved English and Hindi website content from one secure portal.</p>
         {error && <div className="alert error" role="alert">{error}</div>}
@@ -312,11 +313,13 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
 function GuideView() {
   const tasks = [
     ["Edit one division section", "Open Division Content, select a division, then open only Research Papers, Projects, Reports, Software, Hardware, Photos, or another section. Edit its complete content in one rich-text box."],
+    ["Add a division section", "Open Division Content, choose the division, then select Add a new section. Enter the English heading and content, switch to Hindi for its translation, preview, then Save."],
     ["Add division research or projects", "Open the required division section. Add a paragraph or list item in its rich-text box, complete English and Hindi separately, then Save."],
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
     ["Change card order", "Open Advanced options and set Sort order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
     ["Fix a repeated person card", "Open Scientists / Officials / Staff, search the name, keep the correct record and archive the extra. For an imported Our Formers card, open About Pages, choose that page, open Page heading and layout, then enter the exact unwanted name under Hide profile cards."],
+    ["Add division-only profile information", "Open Division Content, choose the division and Scientific Manpower. The photo and master profile remain shared; write extra English or Hindi content beside that person and Save."],
     ["Add page sections", "Open the matching page collection. Flexible page blocks provide Add item buttons for text, cards, images, galleries, tables, links, or dividers."],
     ["Change page headings", "Open Page Headings and Subheadings. Hide, rename or resize a heading or introduction for an exact route such as /gallery or a route group such as /divisions/*."],
     ["Change homepage text sizes", "Open Homepage, Sitemap and Global Text. Use Homepage default text sizes for all sections, or Homepage section size overrides for one section."],
@@ -366,8 +369,74 @@ function UsersView({ currentUser, notify }) {
 
 function FeedbackView({ notify }) {
   const [items, setItems] = useState([]);
-  useEffect(() => { api("/api/admin/feedback").then((result) => setItems(result.data)).catch((error) => notify(error.message, "error")); }, [notify]);
-  return <section className="feedback-view"><div className="section-intro"><div><h2>Website feedback</h2><p>Responses submitted through the public feedback form.</p></div></div><div className="feedback-list">{items.map((item) => <article key={item.id}><header><strong>{item.name}</strong><span>{new Date(item.created_at).toLocaleString()}</span></header><p>{item.comments}</p><footer>{[item.email, item.phone, item.district, item.state].filter(Boolean).join(" · ")}</footer></article>)}{!items.length && <div className="empty-panel">No feedback received.</div>}</div></section>;
+  const [sendingId, setSendingId] = useState("");
+  const load = useCallback(
+    () => api("/api/admin/feedback")
+      .then((result) => setItems(result.data))
+      .catch((error) => notify(error.message, "error")),
+    [notify]
+  );
+  useEffect(() => { load(); }, [load]);
+  const send = async (item) => {
+    setSendingId(item.id);
+    try {
+      await api(`/api/admin/feedback/${item.id}/send`, { method: "POST" });
+      notify("Feedback email sent.", "success");
+      await load();
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setSendingId("");
+    }
+  };
+  return (
+    <section className="feedback-view">
+      <div className="section-intro">
+        <div>
+          <h2>Website feedback</h2>
+          <p>Every response is saved here. SMTP-configured servers also notify approved recipients.</p>
+        </div>
+      </div>
+      <div className="feedback-list">
+        {items.map((item) => (
+          <article key={item.id}>
+            <header>
+              <div>
+                <strong>{item.name}</strong>
+                <span className={`feedback-delivery feedback-delivery--${item.delivery_status || "pending"}`}>
+                  {item.delivery_status === "sent"
+                    ? "Email sent"
+                    : item.delivery_status === "failed"
+                      ? "Email failed"
+                      : item.delivery_status === "disabled"
+                        ? "Saved - email not configured"
+                        : "Pending"}
+                </span>
+              </div>
+              <span>{new Date(item.created_at).toLocaleString()}</span>
+            </header>
+            <p>{item.comments}</p>
+            <dl className="feedback-contact">
+              <div><dt>Email</dt><dd><a href={`mailto:${item.email}`}>{item.email}</a></dd></div>
+              <div><dt>Phone</dt><dd>{item.phone}</dd></div>
+              <div><dt>Location</dt><dd>{[item.district, item.state, item.country].filter(Boolean).join(", ")}</dd></div>
+              <div><dt>Address</dt><dd>{item.address}</dd></div>
+            </dl>
+            <footer>
+              <span>{item.language === "hi" ? "Hindi submission" : "English submission"} · Delivery attempts: {item.delivery_attempts || 0}</span>
+              {item.delivery_status !== "sent" && (
+                <button className="secondary" disabled={sendingId === item.id} onClick={() => send(item)}>
+                  <RefreshCw className={sendingId === item.id ? "spin" : ""} />
+                  {sendingId === item.id ? "Sending..." : "Send email"}
+                </button>
+              )}
+            </footer>
+          </article>
+        ))}
+        {!items.length && <div className="empty-panel">No feedback received.</div>}
+      </div>
+    </section>
+  );
 }
 
 export default function App() {
@@ -376,6 +445,7 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   const [selected, setSelected] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [profileEntries, setProfileEntries] = useState([]);
   const [editing, setEditing] = useState(null);
   const [view, setView] = useState("dashboard");
   const [search, setSearch] = useState("");
@@ -400,7 +470,7 @@ export default function App() {
 
   useEffect(() => { api("/api/auth/me").then((result) => { setCsrfToken(result.csrfToken); setUser(result.user); return loadCollections(); }).catch(() => {}).finally(() => setBooting(false)); }, [loadCollections]);
   const openView = (next) => { setView(next); setSelected(null); setEditing(null); setMenuOpen(false); };
-  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setMenuOpen(false); try { const result = (await api(`/api/admin/content/${definition.storageId || definition.id}`)).data; const fieldFiltered = definition.filterField ? result.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
+  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setMenuOpen(false); try { const [result, peopleResult] = await Promise.all([api(`/api/admin/content/${definition.storageId || definition.id}`), definition.workspace ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] })]); const fieldFiltered = definition.filterField ? result.data.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result.data; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); setProfileEntries(peopleResult.data.filter((entry) => entry.status !== "archived")); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
   const addNew = (definition) => { setSelected(definition); setView("collection"); setEditing("new"); setMenuOpen(false); };
   const refreshCollection = async () => { if (selected) await openCollection(selected); await loadCollections(); };
   const archive = async (entry) => { if (!window.confirm(`Archive "${titleOf(entry)}"? It will disappear from the public website.`)) return; try { await api(`/api/admin/content/${selected.storageId || selected.id}/${entry.id}`, { method: "DELETE" }); notify("Item archived.", "success"); await refreshCollection(); } catch (error) { notify(error.message, "error"); } };
@@ -426,18 +496,18 @@ export default function App() {
     <div className="admin-app">
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
-        <div className="brand"><img className="cms-brand-logo" src={rsacLogo} alt="" /><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
+        <div className="brand"><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
         <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{divisionWorkspaceDefinition && navButton("content_workspace", <FileText />, "Division content", () => openCollection(divisionWorkspaceDefinition))}{navButton("guide", <BookOpen />, "Editor guide")}{navButton("feedback", <MessageSquare />, "Website feedback")}{navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>
       <main className="main-content">
-        <header className="top-header"><button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><a className="website-link" href={websiteUrl} target="_blank" rel="noreferrer">Open website <ExternalLink /></a></header>
+        <header className="top-header"><button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.id === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
         {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
-        {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
+        {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} profiles={profileEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "profiles"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
         {view === "collection" && selected && <section className="collection-view"><div className="collection-tools"><button className="back-button" onClick={() => openView("dashboard")}><ArrowLeft /> Collections</button><div className="search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title or key" /></div>{selected.allowCreate !== false && (!selected.singleton || !entries.some((entry) => entry.status !== "archived")) && <button className="primary" onClick={() => setEditing("new")}><Plus /> Add new</button>}</div><div className="sort-help"><RefreshCw /> {selected.id === "division_pages" ? "Choose a division, then open one section. English and Hindi remain separate." : selected.autoNewestFirst ? "New items appear first automatically and are numbered from 1." : "Lower Sort order appears first."} Open website tabs update automatically after published changes.</div><div className="content-table-wrap"><table className="content-table"><thead><tr><th>Content</th><th>English</th><th>Hindi</th><th>Status</th><th>Order</th><th /></tr></thead><tbody>{filteredEntries.map((entry) => <tr key={entry.id}><td data-label="Content"><strong>{titleOf(entry)}</strong><small>{entry.entryKey}</small></td><td data-label="English">{hasLanguage(entry, "dataEn") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Hindi">{hasLanguage(entry, "dataHi") ? <span className="language-ready"><Check /> Ready</span> : <span className="language-missing">Missing</span>}</td><td data-label="Status"><span className={`status ${entry.status}`}>{entry.status}</span></td><td data-label="Order">{selected.autoNewestFirst ? "Auto" : entry.sortOrder}</td><td className="content-actions"><div className="row-actions"><button onClick={() => setEditing(entry)}>{selected.id === "division_pages" ? <><ChevronRight /> Open sections</> : <><Pencil /> Edit</>}</button>{selected.id !== "division_pages" && entry.status !== "archived" && <button className="archive" aria-label={`Archive ${titleOf(entry)}`} title="Archive" onClick={() => archive(entry)}><Archive /></button>}</div></td></tr>)}{!filteredEntries.length && <tr><td colSpan="6" className="empty-row">No content found.</td></tr>}</tbody></table></div></section>}
         {view === "guide" && <GuideView />}
         {view === "feedback" && <FeedbackView notify={notify} />}

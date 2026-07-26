@@ -72,11 +72,7 @@ const linkedProfileTypes = new Set(["official", "leadership"]);
 
 const profilesMatchAcrossTypes = (left, right) => {
   const leftKeys = new Set(publicProfileKeys(left, { includeType: false }));
-  const identityMatch = publicProfileKeys(right, { includeType: false }).some((key) => leftKeys.has(key));
-  return identityMatch || (
-    Number.isFinite(left.__cmsSortOrder) &&
-    left.__cmsSortOrder === right.__cmsSortOrder
-  );
+  return publicProfileKeys(right, { includeType: false }).some((key) => leftKeys.has(key));
 };
 
 const newerProfile = (left, right) => {

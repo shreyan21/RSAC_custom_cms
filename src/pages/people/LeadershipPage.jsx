@@ -20,12 +20,11 @@ const LeadershipPage = () => {
       ]}
       actions={<BackButton fallback="/manpower" label={c.backLabel} />}
     >
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {leadershipProfiles.map((profile, index) => (
           <ProfileFlipCard
             key={`${profile.profileType || "leadership"}-${profile.id || profile.name}-${index}`}
             profile={profile}
-            enableFlip={false}
           />
         ))}
       </div>

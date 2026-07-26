@@ -173,7 +173,7 @@ export const divisionRowsForSection = (block, referenceBlock) => {
 
 export const createLocalizedDivisionBlock = (referenceBlock, language = "hi") => ({
   ...structuredClone(referenceBlock || {}),
-  id: `${referenceBlock?.id || "section"}-${language}-cms`,
+  id: referenceBlock?.id || `section-${language}-cms`,
   value: "",
   hidden: false,
   assets: [],

@@ -16,12 +16,42 @@ const blockType = (block) => asText(block?.type || block?.kind || "rich_text")
   .replace(/[ -]+/g, "_");
 const columns = (value, fallback = 3) => gridColumns[Math.min(4, Math.max(1, Number(value) || fallback))];
 
-const blockProps = (block, className) => ({
-  className: `${className} cms-flexible-block`,
-  "data-cms-text-size": block.textSize || "normal",
-  "data-cms-media-size": block.mediaSize || "normal",
-  "data-cms-spacing": block.spacing || "normal",
-});
+const fontStacks = {
+  Inter: '"Inter Variable", Inter, "Noto Sans Devanagari Variable", "Noto Sans Devanagari", sans-serif',
+  "Plus Jakarta Sans": '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", sans-serif',
+  "System Sans": '"Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Segoe UI", Arial, sans-serif',
+  "System Serif": 'Georgia, "Noto Serif Devanagari", "Nirmala UI", serif',
+};
+
+const clampedPixels = (value, minimum, maximum) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return undefined;
+  return `${Math.min(maximum, Math.max(minimum, number))}px`;
+};
+
+const blockProps = (block, className) => {
+  const bodySize = clampedPixels(block.bodyFontSize, 13, 22);
+  const headingSize = clampedPixels(block.headingFontSize, 18, 56);
+  const eyebrowSize = clampedPixels(block.eyebrowFontSize, 11, 24);
+  return {
+    className: `${className} cms-flexible-block`,
+    "data-cms-text-size": block.textSize || "normal",
+    "data-cms-heading-size": block.headingSize || "normal",
+    "data-cms-eyebrow-size": block.eyebrowSize || "normal",
+    "data-cms-media-size": block.mediaSize || "normal",
+    "data-cms-spacing": block.spacing || "normal",
+    "data-cms-custom-body-size": Boolean(bodySize),
+    "data-cms-custom-heading-size": Boolean(headingSize),
+    "data-cms-custom-eyebrow-size": Boolean(eyebrowSize),
+    style: {
+      ...(fontStacks[block.fontFamily] ? { "--rsac-block-font": fontStacks[block.fontFamily] } : {}),
+      ...(fontStacks[block.headingFont] ? { "--rsac-block-heading-font": fontStacks[block.headingFont] } : {}),
+      ...(bodySize ? { "--rsac-block-body-size": bodySize } : {}),
+      ...(headingSize ? { "--rsac-block-heading-size": headingSize } : {}),
+      ...(eyebrowSize ? { "--rsac-block-eyebrow-size": eyebrowSize } : {}),
+    },
+  };
+};
 
 function BlockHeading({ block }) {
   const heading = block.heading || block.title;
@@ -29,9 +59,9 @@ function BlockHeading({ block }) {
 
   return (
     <header className="mb-4">
-      {block.eyebrow && <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0b6fa4]">{block.eyebrow}</p>}
-      <h2 className="text-xl font-extrabold leading-snug text-[#102f46] sm:text-2xl">{heading}</h2>
-      {block.intro && <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">{block.intro}</p>}
+      {block.eyebrow && <p className="cms-flexible-block-eyebrow mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0b6fa4]">{block.eyebrow}</p>}
+      <h2 className="cms-flexible-block-heading text-xl font-extrabold leading-snug text-[#102f46] sm:text-2xl">{heading}</h2>
+      {block.intro && <p className="cms-flexible-block-intro mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">{block.intro}</p>}
     </header>
   );
 }

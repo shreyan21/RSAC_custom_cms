@@ -249,8 +249,6 @@ Route definitions and existing public URLs live in `src/App.jsx`.
 | `scripts/lib/loader-extensionless.mjs` | Node compatibility loader for extensionless imports |
 | `scripts/lib/use-extensionless-loader.mjs` | Helper for invoking that compatibility loader |
 | `scripts/start-frontend-local.ps1` | Older Windows frontend-only helper; `npm run dev:all` is preferred |
-| `scripts/*.py` | Offline generation of hero/video/organisation-chart assets; not used by runtime servers |
-| `scripts/data/hero_boundaries.json` | Geographic input for offline hero generation |
 
 ## 12. Assets and Generated Content
 

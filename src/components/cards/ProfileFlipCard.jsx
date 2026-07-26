@@ -48,10 +48,17 @@ const isScientistCard = (profile) => {
 const localizeProfileValue = (value, t) =>
   value === null || value === undefined ? "" : t(String(value));
 
-const renderDetail = (detail, t, isHindi) =>
-  typeof detail === "string"
-    ? localizeProfileValue(detail, t, isHindi)
-    : `${localizeProfileValue(detail.label, t, isHindi)}: ${localizeProfileValue(detail.value, t, isHindi)}`;
+const detailParts = (detail, t, isHindi) => {
+  if (detail && typeof detail === "object") {
+    return {
+      label: localizeProfileValue(detail.label, t, isHindi),
+      value: localizeProfileValue(detail.value, t, isHindi),
+    };
+  }
+  const text = localizeProfileValue(detail, t, isHindi);
+  const match = text.match(/^([^:]{1,70}):\s*(.+)$/su);
+  return match ? { label: match[1], value: match[2] } : { label: "", value: text };
+};
 
 const ProfileFlipCard = ({
   profile,
@@ -65,28 +72,22 @@ const ProfileFlipCard = ({
   const circularImage = !isScientistCard(profile);
   const employeeId = profile.employeeId || profile.employee_id;
   const details = [
-    profile.specialization
-      ? localizeProfileValue(profile.specialization, t, isHindi)
-      : null,
-    profile.experience
-      ? `${t("Experience")}: ${localizeProfileValue(profile.experience, t, isHindi)}`
-      : null,
-    profile.publications
-      ? `${t("Publications")}: ${localizeProfileValue(profile.publications, t, isHindi)}`
-      : null,
+    profile.specialization ? { label: t("Area of Specialization"), value: localizeProfileValue(profile.specialization, t, isHindi) } : null,
+    profile.experience ? { label: t("Experience"), value: localizeProfileValue(profile.experience, t, isHindi) } : null,
+    profile.publications ? { label: t("Publications"), value: localizeProfileValue(profile.publications, t, isHindi) } : null,
   ].filter(Boolean);
   const mappedDetails =
-    profile.details?.map((detail) => renderDetail(detail, t, isHindi)) || [];
+    profile.details?.map((detail) => detailParts(detail, t, isHindi)).filter(({ value }) => value) || [];
   const canFlip = enableFlip && Boolean(details.length || mappedDetails.length || profile.email || profile.contact);
   const front = (
-    <div className="profile-flip-face profile-flip-front flex min-h-[348px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.075)]">
+    <div className="profile-flip-face profile-flip-front flex min-h-[304px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.075)]">
       <div
         className={`relative shrink-0 overflow-hidden bg-[linear-gradient(135deg,#e9f5ef_0%,#eef6fb_100%)] ${
-          circularImage ? "grid h-48 place-items-center p-5" : "h-44"
+          circularImage ? "grid h-40 place-items-center p-4" : "h-40"
         }`}
       >
         {imageUrl && circularImage ? (
-          <div className="rsac-circular-portrait h-36 w-36 border-4 border-white bg-white shadow-[0_14px_38px_rgba(18,50,74,0.14)]">
+          <div className="rsac-circular-portrait h-28 w-28 border-4 border-white bg-white shadow-[0_14px_38px_rgba(18,50,74,0.14)]">
             <img
               src={imageUrl}
               alt={localizedProfileName}
@@ -149,15 +150,15 @@ const ProfileFlipCard = ({
 
   if (!canFlip) {
     return (
-      <article className="rsac-profile-card rsac-cv-card min-h-[348px]">
+      <article className="rsac-profile-card rsac-cv-card min-h-[304px]">
         {front}
       </article>
     );
   }
 
   return (
-    <article className="profile-flip-card rsac-profile-card rsac-cv-card min-h-[348px]" tabIndex={0}>
-      <div className="profile-flip-inner min-h-[348px]">
+    <article className="profile-flip-card rsac-profile-card rsac-cv-card min-h-[304px]" tabIndex={0}>
+      <div className="profile-flip-inner min-h-[304px]">
         {front}
 
         <div
@@ -173,35 +174,31 @@ const ProfileFlipCard = ({
             {localizedProfileName}
           </h3>
 
-          <div className="mt-4 space-y-2 text-sm leading-relaxed text-white/78">
+          <dl className="mt-4 space-y-3 text-sm leading-relaxed">
             {details.map((detail) => (
-              <p key={detail}>
-                {detail}
-              </p>
+              <div key={`${detail.label}-${detail.value}`}>
+                <dt className="text-xs font-extrabold uppercase tracking-[0.12em] text-amber-300">{detail.label}</dt>
+                <dd className="mt-1 text-white/85">{detail.value}</dd>
+              </div>
             ))}
 
             {mappedDetails.map((detail) => (
-              <p key={detail}>
-                {detail}
-              </p>
+              <div key={`${detail.label}-${detail.value}`}>
+                {detail.label && <dt className="text-xs font-extrabold uppercase tracking-[0.12em] text-amber-300">{detail.label}</dt>}
+                <dd className={`${detail.label ? "mt-1" : ""} text-white/85`}>{detail.value}</dd>
+              </div>
             ))}
-          </div>
+          </dl>
 
-          <div className="mt-auto space-y-2 pt-4 text-sm text-white/78">
+          <dl className="mt-auto space-y-3 pt-4 text-sm">
             {profile.email && (
-              <p className="flex gap-2">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-orange-200" aria-hidden="true" />
-                <span className="min-w-0 break-words">{profile.email}</span>
-              </p>
+              <div><dt className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-amber-300"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{t("E-Mail")}</dt><dd className="mt-1 min-w-0 break-words text-white/85">{profile.email}</dd></div>
             )}
 
             {profile.contact && (
-              <p className="flex gap-2">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-orange-200" aria-hidden="true" />
-                <span className="min-w-0 break-words">{profile.contact}</span>
-              </p>
+              <div><dt className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-amber-300"><Phone className="h-4 w-4 shrink-0" aria-hidden="true" />{t("Contact No.")}</dt><dd className="mt-1 min-w-0 break-words text-white/85">{profile.contact}</dd></div>
             )}
-          </div>
+          </dl>
         </div>
       </div>
     </article>

@@ -3,7 +3,7 @@ import { getCollection } from "../shared/cmsCollections.js";
 
 const richTextOptions = {
   allowedTags: [
-    "p", "br", "strong", "em", "u", "s", "h2", "h3", "h4", "h5",
+    "p", "br", "hr", "strong", "em", "u", "s", "h2", "h3", "h4", "h5",
     "ul", "ol", "li", "blockquote", "a", "img", "figure", "figcaption",
     "table", "thead", "tbody", "tr", "th", "td", "caption", "span", "div",
   ],
@@ -11,9 +11,15 @@ const richTextOptions = {
     a: ["href", "target", "rel", "title"],
     img: ["src", "alt", "title", "loading", "width", "height"],
     table: ["class"],
-    th: ["colspan", "rowspan", "colwidth", "scope"],
-    td: ["colspan", "rowspan", "colwidth"],
-    span: ["data-rsac-tone"],
+    tr: ["data-rsac-added-item"],
+    p: ["data-rsac-align"],
+    h2: ["data-rsac-align"],
+    h3: ["data-rsac-align"],
+    h4: ["data-rsac-align"],
+    th: ["colspan", "rowspan", "colwidth", "scope", "data-rsac-align"],
+    td: ["colspan", "rowspan", "colwidth", "data-rsac-align"],
+    li: ["data-rsac-added-item"],
+    span: ["data-rsac-tone", "data-rsac-font", "data-rsac-size"],
     "*": ["lang"],
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],
@@ -23,22 +29,6 @@ const richTextOptions = {
     img: sanitizeHtml.simpleTransform("img", { loading: "lazy" }, true),
   },
 };
-
-const inlineRichTextOptions = {
-  allowedTags: ["strong", "b", "em", "i", "span", "br"],
-  allowedAttributes: { span: ["data-rsac-tone"] },
-  transformTags: {
-    span: (tagName, attributes) => ({
-      tagName,
-      attribs: attributes["data-rsac-tone"] === "light"
-        ? { "data-rsac-tone": "light" }
-        : {},
-    }),
-  },
-};
-
-const cleanInlineRichText = (value) =>
-  sanitizeHtml(String(value || ""), inlineRichTextOptions).slice(0, 100000);
 
 const cleanUrl = (value) => {
   const text = String(value || "").trim();
@@ -103,7 +93,7 @@ const cleanBlocks = (blocks) => {
           key: String(child.key || "").slice(0, 160),
           label: String(child.label || "").trim().slice(0, 1000),
           value: String(child.value || "").trim().slice(0, 50000),
-          richText: cleanInlineRichText(child.richText),
+          richText: sanitizeHtml(String(child.richText || ""), richTextOptions).slice(0, 100000),
           hidden: Boolean(child.hidden),
           isNew: Boolean(child.isNew),
         };
@@ -131,7 +121,10 @@ const cleanValue = (field, value) => {
       : "";
   }
   if (field.type === "list") return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 200) : typeof value === "string" ? value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : [];
-  if (field.type === "json") return typeof value === "object" ? value : JSON.parse(String(value || "{}"));
+  if (field.type === "json") {
+    const parsed = typeof value === "object" ? value : JSON.parse(String(value || "{}"));
+    return parsed;
+  }
   if (field.type === "blocks") return cleanBlocks(value);
   if (field.type === "richtext") return sanitizeHtml(String(value), richTextOptions);
   if (["url", "media"].includes(field.type)) return cleanUrl(value);
@@ -159,6 +152,21 @@ export const validateEntryPayload = (collectionId, payload) => {
     }
     if (field.required && !dataEn[field.name]) {
       throw Object.assign(new Error(`${field.label} is required`), { status: 400 });
+    }
+  }
+  if (definition.id === "pages") {
+    const englishCustomIds = (dataEn.blocks || [])
+      .map((block) => String(block?.id || ""))
+      .filter((id) => id.startsWith("cms-section-"));
+    const hindiCustomIds = new Set(
+      (dataHi.blocks || []).map((block) => String(block?.id || ""))
+    );
+    if (new Set(englishCustomIds).size !== englishCustomIds.length) {
+      throw Object.assign(new Error("A custom section is duplicated. Reload the page editor and try again."), { status: 400 });
+    }
+    const missingHindiPair = englishCustomIds.find((id) => !hindiCustomIds.has(id));
+    if (missingHindiPair) {
+      throw Object.assign(new Error("A custom section lost its Hindi pair. Reload the page editor and try again."), { status: 400 });
     }
   }
   const status = ["draft", "published", "archived"].includes(payload.status) ? payload.status : "draft";

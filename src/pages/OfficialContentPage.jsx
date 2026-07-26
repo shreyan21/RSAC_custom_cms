@@ -29,10 +29,14 @@ import Lightbox from "../components/media/Lightbox";
 import BackButton from "../components/navigation/BackButton";
 import {
   useRsacOfficialSections,
+  useAdministrationProfiles,
   useDivisions,
   useFormerProfiles,
+  useLeadershipProfiles,
+  useOfficials,
   useScientistProfiles,
   useSiteSettings,
+  useTechnicalProfiles,
 } from "../hooks/useData";
 import { useLanguage } from "../hooks/useLanguage";
 import { scrollToTarget } from "../utils/scroll";
@@ -59,6 +63,20 @@ import {
   sanitizeInlineRichText,
 } from "../data/pageTextFields";
 import { SHOW_BREADCRUMBS } from "../config/uiConfig";
+import { findProfileSectionContent } from "../../shared/profileSectionContent";
+
+const useCanonicalProfiles = () => {
+  const scientists = useScientistProfiles();
+  const former = useFormerProfiles();
+  const technical = useTechnicalProfiles();
+  const administration = useAdministrationProfiles();
+  const officials = useOfficials();
+  const leadership = useLeadershipProfiles();
+  return useMemo(
+    () => [...scientists, ...former, ...technical, ...administration, ...officials, ...leadership],
+    [scientists, former, technical, administration, officials, leadership]
+  );
+};
 
 const localizeOfficialText = (text) =>
   typeof text === "string" ? getUiLabelOverride(text) || text : text;
@@ -609,7 +627,10 @@ const normalizeEquivalentHonorifics = (value) =>
       .replace(/^(?:mrs\.?|smt)\s+/i, "smt ")
   );
 
-const getScientistProfileData = (scientistProfiles) => scientistProfiles || [];
+const getCanonicalProfileData = (profiles) => profiles || [];
+const getScientistProfileData = (profiles) => getCanonicalProfileData(profiles).filter((profile) =>
+  !profile?.profileType || profile.profileType === "scientist"
+);
 
 // Active-scientist identity by name, language-robust. The scientific-manpower
 // page is filtered to the active roster by name, but the two sides can disagree
@@ -933,7 +954,8 @@ const getActiveScientistEmployeeIds = (scientistProfiles) =>
 const getKnownScientistProfile = (profile, scientistProfiles) => {
   // Match the current localized CMS roster even when imported page headings
   // use the other language or a different honorific.
-  const scientists = getScientistProfileData(scientistProfiles);
+  const scientists = getCanonicalProfileData(scientistProfiles);
+  const profileId = String(profile?.id || profile?.profileId || "");
   const employeeId = getProfileEmployeeId(profile);
   const profileName = normalizeEquivalentHonorifics(getProfileName(profile));
   const profileNames = new Set([
@@ -942,6 +964,7 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
   ].filter(Boolean));
 
   const matched = (
+    (profileId && scientists.find((scientist) => String(scientist?.id || "") === profileId)) ||
     (employeeId &&
       scientists.find(
         (scientist) => getProfileEmployeeId(scientist) === employeeId
@@ -978,7 +1001,7 @@ const mergeKnownScientistDetails = (
 
   const supplements = supplementalProfiles.filter(Boolean);
   const knownDetails = knownProfile
-    ? getProfileDetails({ ...knownProfile, details: undefined })
+    ? getProfileDetails(knownProfile)
     : [];
   const mergedDetails = mergeProfileDetailRows(
     knownDetails,
@@ -1064,9 +1087,13 @@ const isPlaceholderProfileImage = (value) =>
 
 const getProfileIdentityKeys = (profile) => {
   const keys = new Set();
+  const profileId = String(profile?.id || profile?.profileId || "").trim();
   const employeeId = getProfileEmployeeId(profile);
   const email = compactText(profile.email || profile.acf?.email).toLowerCase();
 
+  if (profileId) {
+    keys.add(`id:${profileId}`);
+  }
   if (employeeId && employeeId !== "notlisted") {
     keys.add(`employee:${employeeId}`);
   }
@@ -2382,8 +2409,12 @@ const sortLatestFirstContent = (document, sectionKey) => {
   });
 };
 
-const fillSerialNumbersInDocument = (document, sectionKey) => {
-  sortLatestFirstContent(document, sectionKey);
+const fillSerialNumbersInDocument = (
+  document,
+  sectionKey,
+  { sortContent = true } = {}
+) => {
+  if (sortContent) sortLatestFirstContent(document, sectionKey);
 
   document.querySelectorAll("table").forEach((table) => {
     const rows = Array.from(table.querySelectorAll("tr"));
@@ -3769,7 +3800,7 @@ const normalizeRichContentTables = (document) => {
 const enhanceRichContentHtml = (
   html,
   sectionKey,
-  { language = "en" } = {}
+  { language = "en", preserveItemOrder = false } = {}
 ) => {
   if (typeof DOMParser === "undefined") {
     return html;
@@ -4021,7 +4052,9 @@ const enhanceRichContentHtml = (
       fillers.forEach((filler) => filler.remove());
     });
 
-  fillSerialNumbersInDocument(parsedDocument, sectionKey);
+  fillSerialNumbersInDocument(parsedDocument, sectionKey, {
+    sortContent: !preserveItemOrder,
+  });
   normalizeRichContentTables(parsedDocument);
 
   parsedDocument.body.querySelectorAll("ul, ol").forEach((list) => {
@@ -4126,6 +4159,7 @@ const OfficialHtmlContent = ({
   baseTitle,
   pageSlug,
   sectionKey,
+  preserveItemOrder = false,
   stripProfiles = false,
   stripMediaHeadings = true,
 }) => {
@@ -4141,10 +4175,10 @@ const OfficialHtmlContent = ({
         stripMediaHeadings,
       }),
       sectionKey,
-      { pageTitle, language }
+      { pageTitle, language, preserveItemOrder }
     );
     return built;
-  }, [html, pageTitle, baseTitle, sectionKey, stripProfiles, stripMediaHeadings, language]);
+  }, [html, pageTitle, baseTitle, sectionKey, preserveItemOrder, stripProfiles, stripMediaHeadings, language]);
 
   // Open Map/Photos (and any body image) in the shared Lightbox with prev/next
   // instead of leaving the site for the raw file. Links that lead to a
@@ -5092,13 +5126,13 @@ const OfficialProfileCard = ({
 
   return (
     <article
-      className="profile-flip-card rsac-profile-card rsac-cv-card h-full min-h-[328px] min-w-0 max-w-full"
+      className="profile-flip-card rsac-profile-card rsac-cv-card h-full min-h-[304px] min-w-0 max-w-full"
       tabIndex={0}
     >
-      <div className="profile-flip-inner h-full min-h-[328px] min-w-0 max-w-full">
-        <div className="profile-flip-face profile-flip-front flex h-full min-h-[328px] min-w-0 max-w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.07)]">
+      <div className="profile-flip-inner h-full min-h-[304px] min-w-0 max-w-full">
+        <div className="profile-flip-face profile-flip-front flex h-full min-h-[304px] min-w-0 max-w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(18,50,74,0.07)]">
           <div className={`relative shrink-0 overflow-hidden bg-[linear-gradient(135deg,#edf7f2_0%,#eef6fb_100%)] ${
-            circularImage ? "grid h-40 place-items-center p-4" : "h-40"
+            circularImage ? "grid h-36 place-items-center p-3" : "h-36"
           }`}>
             {employeeId && (
               <span className="absolute left-2 top-2 z-10 rounded-md bg-white/92 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0b6fa4] shadow-sm">
@@ -5107,7 +5141,7 @@ const OfficialProfileCard = ({
             )}
 
             {imageUrl && circularImage ? (
-              <div className="rsac-circular-portrait h-32 w-32 border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.14)]">
+              <div className="rsac-circular-portrait h-28 w-28 border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.14)]">
                 <img
                   src={imageUrl}
                   alt={profileName}
@@ -5126,7 +5160,7 @@ const OfficialProfileCard = ({
               />
             ) : (
               <div className={circularImage
-                ? "rsac-circular-portrait grid h-28 w-28 place-items-center border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.1)]"
+                ? "rsac-circular-portrait grid h-24 w-24 place-items-center border-4 border-white bg-white shadow-[0_12px_32px_rgba(18,50,74,0.1)]"
                 : "grid h-full place-items-center"
               }>
                 <UserRound className="h-12 w-12 text-[#0f6f42]" aria-hidden="true" />
@@ -5134,7 +5168,7 @@ const OfficialProfileCard = ({
             )}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col p-3.5">
+          <div className="flex min-h-0 flex-1 flex-col p-3">
             <h2 className="text-base font-extrabold leading-snug text-[#102f46]">
               {profileName}
             </h2>
@@ -5175,16 +5209,77 @@ const OfficialProfileCard = ({
           <dl className="mt-4 space-y-3 text-sm leading-relaxed">
             {visibleProfileDetails.map((detail) => (
               <div key={`${detail.label}-${detail.value}`}>
-                <dt className="text-xs font-bold uppercase tracking-[0.12em] text-slate-300">
+                <dt className="text-xs font-extrabold uppercase tracking-[0.12em] text-amber-300">
                   {t(detail.label)}
                 </dt>
-                <dd className="mt-1 text-slate-100">{localizeOfficialText(detail.value, language)}</dd>
+                <dd className="mt-1 text-white/85">{localizeOfficialText(detail.value, language)}</dd>
               </div>
             ))}
           </dl>
         </div>
       </div>
     </article>
+  );
+};
+
+const OfficialDivisionProfilePanel = ({ profile, scientistProfiles, additionalHtml, page }) => {
+  const { language } = useLanguage();
+  const mergedProfile = mergeKnownScientistDetails(profile, scientistProfiles);
+  const profileName = localizeOfficialText(getProfileName(mergedProfile), language);
+
+  return (
+    <article className="rsac-division-profile-panel">
+      <div className="rsac-division-profile-panel__card">
+        <OfficialProfileCard
+          profile={profile}
+          scientistProfiles={scientistProfiles}
+          page={page}
+        />
+      </div>
+      <section className="rsac-division-profile-panel__additional">
+        <h3>{profileName}</h3>
+        <OfficialHtmlContent html={additionalHtml} pageTitle={profileName} />
+      </section>
+    </article>
+  );
+};
+
+const OfficialDivisionProfiles = ({ page, section, scientistProfiles }) => {
+  const entries = section.profiles.map((profile, index) => ({
+    profile,
+    index,
+    additionalHtml: findProfileSectionContent(section.contentBlock, {
+      employeeId: getProfileEmployeeId(profile),
+      name: getProfileName(profile),
+    }).trim(),
+  }));
+  const featuredEntries = entries.filter((entry) => entry.additionalHtml);
+  const cardEntries = entries.filter((entry) => !entry.additionalHtml);
+
+  return (
+    <div className="grid gap-5">
+      {featuredEntries.map(({ profile, index, additionalHtml }) => (
+        <OfficialDivisionProfilePanel
+          key={profileCardKey(`${page.slug}-${section.key}-featured`, profile, index)}
+          profile={profile}
+          scientistProfiles={scientistProfiles}
+          additionalHtml={additionalHtml}
+          page={page}
+        />
+      ))}
+      {cardEntries.length > 0 && (
+        <div className="profile-card-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {cardEntries.map(({ profile, index }) => (
+            <OfficialProfileCard
+              key={profileCardKey(`${page.slug}-${section.key}`, profile, index)}
+              profile={profile}
+              scientistProfiles={scientistProfiles}
+              page={page}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -5243,12 +5338,13 @@ const OfficialProfileGrid = ({ page, scientistProfiles }) => {
   }
 
   return (
-    <div className="profile-card-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="profile-card-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {profiles.map((profile, index) => (
         <OfficialProfileCard
           key={profileCardKey(page.slug, profile, index)}
           profile={profile}
           scientistProfiles={scientistProfiles}
+          page={page}
         />
       ))}
     </div>
@@ -5385,6 +5481,7 @@ const OfficialRichContent = ({ page, scientistProfiles }) => {
                 key={profileCardKey(`${page.slug}-embedded`, profile, index)}
                 profile={profile}
                 scientistProfiles={scientistProfiles}
+                page={page}
               />
             ))}
           </div>
@@ -6017,7 +6114,7 @@ const buildCanonicalDivisionSections = (page, scientistProfiles) => {
     const key = occurrence === 1 ? baseKey : `${baseKey}-${occurrence}`;
 
     if (peopleSection) {
-      return profiles.length ? [{ key, label, type: "profiles", profiles }] : [];
+      return profiles.length ? [{ key, label, type: "profiles", profiles, contentBlock: block }] : [];
     }
 
     const html = appendNewPageAssets(
@@ -6367,21 +6464,18 @@ const DivisionCategorizedContent = ({
               </h2>
 
               {activeSection.type === "profiles" ? (
-                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-                  {activeSection.profiles.map((profile, index) => (
-                    <OfficialProfileCard
-                      key={profileCardKey(`${page.slug}-${activeSection.key}`, profile, index)}
-                      profile={profile}
-                      scientistProfiles={scientistProfiles}
-                    />
-                  ))}
-                </div>
+                <OfficialDivisionProfiles
+                  page={page}
+                  section={activeSection}
+                  scientistProfiles={scientistProfiles}
+                />
               ) : (
                 <OfficialHtmlContent
                   html={activeSection.html}
                   pageTitle={activeSection.label}
                   baseTitle={page.baseTitle || page.title}
                   sectionKey={activeSection.key}
+                  preserveItemOrder={page.canonicalSectionContent}
                 />
               )}
             </div>
@@ -6604,11 +6698,11 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
 };
 
 export const OurFormersPage = () => {
-  const cmsScientistProfiles = useScientistProfiles();
+  const canonicalProfiles = useCanonicalProfiles();
   const cmsFormerProfiles = useFormerProfiles();
   const officialSections = useRsacOfficialSections();
   const { pageContent } = useSiteSettings();
-  const scientistProfiles = getScientistProfileData(cmsScientistProfiles);
+  const scientistProfiles = canonicalProfiles;
   const section = officialSections.find((item) => item.key === "about-us");
   const formersContent = pageContent.ourFormers;
   const configuredSections = new Map(
@@ -6723,6 +6817,7 @@ export const OurFormersPage = () => {
                     key={profileCardKey(formerSection.id, profile, index)}
                     profile={profile}
                     scientistProfiles={scientistProfiles}
+                    page={formerSection.page}
                   />
                 ))}
               </div>
@@ -6735,10 +6830,10 @@ export const OurFormersPage = () => {
 };
 
 export const OfficialContentDetailPage = ({ sectionKey }) => {
-  const cmsScientistProfiles = useScientistProfiles();
+  const canonicalProfiles = useCanonicalProfiles();
   const officialSections = useRsacOfficialSections();
   const { t, language } = useLanguage();
-  const scientistProfiles = getScientistProfileData(cmsScientistProfiles);
+  const scientistProfiles = canonicalProfiles;
   const { slug } = useParams();
   const section = officialSections.find((item) => item.key === sectionKey);
   const page = section?.pages.find((item) => item.slug === slug);
@@ -6772,6 +6867,12 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
       density="compact"
       headingSize={page.headingSize}
       contentSize={page.contentSize}
+      eyebrowSize={page.eyebrowSize}
+      pageFont={page.pageFont}
+      headingFont={page.headingFont}
+      bodyFontSize={page.bodyFontSize}
+      headingFontSize={page.headingFontSize}
+      eyebrowFontSize={page.eyebrowFontSize}
       contentWidth={page.contentWidth}
       mediaSize={page.mediaSize}
       contentSpacing={page.contentSpacing}

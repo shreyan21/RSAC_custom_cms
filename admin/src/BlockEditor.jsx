@@ -7,10 +7,10 @@ import {
   updateImportedEditorRow,
 } from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
-import EditorTooltipButton from "./EditorTooltipButton";
 import ImportedAssetEditor from "./ImportedAssetEditor";
+import SectionRichTextEditor from "./SectionRichTextEditor";
 
-const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", mediaSize: "normal", spacing: "normal" });
+const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", headingSize: "normal", eyebrowSize: "normal", mediaSize: "normal", spacing: "normal" });
 const itemFields = {
   cards: [["title", "Card title"], ["text", "Description"], ["image", "Image URL"], ["alt", "Image alt text"], ["url", "Link URL"]],
   stats: [["value", "Value"], ["label", "Label"]],
@@ -28,7 +28,8 @@ const importedSourceLabel = (block) => {
 };
 
 const displayOptions = {
-  textSize: [["compact", "Small"], ["normal", "Normal"], ["large", "Large"]],
+  textSize: [["tiny", "Extra small"], ["compact", "Small"], ["normal", "Normal"], ["large", "Large"], ["xlarge", "Extra large"]],
+  fontFamily: [["", "Use page font"], ["Inter", "Inter"], ["Plus Jakarta Sans", "Plus Jakarta Sans"], ["System Sans", "System Sans"], ["System Serif", "System Serif"]],
   mediaSize: [["compact", "Small"], ["normal", "Normal"], ["large", "Large"], ["full", "Full width"]],
   spacing: [["compact", "Compact"], ["normal", "Normal"], ["relaxed", "Relaxed"]],
 };
@@ -38,8 +39,15 @@ function BlockDisplayControls({ block, onChange }) {
   return (
     <fieldset className="block-display-controls">
       <legend>Section layout</legend>
-      <p className="block-controls-help">These controls change only this section's visual size, spacing, columns, and frame.</p>
+      <p className="block-controls-help">These controls change only this section. Exact pixel sizes are optional and stay responsive on phones.</p>
       <label>Text size<select value={block.textSize || "normal"} onChange={(event) => onChange({ textSize: event.target.value })}>{displayOptions.textSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label>Heading size<select value={block.headingSize || "normal"} onChange={(event) => onChange({ headingSize: event.target.value })}>{displayOptions.textSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label>Small heading size<select value={block.eyebrowSize || "normal"} onChange={(event) => onChange({ eyebrowSize: event.target.value })}>{displayOptions.textSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+      <label>Section font<select value={block.fontFamily || ""} onChange={(event) => onChange({ fontFamily: event.target.value })}>{displayOptions.fontFamily.map(([value, label]) => <option value={value} key={label}>{label}</option>)}</select></label>
+      <label>Heading font<select value={block.headingFont || ""} onChange={(event) => onChange({ headingFont: event.target.value })}>{displayOptions.fontFamily.map(([value, label]) => <option value={value} key={label}>{label}</option>)}</select></label>
+      <label>Exact text px<input type="number" min="13" max="22" placeholder="Optional" value={block.bodyFontSize || ""} onChange={(event) => onChange({ bodyFontSize: event.target.value })} /></label>
+      <label>Exact heading px<input type="number" min="18" max="56" placeholder="Optional" value={block.headingFontSize || ""} onChange={(event) => onChange({ headingFontSize: event.target.value })} /></label>
+      <label>Exact small heading px<input type="number" min="11" max="24" placeholder="Optional" value={block.eyebrowFontSize || ""} onChange={(event) => onChange({ eyebrowFontSize: event.target.value })} /></label>
       <label>Image size<select value={block.mediaSize || "normal"} onChange={(event) => onChange({ mediaSize: event.target.value })}>{displayOptions.mediaSize.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       <label>Spacing<select value={block.spacing || "normal"} onChange={(event) => onChange({ spacing: event.target.value })}>{displayOptions.spacing.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       {supportsColumns && <label>Columns<select value={String(block.columns || "")} onChange={(event) => onChange({ columns: event.target.value ? Number(event.target.value) : "" })}><option value="">Automatic</option>{[1, 2, 3, 4].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>}
@@ -66,20 +74,6 @@ function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "im
   };
   return (
     <label>{label}<div className="block-media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" title={`Upload ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{showPreview && value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div></label>
-  );
-}
-
-function RichBlockEditor({ value, onChange }) {
-  return (
-    <div className="rich-field">
-      <div className="rich-toolbar">
-        <EditorTooltipButton label="Bold" description="Makes the selected text thicker for emphasis." onClick={() => document.execCommand("bold")}><strong>B</strong></EditorTooltipButton>
-        <EditorTooltipButton label="Italic" description="Slants the selected text for gentle emphasis." onClick={() => document.execCommand("italic")}><em>I</em></EditorTooltipButton>
-        <EditorTooltipButton label="Bullet list" description="Turns the selected lines into a bulleted list." onClick={() => document.execCommand("insertUnorderedList")}>Bullet list</EditorTooltipButton>
-        <EditorTooltipButton label="Numbered list" description="Turns the selected lines into a numbered list." onClick={() => document.execCommand("insertOrderedList")}>Numbered list</EditorTooltipButton>
-      </div>
-      <div className="rich-editor" contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: value || "" }} onBlur={(event) => onChange(event.currentTarget.innerHTML)} />
-    </div>
   );
 }
 
@@ -259,7 +253,7 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
                 <>
                   {block.type !== "divider" && <label>Section heading<input value={block.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>}
                   {["hero", "callout"].includes(block.type) && <label>Text<textarea rows="3" value={block.text || ""} onChange={(event) => update(index, { text: event.target.value })} /></label>}
-                  {block.type === "rich_text" && <label>Formatted paragraph<RichBlockEditor value={block.html} onChange={(html) => update(index, { html })} /></label>}
+                  {block.type === "rich_text" && <label>Formatted paragraph<SectionRichTextEditor value={block.html} onChange={(html) => update(index, { html })} ariaLabel={`${sourceLabel} formatted paragraph`} /></label>}
                   {["hero", "image"].includes(block.type) && <><BlockMediaField label="Image" value={block.image} onChange={(image) => update(index, { image })} onBusy={onBusy} onError={onError} /><label>Image alt text<input value={block.alt || ""} onChange={(event) => update(index, { alt: event.target.value })} /></label>{block.type === "image" && <label>Image caption<input value={block.caption || ""} onChange={(event) => update(index, { caption: event.target.value })} /></label>}</>}
                   <StructuredItems block={block} onChange={(patch) => update(index, patch)} onBusy={onBusy} onError={onError} />
                 </>
