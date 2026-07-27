@@ -4341,6 +4341,11 @@ html:not(.rsac-high-contrast) .rsac-effect-card:focus-within {
 .rsac-rich-content [data-rsac-size="normal"] { font-size: 1em; }
 .rsac-rich-content [data-rsac-size="large"] { font-size: 1.15em; }
 .rsac-rich-content [data-rsac-size="xlarge"] { font-size: 1.3em; }
+.rsac-rich-content [data-rsac-inline-align] { display: block; }
+.rsac-rich-content [data-rsac-inline-align="start"] { text-align: left; }
+.rsac-rich-content [data-rsac-inline-align="center"] { text-align: center; }
+.rsac-rich-content [data-rsac-inline-align="end"] { text-align: right; }
+.rsac-rich-content [data-rsac-inline-align="justify"] { text-align: justify; }
 
 /* ============================================================
    SURVEY-STATION PULSE (2026-07-04)

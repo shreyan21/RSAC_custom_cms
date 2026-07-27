@@ -58,7 +58,12 @@ const PublicInfoPage = ({ slug }) => {
                 {section.heading}
               </h2>
 
-              <p className="mt-4 leading-relaxed text-slate-700">{section.body}</p>
+              {section.body && (
+                <div
+                  className="rsac-rich-content relative z-[1] mt-4 text-slate-700"
+                  dangerouslySetInnerHTML={{ __html: section.body }}
+                />
+              )}
 
               {section.officers?.length > 0 && (
                 <div className="relative z-[1] mt-5 overflow-hidden rounded-xl border border-slate-200">

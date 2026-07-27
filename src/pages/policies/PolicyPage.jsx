@@ -50,9 +50,12 @@ const PolicyPage = ({ slug }) => {
                 {section.heading}
               </h2>
 
-              <p className="mt-4 leading-relaxed text-slate-700">
-                {section.body}
-              </p>
+              {section.body && (
+                <div
+                  className="rsac-rich-content mt-4 text-slate-700"
+                  dangerouslySetInnerHTML={{ __html: section.body }}
+                />
+              )}
             </article>
           ))}
         </div>

@@ -682,7 +682,35 @@ function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
 function SectionListEditor({ value, onChange, onBusy, onError }) {
   const sections = Array.isArray(value) ? value : [];
   const update = (index, patch) => onChange(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
-  return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([{ heading: "", body: "" }, ...sections])}><Plus /> Add page section at top</button></div>;
+  return (
+    <div className="section-list-editor">
+      {sections.map((section, index) => (
+        <section key={`${index}-${section.heading || "section"}`}>
+          <header>
+            <strong>{index + 1}. {section.heading || "New section"}</strong>
+            <button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button>
+          </header>
+          <div className="section-fields">
+            <label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>
+            <label>
+              Section text
+              <SectionRichTextEditor
+                ariaLabel={`${section.heading || `Section ${index + 1}`} text`}
+                value={section.body || ""}
+                onChange={(body) => update(index, { body })}
+              />
+            </label>
+            <label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label>
+            <label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label>
+            <label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label>
+          </div>
+          <NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} />
+          <NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} />
+        </section>
+      ))}
+      <button type="button" className="add-item" onClick={() => onChange([{ heading: "", body: "" }, ...sections])}><Plus /> Add page section at top</button>
+    </div>
+  );
 }
 
 export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {

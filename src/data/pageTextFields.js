@@ -46,8 +46,11 @@ export const sanitizeInlineRichText = (html, plainText = "") => {
   if (!html || typeof DOMParser === "undefined") return fallback;
 
   const parsed = new DOMParser().parseFromString(String(html), "text/html");
-  const allowed = new Set(["STRONG", "B", "EM", "I", "SPAN", "BR"]);
+  const allowed = new Set(["STRONG", "B", "EM", "I", "U", "S", "STRIKE", "A", "SPAN", "BR"]);
   const unsafe = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED"]);
+  const safeFonts = new Set(["inter", "jakarta", "system-sans", "system-serif"]);
+  const safeSizes = new Set(["small", "normal", "large", "xlarge"]);
+  const safeAlignments = new Set(["start", "center", "end", "justify"]);
   Array.from(parsed.body.querySelectorAll("*")).reverse().forEach((element) => {
     if (unsafe.has(element.tagName)) {
       element.remove();
@@ -58,8 +61,30 @@ export const sanitizeInlineRichText = (html, plainText = "") => {
       return;
     }
     const light = element.tagName === "SPAN" && element.dataset.rsacTone === "light";
+    const font = element.tagName === "SPAN" && safeFonts.has(element.dataset.rsacFont)
+      ? element.dataset.rsacFont
+      : "";
+    const size = element.tagName === "SPAN" && safeSizes.has(element.dataset.rsacSize)
+      ? element.dataset.rsacSize
+      : "";
+    const alignment = element.tagName === "SPAN" && safeAlignments.has(element.dataset.rsacInlineAlign)
+      ? element.dataset.rsacInlineAlign
+      : "";
+    const href = element.tagName === "A" ? String(element.getAttribute("href") || "").trim() : "";
+    const safeHref = href.startsWith("/") || href.startsWith("#") || /^(?:https?:|mailto:|tel:)/iu.test(href)
+      ? href
+      : "";
     Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
     if (light) element.setAttribute("data-rsac-tone", "light");
+    if (font) element.setAttribute("data-rsac-font", font);
+    if (size) element.setAttribute("data-rsac-size", size);
+    if (alignment) element.setAttribute("data-rsac-inline-align", alignment);
+    if (safeHref) {
+      element.setAttribute("href", safeHref);
+      element.setAttribute("rel", "noopener noreferrer");
+    } else if (element.tagName === "A") {
+      element.replaceWith(...Array.from(element.childNodes));
+    }
   });
   return parsed.body.innerHTML || fallback;
 };

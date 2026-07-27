@@ -3,7 +3,7 @@ import { getCollection } from "../shared/cmsCollections.js";
 
 const richTextOptions = {
   allowedTags: [
-    "p", "br", "hr", "strong", "em", "u", "s", "h2", "h3", "h4", "h5",
+    "p", "br", "hr", "strong", "em", "u", "s", "strike", "h2", "h3", "h4", "h5",
     "ul", "ol", "li", "blockquote", "a", "img", "figure", "figcaption",
     "table", "thead", "tbody", "tr", "th", "td", "caption", "span", "div",
   ],
@@ -19,7 +19,7 @@ const richTextOptions = {
     th: ["colspan", "rowspan", "colwidth", "scope", "data-rsac-align"],
     td: ["colspan", "rowspan", "colwidth", "data-rsac-align"],
     li: ["data-rsac-added-item"],
-    span: ["data-rsac-tone", "data-rsac-font", "data-rsac-size"],
+    span: ["data-rsac-tone", "data-rsac-font", "data-rsac-size", "data-rsac-inline-align"],
     "*": ["lang"],
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],
@@ -27,6 +27,7 @@ const richTextOptions = {
   transformTags: {
     a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }, true),
     img: sanitizeHtml.simpleTransform("img", { loading: "lazy" }, true),
+    strike: "s",
   },
 };
 
@@ -103,11 +104,41 @@ const cleanBlocks = (blocks) => {
   });
 };
 
+const cleanSections = (sections) => {
+  if (!Array.isArray(sections)) return [];
+  return sections.slice(0, 100).map((section) => {
+    if (!section || typeof section !== "object") return {};
+    const next = { ...section };
+    for (const key of ["heading", "address", "actionLabel"]) {
+      if (next[key] !== undefined) next[key] = String(next[key] || "").trim().slice(0, 5000);
+    }
+    next.body = sanitizeHtml(String(next.body || ""), richTextOptions).slice(0, 100000);
+    if (next.externalUrl !== undefined) next.externalUrl = cleanUrl(next.externalUrl);
+    if (Array.isArray(next.officers)) {
+      next.officers = next.officers.slice(0, 500).map((officer) => ({
+        ...officer,
+        name: String(officer?.name || "").trim().slice(0, 1000),
+        post: String(officer?.post || "").trim().slice(0, 1000),
+        phone: String(officer?.phone || "").trim().slice(0, 100),
+      }));
+    }
+    if (Array.isArray(next.documents)) {
+      next.documents = next.documents.slice(0, 500).map((document) => ({
+        ...document,
+        title: String(document?.title || "").trim().slice(0, 1000),
+        meta: String(document?.meta || "").trim().slice(0, 5000),
+        url: cleanUrl(document?.url),
+      }));
+    }
+    return next;
+  });
+};
+
 const cleanValue = (field, value) => {
   if (value === undefined || value === null) {
     if (field.type === "boolean") return false;
     if (["blocks", "list"].includes(field.type)) return [];
-    if (field.type === "json") return {};
+    if (field.type === "json") return field.name === "sections" ? [] : {};
     return "";
   }
   if (field.type === "boolean") return value === true || value === 1 || value === "1" || value === "true";
@@ -123,7 +154,7 @@ const cleanValue = (field, value) => {
   if (field.type === "list") return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 200) : typeof value === "string" ? value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : [];
   if (field.type === "json") {
     const parsed = typeof value === "object" ? value : JSON.parse(String(value || "{}"));
-    return parsed;
+    return field.name === "sections" ? cleanSections(parsed) : parsed;
   }
   if (field.type === "blocks") return cleanBlocks(value);
   if (field.type === "richtext") return sanitizeHtml(String(value), richTextOptions);

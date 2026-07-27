@@ -8,6 +8,7 @@ import {
 } from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
 import ImportedAssetEditor from "./ImportedAssetEditor";
+import InlineRichTextEditor from "./InlineRichTextEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 
 const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", headingSize: "normal", eyebrowSize: "normal", mediaSize: "normal", spacing: "normal" });
@@ -120,11 +121,11 @@ function ImportedNumberedItems({ block, referenceBlock, pageData, referencePageD
           const { child, referenceChild, number } = row;
           const itemLabel = `Item ${number}`;
           return (
-            <label className="imported-list-item" key={child.key || row.referenceChild?.key || row.referenceIndex}>
+            <div className="imported-list-item" key={child.key || row.referenceChild?.key || row.referenceIndex}>
               <span>{number}</span>
-              <span><strong>{itemLabel}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<textarea rows="3" aria-label={`${language === "hi" ? "Hindi" : "English"} ${itemLabel}`} value={child.value || ""} onChange={(event) => updateItem(row, { value: event.target.value })} /></span>
+              <span><strong>{itemLabel}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<InlineRichTextEditor ariaLabel={`${language === "hi" ? "Hindi" : "English"} ${itemLabel}`} value={child.value || ""} richText={child.richText || ""} onChange={(patch) => updateItem(row, patch)} /></span>
               <button type="button" className="danger-icon" title={`Remove ${itemLabel}`} onClick={() => removeItem(row)}><Trash2 /></button>
-            </label>
+            </div>
           );
         })}
         {!visible.length && <p className="empty-inline">No matching item.</p>}
@@ -169,7 +170,7 @@ export function ImportedContentFields({ block, referenceBlock, pageData, referen
         {visible.map((row) => {
           const { child, referenceChild, number } = row;
           const fieldName = String(child.label || `Line ${number}`).split(/\s*(?:\u2192|->)\s*/u).slice(1).join(" -> ") || `Line ${number}`;
-          return <label className="imported-list-item" key={child.key || referenceChild?.key || row.referenceIndex}><span>{number}</span><span title={fieldName}><strong>{fieldName}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<textarea rows="3" aria-label={`${language === "hi" ? "Hindi" : "English"} line ${number}`} value={child.value || ""} onChange={(event) => updateItem(row, { value: event.target.value })} /></span><button type="button" className="danger-icon" title={`Remove line ${number}`} onClick={() => removeItem(row)}><Trash2 /></button></label>;
+          return <div className="imported-list-item" key={child.key || referenceChild?.key || row.referenceIndex}><span>{number}</span><span title={fieldName}><strong>{fieldName}</strong>{language === "hi" && referenceChild?.value && <small className="english-row-reference"><b>English reference</b>{referenceChild.value}</small>}<InlineRichTextEditor ariaLabel={`${language === "hi" ? "Hindi" : "English"} line ${number}`} value={child.value || ""} richText={child.richText || ""} onChange={(patch) => updateItem(row, patch)} /></span><button type="button" className="danger-icon" title={`Remove line ${number}`} onClick={() => removeItem(row)}><Trash2 /></button></div>;
         })}
         {!visible.length && <p className="empty-inline">No matching field.</p>}
       </div>
