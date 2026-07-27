@@ -1067,3 +1067,69 @@ html[data-rsac-motion="reduced"] :is(.page-shell-enter, .rsac-menu-overlay) {
   }
 
 }
+
+/* Selected "Living Observatory" direction. This final layer only changes
+   presentation; every value still comes from the existing CMS data hooks. */
+
+html:not(.rsac-high-contrast) .page-shell-surface {
+  background: linear-gradient(180deg, #eef7f2 0, #f6faf8 17rem, #ffffff 34rem);
+}
+
+html:not(.rsac-high-contrast) .page-shell-surface::before {
+  display: block;
+  background:
+    linear-gradient(90deg, rgba(9, 111, 159, 0.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(11, 107, 67, 0.028) 1px, transparent 1px);
+  background-size: 84px 84px;
+  mask-image: linear-gradient(to bottom, #000 0, transparent 32rem);
+}
+
+html:not(.rsac-high-contrast) .rsac-page-heading {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+html:not(.rsac-high-contrast) .rsac-page-heading::after {
+  display: block;
+  width: min(8rem, 28vw);
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #ff9933 0 34%,
+    #096f9f 34% 68%,
+    #138808 68% 100%
+  );
+}
+
+html:not(.rsac-high-contrast) #about-rsac {
+  background:
+    linear-gradient(90deg, rgba(9, 111, 159, 0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(11, 107, 67, 0.024) 1px, transparent 1px),
+    #ffffff;
+  background-size: 80px 80px;
+}
+
+html:not(.rsac-high-contrast) #services {
+  background: #f1f7fa;
+}
+
+html:not(.rsac-high-contrast) #visit-rsac {
+  background: #f7faf8;
+}
+
+html:not(.rsac-high-contrast) .rsac-impact-stats {
+  background: linear-gradient(115deg, #063359 0%, #07578a 58%, #0c6b61 100%);
+}
+
+html:not(.rsac-high-contrast) footer .geo-dark-band {
+  background: linear-gradient(115deg, #06427a 0%, #075aa2 55%, #086857 100%);
+}
+
+html:not(.rsac-high-contrast) footer [class*="bg-gradient-to-b"] {
+  background: #052b50;
+}
+
+html:not(.rsac-high-contrast) footer .geo-glass {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}

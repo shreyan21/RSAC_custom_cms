@@ -8,12 +8,12 @@ const Hero = () => {
     <>
       <section
         aria-labelledby="hero-title"
-        className="rsac-immersive-hero relative isolate min-h-[100svh] overflow-hidden border-b border-white/10 bg-[#040b16]"
+        className="rsac-immersive-hero relative isolate overflow-hidden border-b border-white/10 bg-[#040b16]"
       >
 
         <HeroBackground />
 
-        <div className="hero-content-frame relative z-10 flex min-h-[100svh] items-start px-5 pb-20 pt-36 sm:px-8 sm:pb-24 sm:pt-40 md:px-12 md:pt-44 lg:items-center lg:px-20 lg:pb-28 lg:pt-36">
+        <div className="hero-content-frame relative z-10 flex items-start px-5 pb-20 pt-36 sm:px-8 sm:pb-24 sm:pt-40 md:px-12 md:pt-44 lg:items-center lg:px-20 lg:pb-24 lg:pt-32">
 
           <div className="w-full max-w-5xl">
 

@@ -83,24 +83,26 @@ const HomeSectionNav = () => {
   return (
     <nav
       aria-label={t("Homepage sections")}
-      style={{ top: `${stickyTop}px` }}
-      className="sticky z-40 border-y border-slate-200/80 bg-white px-3 py-2 shadow-[0_8px_28px_rgba(18,50,74,0.07)]"
+      style={{ "--rsac-home-nav-top": `${stickyTop}px` }}
+      className="rsac-home-index relative z-30 border-y border-slate-200/80 bg-white px-3 shadow-[0_8px_28px_rgba(18,50,74,0.07)]"
     >
       <div
         data-lenis-prevent
-        className="mx-auto flex max-w-4xl items-center justify-start gap-1 overflow-x-auto sm:justify-center"
+        className="rsac-home-index__track mx-auto flex max-w-6xl items-stretch justify-start overflow-x-auto sm:justify-center"
       >
         {navItems.map(({ label, href, icon }) => {
           const Icon = resolveCmsIcon(icon, resolveCmsIcon("orbit"));
           const navClass =
-            "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 transition duration-300 hover:bg-emerald-50 hover:text-[#0f6f42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f6f42] sm:text-sm";
+            "rsac-home-index__item inline-flex min-h-20 min-w-[8.5rem] shrink-0 flex-col items-center justify-center gap-2 px-4 py-4 text-center text-xs font-bold text-slate-600 transition duration-300 hover:bg-emerald-50 hover:text-[#0f6f42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f6f42] sm:min-h-24 sm:min-w-[10rem] sm:text-sm";
           const isInternalRoute =
             href && !href.startsWith("#") && !/^https?:\/\//i.test(href);
 
           if (isInternalRoute) {
             return (
               <Link key={href} to={href} className={navClass}>
-                <Icon className="h-4 w-4" aria-hidden="true" />
+                <span className="rsac-home-index__icon" aria-hidden="true">
+                  <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+                </span>
                 {label}
               </Link>
             );
@@ -126,7 +128,9 @@ const HomeSectionNav = () => {
               }}
               className={navClass}
             >
-              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className="rsac-home-index__icon" aria-hidden="true">
+                <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+              </span>
               {label}
             </a>
           );
