@@ -145,8 +145,8 @@ export const pageCardIconOptions = [
 export const collections = [
   {
     id: "pages",
-    label: "Other Website Pages",
-    description: "Policy, service, programme and public-information pages without another dedicated editor.",
+    label: "Custom Standalone Pages",
+    description: "Independent pages that do not belong to another named website area.",
     fields: [
       text("title", "Page title", { required: true }),
       plain("slug", "URL slug", { required: true, advanced: true }),
@@ -176,8 +176,8 @@ export const collections = [
   },
   {
     id: "page_sections",
-    label: "Page Groups",
-    description: "Top-level route groups and section introductions.",
+    label: "Directory Page Headings",
+    description: "Headings and introductions for top-level directories such as About, Divisions, Facilities, and Training.",
     fields: [text("title", "Title"), plain("key", "Key", { required: true }), plain("route", "Route"), text("eyebrow", "Eyebrow"), textarea("intro", "Introduction")],
   },
   {
@@ -378,9 +378,9 @@ export const collections = [
   },
   {
     id: "hero_banners",
-    label: "Hero Banners / Videos",
-    description: "Homepage hero media and titles.",
-    fields: [text("title", "Title", { required: true }), plain("fileName", "File name"), { name: "video", label: "Video", type: "media", localized: false }, { name: "videoLarge", label: "Large-screen video (optional)", type: "media", localized: false }, { name: "poster", label: "Poster image", type: "media", localized: false }, { name: "active", label: "Active", type: "boolean", localized: false }],
+    label: "Homepage Hero Media Playlist",
+    description: "Active hero videos play in CMS order. Add another record for the next responsive hero background.",
+    fields: [text("title", "Internal media name", { required: true }), plain("fileName", "File name"), { name: "video", label: "Video", type: "media", localized: false }, { name: "videoLarge", label: "Large-screen video (optional)", type: "media", localized: false }, { name: "poster", label: "Poster image", type: "media", localized: false }, { name: "active", label: "Include in homepage playlist", type: "boolean", localized: false }],
   },
   {
     id: "logos",

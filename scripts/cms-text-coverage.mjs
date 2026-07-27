@@ -8,6 +8,7 @@ import {
 } from "../src/data/pageTextFields.js";
 import { normalizeEditorText } from "../shared/importedEditorRows.js";
 import { getDivisionLiveSections } from "../shared/divisionLiveSections.js";
+import { hasCanonicalSectionContent } from "../shared/sectionRichContent.js";
 import { collectDivisionSectionKeys } from "./lib/division-sections.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
@@ -69,7 +70,21 @@ try {
   let checkedFields = 0;
 
   for (const row of rows) {
+    const usesCanonicalContent = (row.data_en?.blocks || []).some(hasCanonicalSectionContent);
     for (const [language, data] of [["English", row.data_en], ["Hindi", row.data_hi]]) {
+      if (usesCanonicalContent) {
+        const blocks = Array.isArray(data?.blocks) ? data.blocks : [];
+        blocks.forEach((block, index) => {
+          if (!hasCanonicalSectionContent(block)) {
+            failures.push(
+              `${language} ${row.entry_key}: section ${index + 1} is visible on the website but has no CMS rich-text field`
+            );
+            return;
+          }
+          checkedFields += extractPageTextFields(block.contentHtml).length;
+        });
+        continue;
+      }
       if (!data?.html) continue;
       const {
         editableKeys,

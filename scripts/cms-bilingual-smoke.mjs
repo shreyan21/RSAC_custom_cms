@@ -30,13 +30,20 @@ const findEditableBlock = (page) => (page?.blocks || []).find((block) =>
   Object.hasOwn(block, "contentHtml") && !block.peopleSection
 );
 
+const hasOnlyProfileOverrides = (block) => {
+  const children = Array.isArray(block?.children) ? block.children : [];
+  return children.length > 0 && children.every((child) =>
+    String(child?.key || "").startsWith("profile-content:")
+  );
+};
+
 const assertCanonicalPage = (page, language) => {
   if (!page?.canonicalSectionContent) throw new Error(`${language} ${page?.slug || "page"} is not canonical.`);
   for (const block of page.blocks || []) {
     if (!Object.hasOwn(block, "contentHtml")) {
       throw new Error(`${language} ${page.slug} contains a section without canonical contentHtml.`);
     }
-    if (Object.hasOwn(block, "children")) {
+    if (Object.hasOwn(block, "children") && !hasOnlyProfileOverrides(block)) {
       throw new Error(`${language} ${page.slug} still exposes active legacy child rows.`);
     }
   }
@@ -62,7 +69,8 @@ if (!validatedPage.dataEn.blocks[0].contentHtml.includes("<table>") || validated
 }
 
 const fakeRows = [
-  { id: "section-divisions", collection: "page_sections", entry_key: "divisions", sort_order: 0, data_en: { key: "divisions", title: "Divisions" }, data_hi: { key: "divisions", title: "Prabhag" } },
+  { id: "section-divisions", collection: "page_sections", entry_key: "divisions", status: "published", sort_order: 0, data_en: { key: "divisions", title: "Divisions" }, data_hi: { key: "divisions", title: "Prabhag" } },
+  { id: "division-canonical", collection: "divisions", entry_key: "canonical-division", status: "published", sort_order: 0, data_en: { slug: "canonical-page", title: "English title" }, data_hi: { slug: "canonical-page", title: "Hindi title" } },
   {
     id: "page-canonical",
     collection: "pages",
@@ -107,7 +115,7 @@ try {
         if (!Object.hasOwn(block, "contentHtml")) {
           throw new Error(`${language} ${page.entryKey} was not migrated to one rich section field.`);
         }
-        if (Object.hasOwn(block, "children")) {
+        if (Object.hasOwn(block, "children") && !hasOnlyProfileOverrides(block)) {
           throw new Error(`${language} ${page.entryKey} still has active legacy rows.`);
         }
       }

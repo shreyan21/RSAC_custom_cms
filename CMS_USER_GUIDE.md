@@ -63,7 +63,9 @@ Each block can be moved up/down, duplicated, hidden, or removed. **Section layou
 | Page Groups | Top-level page groups and introductions |
 | Divisions | Division cards and summaries |
 | Facility Ordering Data | Advanced ordering records for facility directory cards |
-| Scientists / Officials / Staff | People, roles, photos, contact and profile details |
+| People Page Headings and Labels | Headings, introductions, back buttons and group labels for all People pages |
+| Our Formers: Card Rosters | Visible Former Chairmen, Former Directors and Former Scientists source cards |
+| Current Scientists / Leadership / Officials / Former Scientists / Technical Staff / Administration Profiles | Names, roles, photos, contact and bilingual profile details for the matching public group |
 | Projects | Ongoing and completed projects |
 | Publications / Research / Reports | Papers, publications, technical reports, atlases and plans |
 | Notices | Public notices and dates |
@@ -131,7 +133,7 @@ The same three-step editor is used by **About Pages** and **Training and Academi
 | Individual statistics | Impact Statistics |
 | Location/Visit label, its size, address, map query and directions label | Homepage and Global Text -> Location section |
 | Leadership/update headings | Homepage and Global Text -> Optional homepage sections |
-| Leadership people | Scientists / Officials / Staff |
+| Leadership people | People and Our Formers -> Leadership |
 | What's New scrolling records | Notices and Tenders |
 | Quick-link heading and action label | Homepage and Global Text -> Optional homepage sections |
 | Individual quick links | Quick Links |
@@ -203,7 +205,7 @@ The Division Content workspace never displays raw HTML or the full page form.
 
 Select text and use **H2**, **H3**, **H4**, **Bold**, **Italic**, **Underline**, lists, links, tables, quotes, or **Clear formatting**. **Hide section** affects only the open language. Blank Hindi stays blank; it never copies English. English typed manually in a Hindi field remains English. Photos and files are shared, while captions and alt text are separate for each language.
 
-For scientist names, roles, and profile photographs use **Scientists / Officials / Staff**. For uploaded public gallery photographs use **Gallery**. Those dedicated collections provide the correct photo, caption, and alt-text fields.
+For scientist names, roles, and profile photographs open **People and Our Formers -> Current Scientists**. Open the matching named People collection for leadership, officials, former scientists, technical staff, or administration. For uploaded public gallery photographs use **Gallery**.
 
 ### Add an Image
 
@@ -211,13 +213,13 @@ Use **Upload** once in an image/media field. The same photograph or file is save
 
 Uploaded files are stored in `server/uploads` and must be backed up or deployed together with the PostgreSQL database whenever saved content contains a `/uploads/...` URL. Bundled website assets and external image URLs do not require this folder. The server creates the folder automatically when it is missing.
 
-Profile and CMS previews use one fixed frame, so portrait and landscape source photos remain visually consistent. For a face that needs repositioning, open **Scientists / Officials / Staff** and set **Photo position**, for example `center 22%`.
+Profile and CMS previews use one fixed frame, so portrait and landscape source photos remain visually consistent. For a face that needs repositioning, open its named collection under **People and Our Formers** and set **Photo position**, for example `center 22%`.
 
 ### Fix a Repeated Person or Photo Card
 
-For a CMS person record, open **Scientists / Officials / Staff**, search the name, open both matching records, keep the complete one, and archive the extra. The CMS warns about existing possible duplicates and blocks a new same-type profile when its name, employee ID, email, or real profile photo matches another active record. Shared placeholder photos are allowed.
+For a CMS person record, open the matching named collection under **People and Our Formers**, search the name, open both matching records, keep the complete one, and archive the extra. The CMS warns about existing possible duplicates and blocks a new same-type profile when its name, employee ID, email, or real profile photo matches another active record. Shared placeholder photos are allowed.
 
-For an imported historical card on **Our Formers**, open **About Pages**, choose the source page, open **Page heading and layout**, and enter the exact unwanted visible name under **Hide profile cards**. Save once; this shared visibility control applies to English and Hindi. The website also removes repeated people automatically across Former Chairmen, Former Directors, and Former Scientists.
+For an imported historical card on **Our Formers**, open **People and Our Formers -> Our Formers: Card Rosters**, choose Former Chairmen, Former Directors, or Former Scientists, then edit its visible card section. Open **Page heading and layout** and enter an exact unwanted name under **Hide profile cards** when a source card must be suppressed. Save once; this shared visibility control applies to English and Hindi.
 
 ### Change Navigation
 

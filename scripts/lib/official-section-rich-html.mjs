@@ -103,6 +103,53 @@ const cleanRootHtml = (root, position) => {
   return sanitizeHtml(paragraph.outerHTML, richTextOptions);
 };
 
+const importedSemanticRoot = (node) => {
+  const element = node?.parentElement;
+  if (!element) return node || null;
+  const table = element.closest("table");
+  if (table) return table;
+  const list = element.closest("ol, ul");
+  if (list) {
+    let root = list;
+    while (root.parentElement?.closest("ol, ul")) root = root.parentElement.closest("ol, ul");
+    return root;
+  }
+  let current = element;
+  while (current && current.tagName !== "BODY") {
+    if (semanticTags.has(current.tagName)) return current;
+    current = current.parentElement;
+  }
+  const link = element.closest("a");
+  return link || node;
+};
+
+const cleanImportedRootHtml = (root, position) => {
+  if (root?.nodeType !== 3) return cleanRootHtml(root, position);
+  const text = compactText(root.data);
+  if (!text) return "";
+  const tag = text.length <= 90 && !/[.!?\u0964]$/u.test(text) ? "h3" : "p";
+  return sanitizeHtml(`<${tag}>${text
+    .replace(/&/gu, "&amp;")
+    .replace(/</gu, "&lt;")
+    .replace(/>/gu, "&gt;")}</${tag}>`, richTextOptions);
+};
+
+const htmlForImportedKeys = (keys, textMap) => {
+  const roots = [];
+  const seen = new Set();
+  keys.forEach((key) => {
+    const root = importedSemanticRoot(textMap.byKey.get(key));
+    if (root && !seen.has(root)) {
+      roots.push(root);
+      seen.add(root);
+    }
+  });
+  return roots
+    .map((root, index) => cleanImportedRootHtml(root, index))
+    .filter(Boolean)
+    .join("");
+};
+
 const mediaHeadingPattern = /^(?:related\s+(?:photos?|pictures?)|\u0938\u0902\u092c\u0902\u0927\u093f\u0924\s+(?:\u0924\u0938\u094d\u0935\u0940\u0930\u0947\u0902|\u092b\u094b\u091f\u094b))$/iu;
 
 const isRepeatedMediaHeading = (root, sectionKey, pageTitle) => {
@@ -176,5 +223,27 @@ export const buildOfficialSectionRichHtml = ({ data, fallbackSlug = "" }) => {
     );
     if (richHtml) result.set(String(block.id || index), richHtml);
   });
+  return result;
+};
+
+export const buildImportedPageRichHtml = ({ data }) => {
+  const html = String(data?.html || "");
+  const blocks = Array.isArray(data?.blocks) ? data.blocks : [];
+  if (!html || !blocks.length) return new Map();
+
+  const dom = new JSDOM(`<!DOCTYPE html><html><body>${html}</body></html>`);
+  const textMap = assignTextKeys(dom.window.document);
+  const result = new Map();
+
+  blocks.forEach((block, index) => {
+    const keys = (block?.children || [])
+      .filter((child) => !child?.hidden && child?.editorVisible !== false && !child?.structural)
+      .flatMap((child) => child?.sourceKeys?.length ? child.sourceKeys : [child?.key])
+      .filter(Boolean);
+    if (!keys.length) return;
+    const richHtml = htmlForImportedKeys(keys, textMap);
+    if (richHtml) result.set(String(block.id || index), richHtml);
+  });
+
   return result;
 };

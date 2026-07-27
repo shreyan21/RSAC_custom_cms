@@ -89,9 +89,6 @@ const settingsGroups = [
       ["ui.displayOptions", "Display options label"],
       ["ui.backToTop", "Back-to-top label"],
       ["ui.scrollHint", "Scroll hint"],
-      ["cards.profileDetails", "Profile details heading"],
-      ["cards.profileFallback", "Missing profile information text", "textarea"],
-      ["cards.additionalInformation", "Additional information heading"],
     ],
   },
   {
@@ -257,22 +254,47 @@ const settingsGroups = [
       ["pageContent.notices.columns.category", "Notices category column"],
       ["pageContent.notices.columns.action", "Notices action column"],
       ["pageContent.geoportals.backLabel", "Geoportals page back label"],
-      ["pageContent.leadership.backLabel", "Leadership page back label"],
-      ["pageContent.manpower.backLabel", "Manpower page back label"],
       ["pageContent.screenReader.backLabel", "Screen-reader page back label"],
     ],
   },
   {
-    label: "People pages and fallback page",
+    label: "People and Our Formers pages",
     fields: [
+      ["cards.profileDetails", "Profile details heading"],
+      ["cards.profileFallback", "Missing profile information text", "textarea"],
+      ["cards.additionalInformation", "Additional information heading"],
+      ["pageContent.ourFormers.eyebrow", "Our Formers small heading"],
+      ["pageContent.ourFormers.title", "Our Formers main heading"],
+      ["pageContent.ourFormers.intro", "Our Formers introduction", "textarea"],
       ["pageContent.ourFormers.backLabel", "Our Formers back label"],
       ["pageContent.ourFormers.profilesLabel", "Profile count label"],
       ["pageContent.ourFormers.navigationLabel", "Our Formers navigation label"],
       ["pageContent.ourFormers.sections", "Our Formers groups", "rows", [["title", "Group heading"], ["intro", "Group introduction", "textarea"], ["slug", "Group key"]]],
+      ["pageContent.leadership.eyebrow", "Leadership small heading"],
+      ["pageContent.leadership.title", "Leadership main heading"],
+      ["pageContent.leadership.intro", "Leadership introduction", "textarea"],
+      ["pageContent.leadership.backLabel", "Leadership back label"],
+      ["pageContent.scientists.eyebrow", "Scientists small heading"],
+      ["pageContent.scientists.title", "Scientists main heading"],
       ["pageContent.scientists.backLabel", "Scientists page back label"],
-      ["pageContent.administration.backLabel", "Administration page back label"],
-      ["pageContent.technicalStaff.backLabel", "Technical staff page back label"],
+      ["pageContent.technicalStaff.eyebrow", "Technical Staff small heading"],
+      ["pageContent.technicalStaff.title", "Technical Staff main heading"],
+      ["pageContent.technicalStaff.backLabel", "Technical Staff back label"],
+      ["pageContent.administration.eyebrow", "Administration small heading"],
+      ["pageContent.administration.title", "Administration main heading"],
+      ["pageContent.administration.backLabel", "Administration back label"],
+      ["pageContent.manpower.eyebrow", "Manpower small heading"],
+      ["pageContent.manpower.title", "Manpower main heading"],
+      ["pageContent.manpower.intro", "Manpower introduction", "textarea"],
+      ["pageContent.manpower.backLabel", "Manpower back label"],
+      ["pageContent.organisationChart.eyebrow", "Organisation Chart small heading"],
+      ["pageContent.organisationChart.title", "Organisation Chart main heading"],
       ["pageContent.organisationChart.backLabel", "Organisation chart back label"],
+    ],
+  },
+  {
+    label: "Fallback page",
+    fields: [
       ["pageContent.placeholder.body", "Missing-page message", "textarea"],
       ["pageContent.placeholder.links", "Missing-page helpful links", "rows", [["label", "Link label"], ["path", "Website path"], ["icon", "Icon", "shared-select", iconColumns]]],
     ],
@@ -451,7 +473,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
           </div>
         </section>
       ))}
-      <button type="button" className="add-item" onClick={() => onChange([...items, {}])}><Plus /> Add row</button>
+      <button type="button" className="add-item" onClick={() => onChange([{}, ...items])}><Plus /> Add row at top</button>
     </div>
   );
 }
@@ -570,19 +592,26 @@ function HomepageTypographyEditor({ value, onChange }) {
 function SettingsEditor({ field, value, language, onChange, sharedValue, onSharedChange, onBusy, onError }) {
   const sharedSettings = sharedValue && typeof sharedValue === "object" ? sharedValue : value;
   const updateSharedSettings = onSharedChange || onChange;
+  const includedGroups = new Set(field.settingsGroupFilter || []);
+  const excludedGroups = new Set(field.excludeSettingsGroups || []);
+  const isFocusedEditor = includedGroups.size > 0;
+  const visibleGroups = settingsGroups.filter((group) =>
+    (!includedGroups.size || includedGroups.has(group.label)) &&
+    !excludedGroups.has(group.label)
+  );
   return (
     <div className="settings-editor">
-      <p className="settings-note">Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route.</p>
-      <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />
-      <fieldset className="settings-group homepage-typography-editor">
-        <legend>Homepage section size overrides</legend>
-        <p className="settings-note">This is the only place for changing one homepage section independently. For example, change Institution at a Glance / statistics here; use Homepage default text sizes below for all sections.</p>
-        <HomepageTypographyEditor
-          value={sharedSettings?.homeSectionTypography}
-          onChange={(nextValue) => updateSharedSettings({ ...(sharedSettings || {}), homeSectionTypography: nextValue })}
-        />
-      </fieldset>
-      {settingsGroups.map((group) => (
+      <p className="settings-note">{isFocusedEditor ? "Every field below controls visible text on a People or Our Formers page. Edit English and Hindi separately; shared layout values apply to both." : "Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route."}</p>
+      {!isFocusedEditor && <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />}
+      {!isFocusedEditor && <fieldset className="settings-group homepage-typography-editor">
+          <legend>Homepage section size overrides</legend>
+          <p className="settings-note">This is the only place for changing one homepage section independently. For example, change Institution at a Glance / statistics here; use Homepage default text sizes below for all sections.</p>
+          <HomepageTypographyEditor
+            value={sharedSettings?.homeSectionTypography}
+            onChange={(nextValue) => updateSharedSettings({ ...(sharedSettings || {}), homeSectionTypography: nextValue })}
+          />
+        </fieldset>}
+      {visibleGroups.map((group) => (
         <fieldset className="settings-group" key={group.label}>
           <legend>{group.label}</legend>
           <div className="settings-grid">
@@ -622,12 +651,12 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
           </div>
         </fieldset>
       ))}
-      <InterfaceLabelsEditor value={value?.interfaceLabels} onChange={(nextValue) => onChange(setAtPath(value, "interfaceLabels", nextValue))} />
-      <details className="advanced-settings">
+      {!isFocusedEditor && <InterfaceLabelsEditor value={value?.interfaceLabels} onChange={(nextValue) => onChange(setAtPath(value, "interfaceLabels", nextValue))} />}
+      {!isFocusedEditor && <details className="advanced-settings">
         <summary>Advanced technical settings</summary>
         <p>Use only when instructed by developer. Invalid JSON will not save.</p>
         <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />
-      </details>
+      </details>}
     </div>
   );
 }
@@ -641,19 +670,19 @@ function ObjectListEditor({ field, value, onChange }) {
   const rows = Array.isArray(value) ? value : [];
   const fields = objectListFields[field.name];
   const update = (index, name, nextValue) => onChange(rows.map((row, position) => position === index ? { ...row, [name]: nextValue } : row));
-  return <div className="object-list-editor">{rows.map((row, index) => <section key={`${index}-${row.label || row.name || "row"}`}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([...rows, {}])}><Plus /> Add row</button></div>;
+  return <div className="object-list-editor">{rows.map((row, index) => <section key={`${index}-${row.label || row.name || "row"}`}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
 }
 
 function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
   const items = Array.isArray(rows) ? rows : [];
   const update = (index, name, value) => onChange(items.map((item, position) => position === index ? { ...item, [name]: value } : item));
-  return <div className="nested-rows"><strong>{label}</strong>{items.map((item, index) => <div key={index}>{fields.map(([name, fieldLabel, fieldType = "text"]) => fieldType === "media" ? <div className="nested-field" key={name}><span>{fieldLabel}</span><FieldInput field={{ name, label: fieldLabel, type: "media", localized: false }} value={item[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} /></div> : <label key={name}>{fieldLabel}<input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} /></label>)}<button type="button" title={`Remove ${label.toLowerCase()} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button></div>)}<button type="button" className="add-item" onClick={() => onChange([...items, {}])}><Plus /> Add {label.toLowerCase()} row</button></div>;
+  return <div className="nested-rows"><strong>{label}</strong>{items.map((item, index) => <div key={index}>{fields.map(([name, fieldLabel, fieldType = "text"]) => fieldType === "media" ? <div className="nested-field" key={name}><span>{fieldLabel}</span><FieldInput field={{ name, label: fieldLabel, type: "media", localized: false }} value={item[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} /></div> : <label key={name}>{fieldLabel}<input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} /></label>)}<button type="button" title={`Remove ${label.toLowerCase()} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button></div>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...items])}><Plus /> Add {label.toLowerCase()} row at top</button></div>;
 }
 
 function SectionListEditor({ value, onChange, onBusy, onError }) {
   const sections = Array.isArray(value) ? value : [];
   const update = (index, patch) => onChange(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
-  return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([...sections, { heading: "", body: "" }])}><Plus /> Add page section</button></div>;
+  return <div className="section-list-editor">{sections.map((section, index) => <section key={`${index}-${section.heading || "section"}`}><header><strong>{index + 1}. {section.heading || "New section"}</strong><button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button></header><div className="section-fields"><label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label><label>Section text<textarea rows="4" value={section.body || ""} onChange={(event) => update(index, { body: event.target.value })} /></label><label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label><label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label><label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label></div><NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} /><NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} /></section>)}<button type="button" className="add-item" onClick={() => onChange([{ heading: "", body: "" }, ...sections])}><Plus /> Add page section at top</button></div>;
 }
 
 export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {

@@ -136,7 +136,7 @@ function ImportedNumberedItems({ block, referenceBlock, pageData, referencePageD
   );
 }
 
-function ImportedContentFields({ block, referenceBlock, pageData, referencePageData, language, onChange }) {
+export function ImportedContentFields({ block, referenceBlock, pageData, referencePageData, language, onChange }) {
   const [query, setQuery] = useState("");
   const children = Array.isArray(block.children) ? block.children : [];
   const sourceLabel = importedSourceLabel(block);

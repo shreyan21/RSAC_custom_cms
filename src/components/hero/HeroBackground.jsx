@@ -1,6 +1,6 @@
 import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useActiveHeroVideo } from "../../hooks/useData";
+import { useHeroVideos } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 import HeroLeaderPortraits from "./HeroLeaderPortraits";
 
@@ -27,7 +27,9 @@ const prefersLargeHeroSource = () =>
 
 const HeroBackground = () => {
   const { t } = useLanguage();
-  const activeHeroVideo = useActiveHeroVideo() || {};
+  const heroVideos = useHeroVideos() || [];
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const activeHeroVideo = heroVideos[activeHeroIndex % Math.max(heroVideos.length, 1)] || {};
   const heroPoster = activeHeroVideo.poster || "";
   const [useLargeSource] = useState(prefersLargeHeroSource);
   const requestedVideo =
@@ -163,6 +165,7 @@ const HeroBackground = () => {
   // IntersectionObserver → syncHeroPlayback). Listen to the video's own pause
   // and resume immediately whenever we did not ask for it.
   const handleVideoPause = useCallback(() => {
+    if (videoRef.current?.ended && heroVideos.length > 1) return;
     if (
       reduceMotion ||
       !loadHeroVideo ||
@@ -175,7 +178,7 @@ const HeroBackground = () => {
     }
 
     playHeroVideo();
-  }, [loadHeroVideo, pauseRequested, playHeroVideo, reduceMotion]);
+  }, [heroVideos.length, loadHeroVideo, pauseRequested, playHeroVideo, reduceMotion]);
 
   useEffect(() => {
     syncHeroPlayback();
@@ -308,6 +311,15 @@ const HeroBackground = () => {
     setVideoReady(false);
   };
 
+  const handleVideoEnded = () => {
+    if (heroVideos.length <= 1) {
+      syncHeroPlayback();
+      return;
+    }
+    setVideoReady(false);
+    setActiveHeroIndex((current) => (current + 1) % heroVideos.length);
+  };
+
   const handleTogglePlayback = () => {
     if (isPaused) {
       setPauseRequested(false);
@@ -349,7 +361,7 @@ const HeroBackground = () => {
             key={heroVideo}
             autoPlay
             muted
-            loop
+            loop={heroVideos.length <= 1}
             playsInline
             preload="metadata"
             poster={heroPoster}
@@ -371,7 +383,7 @@ const HeroBackground = () => {
               syncHeroPlayback();
             }}
             onStalled={syncHeroPlayback}
-            onEnded={syncHeroPlayback}
+            onEnded={handleVideoEnded}
             onPlaying={() => {
               // Fires on every real (re)start, including a cached resume that
               // emits no load events — keeps the control visible and state true.

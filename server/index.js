@@ -632,7 +632,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
       }
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status);
       let effectiveSortOrder = sortOrder;
-      if (definition.autoNewestFirst) {
+      if (!definition.singleton) {
         const minimum = await client.query("SELECT COALESCE(min(sort_order),1)::int AS value FROM cms_entries WHERE collection=$1 AND status <> 'archived'", [definition.id]);
         effectiveSortOrder = Number(minimum.rows[0].value) - 1;
       }

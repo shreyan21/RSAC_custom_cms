@@ -42,7 +42,11 @@ try {
     for (const [language, data] of [["en", row.data_en], ["hi", row.data_hi]]) {
       for (const block of data?.blocks || []) {
         localizedSections += 1;
-        if (Object.hasOwn(block, "children")) activeLegacyChildren += 1;
+        const children = Array.isArray(block?.children) ? block.children : [];
+        const profileOverrides = children.length > 0 && children.every((child) =>
+          String(child?.key || "").startsWith("profile-content:")
+        );
+        if (Object.hasOwn(block, "children") && !profileOverrides) activeLegacyChildren += 1;
         const heading = normalizeText(block.value || block.sourceLabel || block.label);
         if (heading && normalizeText(firstBodyItem(block.contentHtml)) === heading) {
           repeatedHeadingBlocks.push(`${row.entry_key}:${language}:${block.id || heading}`);

@@ -32,7 +32,11 @@ try {
         headings += (html.match(/<h[2-4]\b/giu) || []).length;
         lists += (html.match(/<[ou]l\b/giu) || []).length;
         tables += (html.match(/<table\b/giu) || []).length;
-        if (Object.hasOwn(block || {}, "children")) activeLegacyRows += 1;
+        const children = Array.isArray(block?.children) ? block.children : [];
+        const profileOverrides = children.length > 0 && children.every((child) =>
+          String(child?.key || "").startsWith("profile-content:")
+        );
+        if (Object.hasOwn(block || {}, "children") && !profileOverrides) activeLegacyRows += 1;
         if (/scientific manpower/iu.test(String(block?.sourceLabel || "")) && html.trim()) peopleBodies += 1;
       }
     }

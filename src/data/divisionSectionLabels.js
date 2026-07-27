@@ -171,12 +171,23 @@ export const divisionRowsForSection = (block, referenceBlock) => {
   });
 };
 
-export const createLocalizedDivisionBlock = (referenceBlock, language = "hi") => ({
-  ...structuredClone(referenceBlock || {}),
-  id: referenceBlock?.id || `section-${language}-cms`,
-  value: "",
-  hidden: false,
-  assets: [],
-  contentHtml: "",
-  language,
-});
+export const createLocalizedDivisionBlock = (referenceBlock, language = "hi") => {
+  const localized = structuredClone(referenceBlock || {});
+  if (Array.isArray(localized.children)) {
+    localized.children = localized.children.map((child) => ({
+      ...child,
+      value: "",
+      richText: "",
+      language,
+    }));
+  }
+  return {
+    ...localized,
+    id: referenceBlock?.id || `section-${language}-cms`,
+    value: "",
+    hidden: false,
+    assets: [],
+    contentHtml: "",
+    language,
+  };
+};

@@ -19,10 +19,15 @@ const supportedFieldTypes = new Set([
 const allowedStatuses = new Set(["draft", "published", "archived"]);
 const virtualDashboardCollections = new Set([
   "about_pages", "division_pages", "facility_pages", "academic_pages",
+  "people_page_text", "our_formers_pages", "scientific_manpower_page",
+  "people_scientists", "people_leadership", "people_officials",
+  "people_former_scientists", "people_technical_staff", "people_administration",
 ]);
 const intentionallyHiddenCollections = new Set([
   "division_section_items",
   "downloads",
+  "facilities",
+  "profiles",
 ]);
 const problems = [];
 const legacyFields = new Map();
