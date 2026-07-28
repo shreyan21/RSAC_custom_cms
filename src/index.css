@@ -1936,6 +1936,48 @@ html:not(.rsac-high-contrast)
 .rsac-high-contrast {
   background: #071018;
   color-scheme: dark;
+  --rsac-dark-canvas: #071018;
+  --rsac-dark-surface: #0b1926;
+  --rsac-dark-surface-raised: #102235;
+  --rsac-dark-border: rgba(139, 214, 255, 0.22);
+  --rsac-dark-text: #edf7ff;
+  --rsac-dark-muted: #bed3e2;
+}
+
+/* Theme changes animate only while the visitor switches modes. Keeping this
+   temporary avoids adding paint work during normal scrolling and video play. */
+html.rsac-theme-transitioning,
+html.rsac-theme-transitioning body,
+html.rsac-theme-transitioning :is(
+    header,
+    main,
+    footer,
+    section,
+    article,
+    aside,
+    nav,
+    button,
+    a,
+    input,
+    textarea,
+    select,
+    .page-shell-surface,
+    .rsac-home-flow,
+    .rsac-home-index__icon,
+    .rsac-card-depth,
+    .official-index-card
+  ) {
+  transition-property: background-color, background-image, border-color, color, box-shadow, filter;
+  transition-duration: 420ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.rsac-theme-transitioning,
+  html.rsac-theme-transitioning body,
+  html.rsac-theme-transitioning * {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .rsac-high-contrast body {
@@ -2084,6 +2126,34 @@ html:not(.rsac-high-contrast)
 .rsac-high-contrast .page-shell-surface {
   background:
     linear-gradient(180deg, #071018 0%, #0a1622 52%, #08131d 100%);
+}
+
+.rsac-high-contrast .rsac-home-index {
+  background:
+    linear-gradient(180deg, rgba(16, 34, 53, 0.97), rgba(7, 16, 24, 0.97)) !important;
+  border-color: var(--rsac-dark-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 14px 34px rgba(0, 0, 0, 0.38) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.rsac-high-contrast .rsac-home-index__item {
+  color: var(--rsac-dark-muted) !important;
+}
+
+.rsac-high-contrast .rsac-home-index__item:hover,
+.rsac-high-contrast .rsac-home-index__item:focus-visible {
+  background-color: rgba(139, 214, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.rsac-high-contrast .rsac-home-index__icon {
+  background:
+    linear-gradient(180deg, rgba(139, 214, 255, 0.12), rgba(142, 246, 197, 0.06));
+  border: 1px solid rgba(139, 214, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .rsac-high-contrast .page-shell-surface::before {

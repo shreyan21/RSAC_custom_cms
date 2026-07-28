@@ -275,6 +275,7 @@ const TopBar = () => {
   );
   const deferredQuery = useDeferredValue(query);
   const inputRef = useRef(null);
+  const themeTransitionTimerRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -338,6 +339,11 @@ const TopBar = () => {
     window.localStorage.setItem("rsac.fontSizeIndex", String(fontSizeIndex));
     window.localStorage.setItem("rsac.highContrast", String(highContrast));
   }, [fontSizeIndex, highContrast]);
+
+  useEffect(() => () => {
+    window.clearTimeout(themeTransitionTimerRef.current);
+    document.documentElement.classList.remove("rsac-theme-transitioning");
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -449,6 +455,17 @@ const TopBar = () => {
   };
 
   const toggleContrast = () => {
+    const root = document.documentElement;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.clearTimeout(themeTransitionTimerRef.current);
+    if (!reduceMotion) {
+      root.classList.add("rsac-theme-transitioning");
+      themeTransitionTimerRef.current = window.setTimeout(() => {
+        root.classList.remove("rsac-theme-transitioning");
+      }, 480);
+    } else {
+      root.classList.remove("rsac-theme-transitioning");
+    }
     setHighContrast((current) => !current);
   };
 

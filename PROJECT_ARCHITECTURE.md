@@ -34,7 +34,6 @@ The project has four parts:
 | CMS API | Express | `http://localhost:3000` | Authentication, content, media, feedback, and visits |
 | Database | PostgreSQL | local/private network | Users, sessions, bilingual content, audit history, feedback |
 
-Drupal and Directus are not runtime dependencies. The original project at `D:\rsac_website` is separate and must not be changed.
 
 ## 2. Runtime Flow
 

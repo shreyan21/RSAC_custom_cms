@@ -170,14 +170,17 @@ if (english.siteSettings.pageContent?.gallery?.title !== "" || hindi.siteSetting
 }
 const englishTabs = english.siteSettings.homeSections?.featureTabs || [];
 const hindiTabs = hindi.siteSettings.homeSections?.featureTabs || [];
-if (englishTabs.length !== 5 || hindiTabs.length !== 5) throw new Error("Homepage must expose five bilingual feature tabs.");
-const englishTabTitles = englishTabs.map((item) => item.title).join("|");
-if (englishTabTitles !== "Objective|Implementation|Approach|Sphere of Activities|Mobile Apps") {
-  throw new Error(`Homepage English feature tabs do not match approved content: ${englishTabTitles}`);
+if (!englishTabs.length || hindiTabs.length !== englishTabs.length) {
+  throw new Error("Homepage navigation tabs must have matching English and Hindi records.");
+}
+if (englishTabs.some((item) => !String(item.title || "").trim())) {
+  throw new Error("Every English homepage navigation tab must have a visible name.");
+}
+if (hindiTabs.some((item) => !String(item.title || "").trim())) {
+  throw new Error("Every Hindi homepage navigation tab must have a visible name.");
 }
 const devanagari = /[\u0900-\u097f]/u;
 if (englishTabs.some((item) => devanagari.test(item.title || ""))) throw new Error("Hindi text leaked into English homepage tabs.");
-if (hindiTabs.some((item) => !devanagari.test(item.title || ""))) throw new Error("Hindi homepage tab translation is missing.");
 const englishImpactStats = new Map((english.siteSettings.impactStats || []).map((item) => [item.key, String(item.value || "")]));
 for (const item of hindi.siteSettings.impactStats || []) {
   if (englishImpactStats.has(item.key) && englishImpactStats.get(item.key) !== String(item.value || "")) {

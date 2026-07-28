@@ -428,6 +428,7 @@ function GuideView() {
     ["Add a division section", "Open Division Page Sections, choose the division, then select Add a new section. Enter the English heading and content, switch to Hindi for its translation, preview, then Save."],
     ["Add division research or projects", "Open the required division section. Add a paragraph or list item in its rich-text box, complete English and Hindi separately, then Save."],
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
+    ["Rename a homepage tab", "Open Homepage Navigation Tabs under Homepage, select the tab, change Visible tab name in English or Hindi, and Save. Its destination page path stays unchanged."],
     ["Change card order", "Open Advanced options and set Sort order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
     ["Edit a person or fix a repeated card", "Open People and Our Formers, then choose the exact public group such as Current Scientists, Leadership, or Former Scientists. Search the name, keep the correct record and archive the extra."],

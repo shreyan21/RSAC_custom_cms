@@ -25,6 +25,7 @@ const LeadershipPage = () => {
           <ProfileFlipCard
             key={`${profile.profileType || "leadership"}-${profile.id || profile.name}-${index}`}
             profile={profile}
+            enableFlip={false}
           />
         ))}
       </div>

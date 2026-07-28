@@ -168,12 +168,17 @@ const settingsGroups = [
   {
     label: "Optional homepage sections",
     fields: [
+      ["homeSections.leadershipUpdates.leadershipEyebrow", "Leadership small heading"],
       ["homeSections.leadershipUpdates.leadershipTitle", "Leadership heading"],
+      ["homeSections.leadershipUpdates.updatesEyebrow", "Updates small heading"],
       ["homeSections.leadershipUpdates.updatesTitle", "Updates heading"],
       ["homeSections.leadershipUpdates.attribution", "Update attribution"],
+      ["homeSections.leadershipUpdates.pauseLabel", "Pause updates button label"],
+      ["homeSections.leadershipUpdates.playLabel", "Play updates button label"],
       ["homeSections.geoportals.eyebrow", "Geoportal small heading"],
       ["homeSections.geoportals.title", "Geoportal heading"],
       ["homeSections.geoportals.description", "Geoportal introduction", "textarea"],
+      ["homeSections.geoportals.actionLabel", "Geoportal card button label", "suggestions", buttonSuggestions],
       ["pageContent.quickAccess.eyebrow", "Quick links small heading"],
       ["pageContent.quickAccess.title", "Quick links heading"],
       ["pageContent.quickAccess.openLabel", "Quick link action label"],
@@ -353,13 +358,19 @@ const settingsGroups = [
       ["footer.contactHeading", "Contact heading"],
       ["footer.contactHeadingSize", "Contact heading size", "select", [["small", "Small"], ["normal", "Normal"], ["large", "Large"]]],
       ["footer.socialLinks", "Social links", "rows", [["name", "Name"], ["url", "Website URL"], ["icon", "Icon", "shared-select", [["facebook", "Facebook"], ["twitter", "X / Twitter"]]]]],
+      ["footer.ecosystemEyebrow", "Related institutions small heading"],
+      ["footer.ecosystemTitle", "Related institutions heading"],
       ["footer.relatedLinks", "Related institution links", "rows", [["name", "Link name"], ["url", "Website URL"]]],
+      ["footer.statutoryLinks", "Statutory links", "rows", [["name", "Link name"], ["path", "Website path"], ["url", "External website URL"], ["icon", "Icon", "select", [["accessibility", "Accessibility"], ["external-link", "External link"]]], ["external", "Open external website", "checkbox"]]],
+      ["footer.policyLinks", "Policy links at the bottom (remove a row in both language tabs to hide it)", "rows", [["name", "Link name"], ["path", "Website path"]]],
       ["footer.about", "Footer description", "textarea"],
       ["footer.ownership", "Ownership statement", "textarea"],
       ["footer.poweredBy", "Technology statement"],
       ["footer.reviewDate", "Fallback review date (used only without CMS history)"],
+      ["footer.reviewLabel", "Fallback review date label"],
       ["footer.assuranceText", "Assurance statement"],
       ["footer.visitorCountLabel", "Visitor counter label"],
+      ["footer.visitorCountUnavailable", "Visitor counter unavailable message"],
       ["footer.webInformationManagerLabel", "Web manager label"],
       ["footer.allRightsReserved", "Copyright wording"],
       ["footer.lastUpdatedLabel", "Last updated label"],
@@ -457,7 +468,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
           </header>
           <div className="settings-row-fields">
             {columns.map(([name, fieldLabel, type = "text", options = []]) => (
-              <label key={name}>
+              <label className={type === "checkbox" ? "settings-row-checkbox" : undefined} key={name}>
                 <span>{fieldLabel}</span>
                 {type === "media"
                   ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={item[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
@@ -465,6 +476,8 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
                     ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => updateColumn(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean), type)} />
                   : type === "textarea"
                     ? <textarea rows="3" value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />
+                    : type === "checkbox"
+                      ? <input type="checkbox" checked={Boolean(item[name])} onChange={(event) => updateColumn(index, name, event.target.checked, type)} />
                     : type === "select" || type === "shared-select"
                       ? <select value={(type === "shared-select" ? sharedItems[index]?.[name] : item[name]) || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)}><option value="">Select</option>{options.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
                       : <input value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />}
@@ -600,7 +613,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
     !excludedGroups.has(group.label)
   );
   return (
-    <div className="settings-editor">
+    <div className={`settings-editor ${isFocusedEditor ? "settings-editor--focused" : "settings-editor--homepage"}`}>
       <p className="settings-note">{isFocusedEditor ? "Every field below controls visible text on a People or Our Formers page. Edit English and Hindi separately; shared layout values apply to both." : "Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route."}</p>
       {!isFocusedEditor && <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />}
       {!isFocusedEditor && <fieldset className="settings-group homepage-typography-editor">

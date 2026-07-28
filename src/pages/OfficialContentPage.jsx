@@ -1428,7 +1428,7 @@ const dedupeFormerSections = (sections) =>
   }));
 
 const looksLikePersonName = (value) =>
-  /^(hon'?ble\s+|late\s+|माननीय\s+|स्वर्गीय\s+)?(dr\.?|prof\.?|shri\.?|sri|smt\.?|sushri|mr\.?|ms\.?|mohd\.?|श्री\.?|श्रीमती|सुश्री|डॉ\.?|डॉ॰|प्रो\.?|कुमारी)/i.test(
+  /^(hon'?ble\s+|late\s+|माननीय\s+|स्वर्गीय\s+)?(dr\.?|prof\.?|shri\.?|sri|smt\.?|sushri|mr\.?|ms\.?|mohd\.?|श्री\.?|श्रीमती|सुश्री|डॉ\.?|डॉ॰|डा\.?|डा॰|प्रो\.?|कुमारी|मोहम्मद|मुहम्मद)/i.test(
     compactText(value)
   );
 
@@ -1513,11 +1513,7 @@ const isProfileCandidate = ({ name, container, rows, image }) => {
     return false;
   }
 
-  const hasProfileRows = rows.some((row) =>
-    /designation|qualification|specialization|specialisation|experience|publication|contact|mail|deployment|period/i.test(
-      row.label
-    )
-  );
+  const hasProfileRows = rows.some((row) => isProfileDetailLabel(row.label));
 
   return Boolean(container && (hasProfileRows || looksLikePersonName(name)) && (image || rows.length));
 };
@@ -2435,9 +2431,6 @@ const fillSerialNumbersInDocument = (
     if (serialIndex === -1) {
       return;
     }
-
-    const serialHeaderCell = headerRow.children[serialIndex];
-    serialHeaderCell.textContent = localizeOfficialText("S.No.");
 
     let serial = 1;
     rows.slice(rows.indexOf(headerRow) + 1).forEach((row) => {

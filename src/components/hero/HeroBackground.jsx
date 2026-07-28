@@ -48,6 +48,8 @@ const HeroBackground = () => {
   const [videoReady, setVideoReady] = useState(false);
   const menuOpenRef = useRef(false);
   const heroVisibleRef = useRef(true);
+  const videoLoadEnabledRef = useRef(false);
+  const resumeTimerRef = useRef(null);
   const documentVisibleRef = useRef(
     typeof document === "undefined" || !document.hidden
   );
@@ -114,12 +116,14 @@ const HeroBackground = () => {
 
     const handleChange = () => {
       cancelScheduledLoad();
-      if (!shouldLoadHeroVideo()) {
-        setLoadHeroVideo(false);
+      if (videoLoadEnabledRef.current || !shouldLoadHeroVideo()) {
         return;
       }
 
-      const enableVideo = () => setLoadHeroVideo(true);
+      const enableVideo = () => {
+        videoLoadEnabledRef.current = true;
+        setLoadHeroVideo(true);
+      };
       if (typeof window.requestIdleCallback === "function") {
         idleId = window.requestIdleCallback(enableVideo, { timeout: 1200 });
       } else {
@@ -144,15 +148,20 @@ const HeroBackground = () => {
       return;
     }
 
+    const documentIsVisible =
+      typeof document === "undefined" || !document.hidden;
+    documentVisibleRef.current = documentIsVisible;
+
     if (
       reduceMotion ||
       !loadHeroVideo ||
       pauseRequested ||
       menuOpenRef.current ||
       !heroVisibleRef.current ||
-      !documentVisibleRef.current
+      !documentIsVisible
     ) {
       video.pause();
+      setIsPaused(true);
       return;
     }
 
@@ -165,20 +174,40 @@ const HeroBackground = () => {
   // IntersectionObserver → syncHeroPlayback). Listen to the video's own pause
   // and resume immediately whenever we did not ask for it.
   const handleVideoPause = useCallback(() => {
+    setIsPaused(true);
+
     if (videoRef.current?.ended && heroVideos.length > 1) return;
+    const documentIsVisible =
+      typeof document === "undefined" || !document.hidden;
+    documentVisibleRef.current = documentIsVisible;
     if (
       reduceMotion ||
       !loadHeroVideo ||
       pauseRequested ||
       menuOpenRef.current ||
       !heroVisibleRef.current ||
-      !documentVisibleRef.current
+      !documentIsVisible
     ) {
       return;
     }
 
-    playHeroVideo();
-  }, [heroVideos.length, loadHeroVideo, pauseRequested, playHeroVideo, reduceMotion]);
+    if (resumeTimerRef.current !== null) {
+      window.clearTimeout(resumeTimerRef.current);
+    }
+    resumeTimerRef.current = window.setTimeout(() => {
+      resumeTimerRef.current = null;
+      syncHeroPlayback();
+    }, 160);
+  }, [heroVideos.length, loadHeroVideo, pauseRequested, reduceMotion, syncHeroPlayback]);
+
+  useEffect(
+    () => () => {
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     syncHeroPlayback();
@@ -294,10 +323,10 @@ const HeroBackground = () => {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        heroVisibleRef.current = entry.intersectionRatio >= 0.55;
+        heroVisibleRef.current = entry.intersectionRatio >= 0.1;
         syncHeroPlayback();
       },
-      { threshold: [0, 0.55] }
+      { threshold: [0, 0.1] }
     );
 
     observer.observe(video);
@@ -321,6 +350,11 @@ const HeroBackground = () => {
   };
 
   const handleTogglePlayback = () => {
+    if (resumeTimerRef.current !== null) {
+      window.clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+
     if (isPaused) {
       setPauseRequested(false);
       playHeroVideo();
@@ -331,7 +365,7 @@ const HeroBackground = () => {
     setPauseRequested(true);
   };
 
-  const showPlaybackControl = loadHeroVideo && !reduceMotion && videoReady;
+  const showPlaybackControl = loadHeroVideo && !reduceMotion && Boolean(heroVideo);
   const playbackLabel = isPaused
     ? t("Play hero background video")
     : t("Pause hero background video");

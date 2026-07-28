@@ -389,7 +389,7 @@ export const collections = [
     fields: [text("title", "Logo title", { required: true }), text("altText", "Alt text", { required: true }), { name: "image", label: "Logo image", type: "media", localized: false }, plain("linkUrl", "Link URL", { type: "url" }), { name: "placement", label: "Placement", type: "select", localized: false, options: ["primary", "supporting", "footer"] }],
   },
   ...[
-    ["homepage_features", "Homepage Feature Tabs", "Objective, implementation, approach and activity tabs."],
+    ["homepage_features", "Homepage Navigation Tabs", "Rename and order the five tabs shown below the homepage announcements, including Objective, Implementation, Approach, Sphere of Activities and Mobile Apps."],
     ["services", "Services / Programme Cards", "Homepage services and programme cards."],
     ["applications", "Application Cards", "Homepage application cards."],
     ["quick_links", "Quick Links", "Homepage quick links."],
@@ -399,13 +399,36 @@ export const collections = [
     label,
     description,
     fields: [
-      text("title", "Title", { required: true }),
-      textarea("description", "Description"),
-      textarea("details", "Details"),
-      plain("path", "Path"),
-      plain("url", "URL", { type: "url" }),
-      { name: "iconKey", label: "Icon", type: "select", localized: false, options: cmsIconOptions },
-      text("category", "Category"),
+      text("title", id === "homepage_features" ? "Visible tab name" : "Title", {
+        required: true,
+        help: id === "homepage_features"
+          ? "This is the exact tab label visitors see on the homepage. Edit English and Hindi separately."
+          : undefined,
+      }),
+      textarea("description", id === "homepage_features" ? "Supporting description" : "Description", {
+        advanced: id === "homepage_features",
+      }),
+      textarea("details", id === "homepage_features" ? "Supporting detail text" : "Details", {
+        advanced: id === "homepage_features",
+      }),
+      plain("path", id === "homepage_features" ? "Destination page path" : "Path", {
+        advanced: id === "homepage_features",
+        help: id === "homepage_features"
+          ? "The website route opened by this tab. Normally this should not be changed."
+          : undefined,
+      }),
+      plain("url", "URL", { type: "url", hidden: id === "homepage_features" }),
+      {
+        name: "iconKey",
+        label: id === "homepage_features" ? "Tab icon" : "Icon",
+        type: "select",
+        localized: false,
+        options: cmsIconOptions,
+        help: id === "homepage_features"
+          ? "Choose the icon displayed immediately above this homepage tab name."
+          : undefined,
+      },
+      text("category", "Category", { hidden: id === "homepage_features" }),
       {
         name: "buttonLabel",
         label: "Button label",

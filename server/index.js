@@ -21,6 +21,7 @@ import {
   syncDivisionPage,
   syncDivisionStatusFromPage,
 } from "./divisionPageSync.js";
+import { allocateUniqueEntryKey, entryKeyFor } from "./entryKeys.js";
 
 const app = express();
 const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: true });
@@ -127,18 +128,6 @@ const invalidatePublicContentCache = () => {
   publicBootstrapCache.clear();
   contentVersionCache = { checkedAt: 0, value: "" };
   broadcastPublicContentUpdate();
-};
-
-const slugify = (value) => String(value || "entry")
-  .normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase()
-  .replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 120) || randomUUID();
-
-const entryKeyFor = (body, dataEn) => {
-  const existing = [...String(body?.entryKey || "").trim()]
-    .filter((character) => character.charCodeAt(0) >= 32)
-    .join("")
-    .slice(0, 160);
-  return existing || slugify(dataEn.slug || dataEn.roleKey || dataEn.title || dataEn.name || dataEn.label);
 };
 
 const localPreviewPath = (value) => {
@@ -249,6 +238,27 @@ const assertUniqueProfile = async (client, dataEn, status, excludeId = null) => 
   if (duplicate) {
     throw Object.assign(
       new Error("Possible duplicate profile. Edit the existing record or archive it before saving another card."),
+      { status: 409 }
+    );
+  }
+};
+
+const assertUniquePageDisplayPath = async (client, dataEn, status, excludeId = null) => {
+  if (status === "archived") return;
+  const path = String(dataEn.path || "").trim();
+  const { rows } = await client.query(
+    `SELECT id
+       FROM cms_entries
+      WHERE collection='page_display_settings'
+        AND status <> 'archived'
+        AND data_en->>'path'=$1
+        AND ($2::uuid IS NULL OR id <> $2::uuid)
+      LIMIT 1`,
+    [path, excludeId]
+  );
+  if (rows[0]) {
+    throw Object.assign(
+      new Error("This page path already has heading settings. Edit the existing item instead."),
       { status: 409 }
     );
   }
@@ -623,14 +633,19 @@ app.get("/api/admin/content/:collection", async (req, res, next) => {
 app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req, res, next) => {
   try {
     const { definition, dataEn, dataHi, status, sortOrder } = validateEntryPayload(req.params.collection, req.body || {});
-    let entryKey = entryKeyFor(req.body, dataEn);
-    if (definition.autoNewestFirst && !req.body?.entryKey) entryKey = `${entryKey}-${randomUUID().slice(0, 8)}`;
+    const automaticEntryKey = !String(req.body?.entryKey || "").trim();
+    let baseEntryKey = entryKeyFor(req.body, dataEn);
+    if (definition.autoNewestFirst && automaticEntryKey) baseEntryKey = `${baseEntryKey}-${randomUUID().slice(0, 8)}`;
     const row = await withTransaction(async (client) => {
       if (definition.singleton) {
         const existing = await client.query("SELECT id FROM cms_entries WHERE collection=$1 AND status <> 'archived' LIMIT 1", [definition.id]);
         if (existing.rows[0]) throw Object.assign(new Error("This collection allows one active record"), { status: 409 });
       }
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status);
+      if (definition.id === "page_display_settings") await assertUniquePageDisplayPath(client, dataEn, status);
+      const entryKey = await allocateUniqueEntryKey(client, definition.id, baseEntryKey, {
+        automatic: automaticEntryKey,
+      });
       let effectiveSortOrder = sortOrder;
       if (!definition.singleton) {
         const minimum = await client.query("SELECT COALESCE(min(sort_order),1)::int AS value FROM cms_entries WHERE collection=$1 AND status <> 'archived'", [definition.id]);
@@ -665,6 +680,7 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
+      if (definition.id === "page_display_settings") await assertUniquePageDisplayPath(client, dataEn, status, req.params.id);
       const nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
       const nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
       const updated = await client.query(
@@ -809,12 +825,16 @@ app.post("/api/admin/feedback/:id/send", writeLimiter, requireCsrf, async (req, 
 app.use((error, _req, res, _next) => {
   void _next;
   const isUploadError = error instanceof multer.MulterError;
+  const isDuplicateEntryKey = error.code === "23505" &&
+    error.constraint === "cms_entries_collection_entry_key_key";
   const status = isUploadError
     ? error.code === "LIMIT_FILE_SIZE" ? 413 : 400
     : Number(error.status) || (error.code === "23505" ? 409 : 500);
   const message = isUploadError && error.code === "LIMIT_FILE_SIZE"
     ? `File is too large. Maximum size is ${Math.round(config.maxUploadBytes / 1024 / 1024)} MB.`
-    : error.message;
+    : isDuplicateEntryKey
+      ? "Another CMS item already uses this internal key. Leave Internal key blank to generate a unique one."
+      : error.message;
   if (status >= 500) console.error(error);
   res.status(status).json({ error: status >= 500 ? "Server error" : message });
 });

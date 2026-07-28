@@ -24,6 +24,7 @@ const AdministrationPage = () => {
           <ProfileFlipCard
             key={`${profile.profileType || "administration"}-${profile.id || profile.employeeId || profile.name}-${index}`}
             profile={profile}
+            enableFlip={false}
           />
         ))}
       </div>
