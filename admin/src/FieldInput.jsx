@@ -1,10 +1,11 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Plus, Search, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 import { api, mediaPreviewUrl } from "./api";
 import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
+import { floodSettingsGroupLabels } from "./settingsGroupLabels";
 
 const iconColumns = cmsIconOptions.map(({ value, label }) => [value, label]);
 const buttonSuggestions = cmsButtonLabelSuggestions;
@@ -29,7 +30,14 @@ function SuggestionInput({ id, value, options = [], language = "en", onChange })
 }
 
 function JsonEditor({ field, value, onChange, onError }) {
-  const [text, setText] = useState(() => typeof value === "string" ? value : JSON.stringify(value || {}, null, 2));
+  const textareaRef = useRef(null);
+  const serializedValue = typeof value === "string" ? value : JSON.stringify(value || {}, null, 2);
+  const [text, setText] = useState(() => serializedValue);
+
+  useEffect(() => {
+    if (document.activeElement !== textareaRef.current) setText(serializedValue);
+  }, [serializedValue]);
+
   const commit = () => {
     try {
       onChange(JSON.parse(text));
@@ -38,7 +46,7 @@ function JsonEditor({ field, value, onChange, onError }) {
       onError(`${field.label}: invalid JSON`);
     }
   };
-  return <textarea className="code-input" rows="14" value={text} onChange={(event) => setText(event.target.value)} onBlur={commit} />;
+  return <textarea ref={textareaRef} className="code-input" rows="14" value={text} onChange={(event) => setText(event.target.value)} onBlur={commit} />;
 }
 
 const settingsGroups = [
@@ -322,25 +330,26 @@ const settingsGroups = [
     ],
   },
   {
-    label: "Flood monitoring and reports",
+    label: floodSettingsGroupLabels.reports,
+    help: "These fields control the official-style report table. Report rows and PDFs are edited in the Flood Reports collection.",
     fields: [
-      ["floodSection.eyebrow", "Flood page small heading"],
-      ["floodSection.title", "Flood page heading"],
-      ["floodSection.intro", "Flood page introduction", "textarea"],
-      ["floodSection.note", "Season note", "textarea"],
-      ["floodSection.programmeHeading", "Programme heading"],
-      ["floodSection.programmes", "Flood programmes", "rows", [["title", "Title"], ["description", "Description", "textarea"], ["icon", "Icon", "shared-select", iconColumns]]],
-      ["floodSection.archiveHeading", "Archive heading"],
-      ["floodSection.archiveNote", "Archive note", "textarea"],
-      ["floodSection.archives", "Flood archive years", "rows", [["year", "Year"], ["url", "Archive URL"]]],
-      ["floodSection.resourcesHeading", "Related portals heading"],
-      ["floodSection.resources", "Related flood portals", "rows", [["label", "Name"], ["description", "Description", "textarea"], ["url", "Website URL"]]],
-      ["pageContent.floodReports.heading", "Daily reports heading"],
-      ["pageContent.floodReports.backLabel", "Flood reports back label"],
-      ["pageContent.floodReports.columns.date", "Date column"],
-      ["pageContent.floodReports.columns.report", "Report column"],
-      ["pageContent.floodReports.columns.coverage", "Coverage column"],
-      ["pageContent.floodReports.columns.action", "Action column"],
+      ["pageContent.floodReports.columns.serial", "Serial number column"],
+      ["pageContent.floodReports.columns.subject", "Subject column"],
+      ["pageContent.floodReports.columns.download", "Download column"],
+      ["pageContent.floodReports.initialVisibleCount", "Reports shown before the Show more button", "number"],
+      ["pageContent.floodReports.resultsSummary", "Report count text ({shown} and {total} are replaced automatically)"],
+      ["pageContent.floodReports.showMoreLabel", "Show more button label"],
+      ["pageContent.floodReports.showLessLabel", "Show fewer button label"],
+    ],
+  },
+  {
+    label: floodSettingsGroupLabels.menu,
+    help: "These entries build the Flood menu. Each year opens its matching report table; the Critical Map opens its local PDF.",
+    fields: [
+      ["floodSection.archiveItemLabel", "Label shown before each year in the website menu"],
+      ["floodSection.archives", "Flood archive years (local pages are created automatically)", "rows", [["year", "Year"]]],
+      ["floodSection.criticalMapLabel", "Flood Critical Map menu label"],
+      ["floodSection.criticalMapUrl", "Flood Critical Map PDF", "media"],
     ],
   },
   {
@@ -401,6 +410,8 @@ const sharedSettingsPaths = new Set([
   "about.secondaryAction.icon",
   "location.cardEyebrowSize",
   "footer.contactHeadingSize",
+  "floodSection.criticalMapUrl",
+  "pageContent.floodReports.initialVisibleCount",
   "organisationChart.image",
   "organisationChart.downloadName",
 ]);
@@ -461,7 +472,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
     <div className="nested-rows settings-rows">
       <strong>{label}</strong>
       {items.map((item, index) => (
-        <section key={`${label}-${index}-${item.label || item.name || item.title || "row"}`}>
+        <section key={`${label}-${index}`}>
           <header>
             <strong>{index + 1}. {item.label || item.name || item.title || "New row"}</strong>
             <button type="button" title={`Remove ${label} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button>
@@ -614,7 +625,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
   );
   return (
     <div className={`settings-editor ${isFocusedEditor ? "settings-editor--focused" : "settings-editor--homepage"}`}>
-      <p className="settings-note">{isFocusedEditor ? "Every field below controls visible text on a People or Our Formers page. Edit English and Hindi separately; shared layout values apply to both." : "Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route."}</p>
+      <p className="settings-note">{field.settingsIntro || (isFocusedEditor ? "Edit English and Hindi separately. Shared layout values apply to both languages." : "Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route.")}</p>
       {!isFocusedEditor && <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />}
       {!isFocusedEditor && <fieldset className="settings-group homepage-typography-editor">
           <legend>Homepage section size overrides</legend>
@@ -627,6 +638,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
       {visibleGroups.map((group) => (
         <fieldset className="settings-group" key={group.label}>
           <legend>{group.label}</legend>
+          {group.help && <p className="settings-group-help">{group.help}</p>}
           <div className="settings-grid">
             {group.fields.map(([path, label, type, columns]) => type === "rows" ? (
               <SettingsRowsEditor
@@ -649,6 +661,8 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
                 <span>{label}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "select"
                   ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                  : type === "number"
+                  ? <input type="number" min="1" max="100" value={getAtPath(source, path) ?? ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value === "" ? "" : Number(event.target.value)))} />
                   : type === "suggestions"
                   ? <SuggestionInput value={getAtPath(source, path)} options={columns} language={language} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} />
                   : type === "media"
@@ -668,7 +682,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
       {!isFocusedEditor && <details className="advanced-settings">
         <summary>Advanced technical settings</summary>
         <p>Use only when instructed by developer. Invalid JSON will not save.</p>
-        <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />
+        <JsonEditor field={field} value={value} onChange={onChange} onError={onError} />
       </details>}
     </div>
   );
@@ -683,7 +697,7 @@ function ObjectListEditor({ field, value, onChange }) {
   const rows = Array.isArray(value) ? value : [];
   const fields = objectListFields[field.name];
   const update = (index, name, nextValue) => onChange(rows.map((row, position) => position === index ? { ...row, [name]: nextValue } : row));
-  return <div className="object-list-editor">{rows.map((row, index) => <section key={`${index}-${row.label || row.name || "row"}`}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
+  return <div className="object-list-editor">{rows.map((row, index) => <section key={index}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
 }
 
 function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
@@ -694,14 +708,23 @@ function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
 
 function SectionListEditor({ value, onChange, onBusy, onError }) {
   const sections = Array.isArray(value) ? value : [];
+  const [sectionKeys, setSectionKeys] = useState(() => sections.map(() => crypto.randomUUID()));
   const update = (index, patch) => onChange(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
+  const remove = (index) => {
+    setSectionKeys((current) => current.filter((_key, position) => position !== index));
+    onChange(sections.filter((_section, position) => position !== index));
+  };
+  const addAtTop = () => {
+    setSectionKeys((current) => [crypto.randomUUID(), ...current]);
+    onChange([{ heading: "", body: "" }, ...sections]);
+  };
   return (
     <div className="section-list-editor">
       {sections.map((section, index) => (
-        <section key={`${index}-${section.heading || "section"}`}>
+        <section key={sectionKeys[index] || `section-${index}`}>
           <header>
             <strong>{index + 1}. {section.heading || "New section"}</strong>
-            <button type="button" title="Remove section" onClick={() => onChange(sections.filter((_section, position) => position !== index))}><Trash2 /></button>
+            <button type="button" title="Remove section" onClick={() => remove(index)}><Trash2 /></button>
           </header>
           <div className="section-fields">
             <label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>
@@ -721,7 +744,7 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
           <NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} />
         </section>
       ))}
-      <button type="button" className="add-item" onClick={() => onChange([{ heading: "", body: "" }, ...sections])}><Plus /> Add page section at top</button>
+      <button type="button" className="add-item" onClick={addAtTop}><Plus /> Add page section at top</button>
     </div>
   );
 }
@@ -746,9 +769,9 @@ export default function FieldInput({ field, value, referenceValue, language = "e
   if (field.type === "suggestions") return <SuggestionInput id={suggestionId} value={value} options={field.options} language={language} onChange={onChange} />;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
   if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} language={language} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} />;
-  if (field.type === "json" && field.name === "sections") return <SectionListEditor value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
+  if (field.type === "json" && field.name === "sections") return <SectionListEditor key={language} value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
-  if (field.type === "json") return <JsonEditor key={JSON.stringify(value || {})} field={field} value={value} onChange={onChange} onError={onError} />;
+  if (field.type === "json") return <JsonEditor field={field} value={value} onChange={onChange} onError={onError} />;
   if (field.type === "media") return <div className="media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
   if (field.type === "color") {
     const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";

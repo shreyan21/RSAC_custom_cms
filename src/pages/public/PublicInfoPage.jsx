@@ -185,12 +185,6 @@ const PublicInfoPage = ({ slug }) => {
               {t("Notices & Circulars")}
             </Link>
 
-            <Link
-              to="/flood-reports"
-              className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-[#102f46]"
-            >
-              {t("Flood Daily Reports")}
-            </Link>
           </div>
 
           {page.links?.length > 0 && (

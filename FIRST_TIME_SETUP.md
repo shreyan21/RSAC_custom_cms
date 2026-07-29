@@ -99,6 +99,37 @@ it because it is about 1.3 GB. Copy it separately with the database backup and
 `server/uploads/`. Without this folder, flood years and report names still
 appear, but clicking a PDF opens no real report.
 
+The locally stored Flood Critical Map is:
+
+```text
+public/documents/flood/flood-critical-map.pdf
+```
+
+### Adding a New Flood PDF
+
+Open the CMS, choose **Flood Reports**, and add a report or open an existing
+report. Use its PDF upload/replace control and save it.
+
+New PDFs uploaded through the CMS are stored in:
+
+```text
+server/uploads/
+```
+
+PostgreSQL stores the report year, title, labels, and the address of that file.
+The older imported archive remains in `public/documents/flood/<year>/`.
+
+For a complete transfer or backup, keep these three parts together:
+
+```text
+database backup
+server/uploads/
+public/documents/flood/
+```
+
+Do not manually place a normal new CMS upload inside
+`public/documents/flood/`. That folder is for the large imported archive.
+
 ## What Is a Seed?
 
 A seed is starter content used when a new database is empty.

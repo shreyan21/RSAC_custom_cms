@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-29T06:27:05.309Z",
+  "generatedAt": "2026-07-29T12:30:31.665Z",
   "entries": [
     {
       "collection": "applications",
@@ -66999,26 +66999,14 @@
       "dataEn": {
         "path": "/flood-reports",
         "sort": 60,
-        "links": [
-          {
-            "path": "/flood-reports",
-            "label": "Flood Daily Reports",
-            "description": "Satellite-based daily flood inundation reports during the monsoon."
-          }
-        ],
+        "links": [],
         "title": "Flood",
-        "description": "Satellite-based daily flood inundation reports and flood maps."
+        "description": "Year-wise flood reports, maps, and the Flood Critical Map."
       },
       "dataHi": {
-        "links": [
-          {
-            "path": "/flood-reports",
-            "label": "दैनिक बाढ़ रिपोर्ट",
-            "description": "मानसून के दौरान उपग्रह आधारित दैनिक बाढ़ जलमग्नता रिपोर्ट।"
-          }
-        ],
+        "links": [],
         "title": "बाढ़",
-        "description": "उपग्रह आधारित दैनिक बाढ़ रिपोर्ट और बाढ़ मानचित्र।"
+        "description": "वर्षवार बाढ़ रिपोर्ट, मानचित्र और बाढ़ क्रिटिकल मानचित्र।"
       }
     },
     {
@@ -67576,11 +67564,11 @@
         "label": "Disaster & Flood",
         "detail": "Monsoon response mapping",
         "tagline": "Flood intelligence when hours matter",
-        "linkLabel": "Flood Daily Reports",
-        "statLabel": "flood reports in the monsoon season",
-        "statValue": "Daily",
+        "linkLabel": "Flood Reports",
+        "statLabel": "year-wise flood report archive",
+        "statValue": "2016+",
         "deliverables": [
-          "Daily flood inundation mapping during the monsoon",
+          "Flood inundation mapping during the monsoon",
           "Flood hazard zonation and post-event damage assessment",
           "Drought monitoring and hazard vulnerability studies"
         ]
@@ -67589,11 +67577,11 @@
         "label": "आपदा एवं बाढ़",
         "detail": "मानसून प्रतिक्रिया मानचित्रण",
         "tagline": "जब हर घंटा महत्वपूर्ण हो, बाढ़ आसूचना",
-        "linkLabel": "दैनिक बाढ़ रिपोर्ट",
-        "statLabel": "मानसून ऋतु में बाढ़ रिपोर्ट",
-        "statValue": "दैनिक",
+        "linkLabel": "बाढ़ रिपोर्ट",
+        "statLabel": "वर्षवार बाढ़ रिपोर्ट अभिलेख",
+        "statValue": "2016+",
         "deliverables": [
-          "मानसून के दौरान दैनिक बाढ़ जलप्लावन मानचित्रण",
+          "मानसून के दौरान बाढ़ जलप्लावन मानचित्रण",
           "बाढ़ संकट क्षेत्र निर्धारण एवं घटना-पश्चात क्षति आकलन",
           "सूखा अनुश्रवण एवं संकट सुभेद्यता अध्ययन"
         ]
@@ -68134,16 +68122,22 @@
         "intro": "",
         "title": "",
         "eyebrow": "",
+        "pageFont": "",
         "hideIntro": true,
         "hideTitle": true,
         "mediaSize": "",
         "afterBlocks": [],
         "contentSize": "",
+        "eyebrowSize": "large",
+        "headingFont": "",
         "headingSize": "large",
         "hideEyebrow": false,
         "beforeBlocks": [],
+        "bodyFontSize": "",
         "contentWidth": "",
-        "contentSpacing": ""
+        "contentSpacing": "",
+        "eyebrowFontSize": "",
+        "headingFontSize": ""
       },
       "dataHi": {
         "intro": "",
@@ -68934,7 +68928,7 @@
             "key": "text-0001",
             "type": "rich_text",
             "label": "Section: Remote Sensing Applications Centre",
-            "value": "Remote Sensing Applications Centre",
+            "value": "Remote Sensing Applications Center",
             "contentHtml": "<p>Uttar Pradesh was the first and foremost state in the country to establish the first state Remote Sensing Applications Centre, Uttar Pradesh (RSAC-UP) in May, 1982 at Lucknow. RSAC-UP has been utilizing the geospatial technologies of satellite remote sensing, Image Processing, GIS, GPS, LiDAR, Bathymetry, Customized Software Development using AI, ML, DL &amp; AL methods in conjunction with geophysical surveys, soil and water testing techniques for assessment, monitoring, utilization and management of various natural resources of the state with a view to achieve sustainable development. With the passage of time this RSAC-UP has diversified its domain from natural resource management to infrastructure mapping and monitoring, utility mapping, disaster management, Software development and is also involved in training, capacity building and vocational educational programme on geospatial technologies such as running M. Tech in “Remote Sensing and GIS”. RSAC-UP is carrying out the work in crop area and production estimation of different crops, Space Based Information Support for Decentralized Planning, Wetland Inventory Assessment, Monitoring of Integrated watershed, Monitoring Vulnerability Assessment, desertification and Land Degradation, Assessment of Plantation outside forest areas, Water Sector Restructuring, Unauthorized Colony Mapping with the area of Development Authorities of U.P., Asset Mapping, Ground Water Targeting, Rural Urban planning including smart city and infrastructure planning. Further the Centre is also working on pilot basis for the projects such as assessment of one district one crop, selection of cold storages for crop management, rejuvenation of alluvial rivers, disaster management, pilot studies on site suitability of suitable sites for rain water harvesting, fruit belt development, fodder crops and solid waste disposal etc. The Centre is also working on GIS mapping for schools, development and updation of satellite data and GIS based geoportal. Further, the Centre is imparting training on remote sensing applications to the officials of user departments and also to the faculty members and research scholars of Universities. M.Tech in Remote Sensing and GIS in affiliation with AKTU is also being run by RSAC-UP since 2013.</p>",
             "legacyChildren": [
               {
@@ -79873,15 +79867,6 @@
         "title": "Visitor's Book",
         "blocks": [
           {
-            "id": "3d27817f-3234-43a8-a0f3-58295ab2d227",
-            "key": "text-0001",
-            "type": "rich_text",
-            "label": "Section: Visitor's Book",
-            "value": "Visitor's Book",
-            "contentHtml": "",
-            "legacyChildren": []
-          },
-          {
             "id": "cms-page-assets",
             "type": "rich_text",
             "label": "Page images, files and links",
@@ -79949,11 +79934,22 @@
             "sourceLabel": "Page images, files and links",
             "legacyChildren": [],
             "controlsSectionLabel": false
+          },
+          {
+            "id": "3d27817f-3234-43a8-a0f3-58295ab2d227",
+            "key": "text-0001",
+            "type": "rich_text",
+            "label": "Section: Visitor's Book",
+            "value": "Visitor's Book",
+            "hidden": true,
+            "contentHtml": "",
+            "legacyChildren": []
           }
         ],
         "eyebrow": "",
         "summary": "Visitor book entries and institutional visit records.",
         "cardIcon": "",
+        "pageFont": "",
         "cardColor": "",
         "mediaSize": "",
         "sourceUrl": "https://rsac.up.gov.in/en/page/en-visitors-book",
@@ -79961,10 +79957,15 @@
         "sectionKey": "about-us",
         "cardColor_2": null,
         "contentSize": "",
+        "eyebrowSize": "",
+        "headingFont": "",
         "headingSize": "",
+        "bodyFontSize": 0,
         "contentWidth": "",
         "featuredImage": "",
         "contentSpacing": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0,
         "hiddenProfileNames": [],
         "sectionContentVersion": 2
       },
@@ -79972,15 +79973,6 @@
         "html": "<div><div><h2>आगंतुक पुस्तिका</h2> <div><div><div><div><img src=\"/official-media/uploadedImages/Image/I_202212061543246974.jpg\" loading=\"lazy\" title=\"Director, NRSC/ISRO, 26/11/2022\" alt=\"Visitor's Book\" /></div></div><div><div><img src=\"/official-media/uploadedImages/Image/I_202212061544158247.jpg\" loading=\"lazy\" title=\"Chairman, ISRO, 22/01/2017\" alt=\"Visitor's Book\" /></div></div><div><div><img src=\"/official-media/uploadedImages/Image/I_202212061544597073.jpg\" loading=\"lazy\" title=\"Chairman, ISRO, 26/11/2006\" alt=\"Visitor's Book\" /></div></div><div><div><img src=\"/official-media/uploadedImages/Image/I_202212061617436647.jpg\" loading=\"lazy\" title=\"Chairman, ISRO, 06/01/2002\" alt=\"Visitor's Book\" /></div></div></div></div></div></div>",
         "title": "आगंतुक पुस्तिका",
         "blocks": [
-          {
-            "id": "682bef0e-a8da-46fd-b423-ff63ec2c1160",
-            "key": "text-0001",
-            "type": "rich_text",
-            "label": "आगंतुक पुस्तिका",
-            "value": "आगंतुक पुस्तिका",
-            "contentHtml": "",
-            "legacyChildren": []
-          },
           {
             "id": "cms-page-assets",
             "type": "rich_text",
@@ -80051,6 +80043,16 @@
             "contentHtml": "",
             "sourceLabel": "Page images, files and links",
             "controlsSectionLabel": false
+          },
+          {
+            "id": "682bef0e-a8da-46fd-b423-ff63ec2c1160",
+            "key": "text-0001",
+            "type": "rich_text",
+            "label": "आगंतुक पुस्तिका",
+            "value": "आगंतुक पुस्तिका",
+            "hidden": true,
+            "contentHtml": "",
+            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -142771,25 +142773,6 @@
     },
     {
       "collection": "quick_links",
-      "entryKey": "flood-reports",
-      "status": "published",
-      "sortOrder": 3,
-      "dataEn": {
-        "key": "flood-reports",
-        "path": "/flood-reports",
-        "sort": 3,
-        "title": "Flood Daily Reports",
-        "accent": "#0f766e",
-        "iconKey": "flood",
-        "description": "Daily monsoon flood bulletins"
-      },
-      "dataHi": {
-        "title": "बाढ़",
-        "description": "दैनिक मानसून बाढ़ बुलेटिन"
-      }
-    },
-    {
-      "collection": "quick_links",
       "entryKey": "geoportals",
       "status": "published",
       "sortOrder": 4,
@@ -143609,10 +143592,6 @@
                   "label": "Notices & Circulars"
                 },
                 {
-                  "path": "/flood-reports",
-                  "label": "Flood Daily Reports"
-                },
-                {
                   "path": "/tenders",
                   "label": "Tenders & Procurement"
                 },
@@ -143776,13 +143755,14 @@
             },
             "floodReports": {
               "columns": {
-                "date": "Date",
-                "action": "Action",
-                "report": "Report",
-                "coverage": "Coverage"
+                "serial": "Sr. No.",
+                "subject": "Subject",
+                "download": "Download"
               },
-              "heading": "Daily flood reports",
-              "backLabel": "Back to Home"
+              "showLessLabel": "Show fewer reports",
+              "showMoreLabel": "Show more reports",
+              "resultsSummary": "Showing {shown} of {total} reports",
+              "initialVisibleCount": 20
             },
             "screenReader": {
               "intro": "The website is structured to support assistive technologies and targets WCAG 2.1 Level AA and GIGW 3.0 accessibility requirements.",
@@ -144015,10 +143995,6 @@
             "description": "Applied remote sensing and GIS projects executed for state departments, central agencies, and academic partners — covering the full spectrum of natural-resource and governance needs."
           },
           "floodSection": {
-            "note": "Daily reports are published during the active monsoon period (typically July to October). Outside this period, the latest season's archive remains available below, and earlier seasons can be opened from the year-wise archive.",
-            "intro": "During the monsoon season, RSAC-UP publishes daily satellite-based flood inundation reports for affected districts of Uttar Pradesh. Reports combine multi-sensor satellite data with field inputs to support relief and response operations.",
-            "title": "Flood Daily Reports & Monitoring",
-            "eyebrow": "Disaster Response",
             "archives": [
               {
                 "url": "https://rsac.up.gov.in/en/page/flood-2026",
@@ -144065,47 +144041,9 @@
                 "year": "2016"
               }
             ],
-            "resources": [
-              {
-                "url": "https://rahat.up.nic.in",
-                "label": "Relief Commissioner, Uttar Pradesh",
-                "description": "State disaster relief operations and flood bulletins."
-              },
-              {
-                "url": "https://indiawris.gov.in",
-                "label": "India-WRIS",
-                "description": "National water resources information system."
-              },
-              {
-                "url": "https://bhuvan.nrsc.gov.in",
-                "label": "Bhuvan (NRSC)",
-                "description": "ISRO geoportal with flood hazard services."
-              }
-            ],
-            "programmes": [
-              {
-                "id": "daily-inundation",
-                "icon": "radar",
-                "title": "Daily Flood Inundation Mapping",
-                "description": "Near-real-time mapping of inundated areas from satellite passes during the monsoon, shared with the Relief Commissioner and district administration."
-              },
-              {
-                "id": "hazard-zonation",
-                "icon": "map",
-                "title": "Flood Hazard Zonation",
-                "description": "Multi-year flood layers combined into hazard zonation maps that identify recurrently affected villages, embankments, and infrastructure."
-              },
-              {
-                "id": "damage-assessment",
-                "icon": "scan",
-                "title": "Post-Flood Damage Assessment",
-                "description": "Crop-area and settlement damage assessment after major flood events to support compensation and rehabilitation planning."
-              }
-            ],
-            "archiveNote": "Complete season archives with all district reports are hosted on the official RSAC-UP website.",
-            "archiveHeading": "Year-wise flood archive",
-            "programmeHeading": "Flood programme of RSAC-UP",
-            "resourcesHeading": "Related portals"
+            "criticalMapUrl": "/documents/flood/flood-critical-map.pdf",
+            "archiveItemLabel": "Flood",
+            "criticalMapLabel": "Flood Critical Map"
           },
           "homeSections": {
             "geoportals": {
@@ -144297,15 +144235,15 @@
                 "icon": "shield",
                 "path": "/flood-reports",
                 "stat": {
-                  "label": "flood reports in the monsoon season",
-                  "value": "Daily"
+                  "label": "year-wise flood report archive",
+                  "value": "2016+"
                 },
                 "label": "Disaster & Flood",
                 "detail": "Monsoon response mapping",
                 "tagline": "Flood intelligence when hours matter",
-                "linkLabel": "Flood Daily Reports",
+                "linkLabel": "Flood Reports",
                 "deliverables": [
-                  "Daily flood inundation mapping during the monsoon",
+                  "Flood inundation mapping during the monsoon",
                   "Flood hazard zonation and post-event damage assessment",
                   "Drought monitoring and hazard vulnerability studies"
                 ]
@@ -144521,7 +144459,6 @@
             "comments-suggestion": "Comments / Suggestion",
             "english-short-label": "English short label",
             "experience-in-years": "Experience in Years",
-            "flood-daily-reports": "Flood Daily Reports",
             "interactive-content": "Interactive content",
             "listen-to-this-page": "Listen to this page",
             "published-structure": "Published Structure",
@@ -145376,10 +145313,6 @@
                   "label": "सूचनाएं एवं परिपत्र"
                 },
                 {
-                  "path": "/flood-reports",
-                  "label": "दैनिक बाढ़ रिपोर्ट"
-                },
-                {
                   "path": "/tenders",
                   "label": "निविदाएं एवं खरीद"
                 },
@@ -145547,13 +145480,14 @@
             },
             "floodReports": {
               "columns": {
-                "date": "तिथि",
-                "action": "कार्रवाई",
-                "report": "रिपोर्ट",
-                "coverage": "कवरेज"
+                "serial": "क्र. सं.",
+                "subject": "विषय",
+                "download": "डाउनलोड"
               },
-              "heading": "दैनिक बाढ़ रिपोर्ट",
-              "backLabel": "होम पर वापस जाएं"
+              "showLessLabel": "कम रिपोर्ट दिखाएं",
+              "showMoreLabel": "और रिपोर्ट दिखाएं",
+              "resultsSummary": "कुल {total} में से {shown} रिपोर्ट दिखाई जा रही हैं",
+              "initialVisibleCount": 20
             },
             "screenReader": {
               "intro": "वेबसाइट सहायक तकनीकों के अनुकूल संरचित है और WCAG 2.1 स्तर AA तथा GIGW 3.0 सुगम्यता आवश्यकताओं को लक्षित करती है।",
@@ -145786,10 +145720,6 @@
             "description": "राज्य विभागों, केंद्रीय अभिकरणों एवं शैक्षणिक भागीदारों के लिए संचालित अनुप्रयुक्त सुदूर संवेदन एवं जीआईएस परियोजनाएं — प्राकृतिक संसाधन एवं शासन आवश्यकताओं की पूरी श्रृंखला सहित।"
           },
           "floodSection": {
-            "note": "दैनिक रिपोर्ट सक्रिय मानसून अवधि (सामान्यतः जुलाई से अक्टूबर) में प्रकाशित होती हैं। इस अवधि के बाहर नवीनतम मौसम का अभिलेख नीचे उपलब्ध रहता है और पुराने मौसम वर्षवार अभिलेख से खोले जा सकते हैं।",
-            "intro": "मानसून अवधि में आरएसएसी-यूपी उत्तर प्रदेश के प्रभावित जनपदों के लिए उपग्रह आधारित दैनिक बाढ़ जलमग्नता रिपोर्ट प्रकाशित करता है। ये रिपोर्ट राहत और प्रतिक्रिया कार्यों में सहायता हेतु बहु-सेंसर उपग्रह डाटा और क्षेत्रीय सूचनाओं को जोड़ती हैं।",
-            "title": "बाढ़ दैनिक रिपोर्ट एवं अनुश्रवण",
-            "eyebrow": "आपदा प्रतिक्रिया",
             "archives": [
               {
                 "url": "https://rsac.up.gov.in/en/page/flood-2026",
@@ -145836,47 +145766,9 @@
                 "year": "2016"
               }
             ],
-            "resources": [
-              {
-                "url": "https://rahat.up.nic.in",
-                "label": "राहत आयुक्त, उत्तर प्रदेश",
-                "description": "राज्य आपदा राहत कार्य और बाढ़ बुलेटिन।"
-              },
-              {
-                "url": "https://indiawris.gov.in",
-                "label": "India-WRIS",
-                "description": "राष्ट्रीय जल संसाधन सूचना प्रणाली।"
-              },
-              {
-                "url": "https://bhuvan.nrsc.gov.in",
-                "label": "Bhuvan (NRSC)",
-                "description": "बाढ़ जोखिम सेवाओं सहित इसरो जियोपोर्टल।"
-              }
-            ],
-            "programmes": [
-              {
-                "id": "daily-inundation",
-                "icon": "radar",
-                "title": "दैनिक बाढ़ जलमग्नता मानचित्रण",
-                "description": "मानसून के दौरान उपग्रह पास से जलमग्न क्षेत्रों का लगभग वास्तविक-समय मानचित्रण, जिसे राहत आयुक्त और जिला प्रशासन से साझा किया जाता है।"
-              },
-              {
-                "id": "hazard-zonation",
-                "icon": "map",
-                "title": "बाढ़ जोखिम क्षेत्रीकरण",
-                "description": "कई वर्षों की बाढ़ परतों को जोखिम क्षेत्रीकरण मानचित्रों में संयोजित किया जाता है, जिससे बार-बार प्रभावित गांवों, तटबंधों और अवसंरचना की पहचान होती है।"
-              },
-              {
-                "id": "damage-assessment",
-                "icon": "scan",
-                "title": "बाढ़ उपरांत क्षति आकलन",
-                "description": "मुख्य बाढ़ घटनाओं के बाद क्षतिपूर्ति और पुनर्वास योजना में सहायता हेतु फसल क्षेत्र और बस्ती क्षति का आकलन।"
-              }
-            ],
-            "archiveNote": "सभी जनपदीय रिपोर्टों सहित पूर्ण मौसमी अभिलेख आधिकारिक आरएसएसी-यूपी वेबसाइट पर उपलब्ध हैं।",
-            "archiveHeading": "वर्षवार बाढ़ अभिलेख",
-            "programmeHeading": "आरएसएसी-यूपी का बाढ़ कार्यक्रम",
-            "resourcesHeading": "संबंधित पोर्टल"
+            "criticalMapUrl": "/documents/flood/flood-critical-map.pdf",
+            "archiveItemLabel": "बाढ़",
+            "criticalMapLabel": "बाढ़ महत्वपूर्ण मानचित्र"
           },
           "homeSections": {
             "geoportals": {
@@ -146068,15 +145960,15 @@
                 "icon": "shield",
                 "path": "/flood-reports",
                 "stat": {
-                  "label": "मानसून ऋतु में बाढ़ रिपोर्ट",
-                  "value": "दैनिक"
+                  "label": "वर्षवार बाढ़ रिपोर्ट अभिलेख",
+                  "value": "2016+"
                 },
                 "label": "आपदा एवं बाढ़",
                 "detail": "मानसून प्रतिक्रिया मानचित्रण",
                 "tagline": "जब हर घंटा महत्वपूर्ण हो, बाढ़ आसूचना",
-                "linkLabel": "दैनिक बाढ़ रिपोर्ट",
+                "linkLabel": "बाढ़ रिपोर्ट",
                 "deliverables": [
-                  "मानसून के दौरान दैनिक बाढ़ जलप्लावन मानचित्रण",
+                  "मानसून के दौरान बाढ़ जलप्लावन मानचित्रण",
                   "बाढ़ संकट क्षेत्र निर्धारण एवं घटना-पश्चात क्षति आकलन",
                   "सूखा अनुश्रवण एवं संकट सुभेद्यता अध्ययन"
                 ]
@@ -146292,7 +146184,6 @@
             "comments-suggestion": "टिप्पणी / सुझाव",
             "english-short-label": "EN",
             "experience-in-years": "अनुभव वर्षों में",
-            "flood-daily-reports": "बाढ़",
             "interactive-content": "इंटरैक्टिव सामग्री",
             "listen-to-this-page": "इस पृष्ठ को सुनें",
             "published-structure": "प्रकाशित संरचना",

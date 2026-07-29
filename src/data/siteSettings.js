@@ -197,13 +197,13 @@ export const siteSettings = {
         icon: "shield",
         tagline: "Flood intelligence when hours matter",
         deliverables: [
-          "Daily flood inundation mapping during the monsoon",
+          "Flood inundation mapping during the monsoon",
           "Flood hazard zonation and post-event damage assessment",
           "Drought monitoring and hazard vulnerability studies",
         ],
-        stat: { value: "Daily", label: "flood reports in the monsoon season" },
+        stat: { value: "2016+", label: "year-wise flood report archive" },
         path: "/flood-reports",
-        linkLabel: "Flood Daily Reports",
+        linkLabel: "Flood Reports",
       },
     ],
   },
@@ -752,7 +752,6 @@ export const siteSettings = {
       academicsLabel: "Academic Programmes",
       publicLinks: [
         { label: "Notices & Circulars", path: "/notices" },
-        { label: "Flood Daily Reports", path: "/flood-reports" },
         { label: "Tenders & Procurement", path: "/tenders" },
         { label: "Right to Information (RTI)", path: "/rti" },
         { label: "Appellate Authority", path: "/appellate-authority" },
@@ -779,9 +778,15 @@ export const siteSettings = {
       ],
     },
     floodReports: {
-      backLabel: "Back to Home",
-      heading: "Daily flood reports",
-      columns: { date: "Date", report: "Report", coverage: "Coverage", action: "Action" },
+      columns: {
+        serial: "Sr. No.",
+        subject: "Subject",
+        download: "Download",
+      },
+      initialVisibleCount: 20,
+      resultsSummary: "Showing {shown} of {total} reports",
+      showMoreLabel: "Show more reports",
+      showLessLabel: "Show fewer reports",
     },
     visionMission: {
       eyebrow: "Institutional Vision",

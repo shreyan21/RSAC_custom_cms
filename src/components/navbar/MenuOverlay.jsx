@@ -1,7 +1,11 @@
 import { Home, Orbit } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useMenuItems, useSiteSettings } from "../../hooks/useData";
+import {
+  useFloodData,
+  useMenuItems,
+  useSiteSettings,
+} from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
 
 const getSectionKey = (item) => {
@@ -91,6 +95,7 @@ const MenuLink = ({ link, current, closeMenu, compact = false }) => {
 
 const MenuOverlay = ({ isOpen, setIsOpen }) => {
   const menuItems = useMenuItems();
+  const { floodSection = {} } = useFloodData();
   const { branding, ui } = useSiteSettings();
   const { t } = useLanguage();
   const location = useLocation();
@@ -111,6 +116,38 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
         })
         .map((item, index) => {
           const iconKey = getSectionKey(item);
+          const configuredChildren = (item.links || []).map((link) => ({
+            ...link,
+            external:
+              link.external ||
+              /^https?:\/\//i.test(link.path || "") ||
+              /\.pdf(?:$|[?#])/i.test(link.path || ""),
+          }));
+          const floodArchiveLinks =
+            iconKey === "flood"
+              ? (floodSection.archives || [])
+                  .filter((archive) => String(archive.year || "").trim())
+                  .map((archive) => ({
+                    label: `${floodSection.archiveItemLabel || ""} ${
+                      archive.year
+                    }`.trim(),
+                    description: "",
+                    path: `/flood-reports/${archive.year}`,
+                  }))
+              : [];
+          const floodCriticalMapLink =
+            iconKey === "flood" &&
+            floodSection.criticalMapLabel &&
+            floodSection.criticalMapUrl
+              ? [
+                  {
+                    label: floodSection.criticalMapLabel,
+                    description: "",
+                    path: floodSection.criticalMapUrl,
+                    external: true,
+                  },
+                ]
+              : [];
 
           return {
             key: `${iconKey}-${index}`,
@@ -118,14 +155,13 @@ const MenuOverlay = ({ isOpen, setIsOpen }) => {
             title: item.title,
             path: item.path || "/",
             description: item.description || "",
-            children: (item.links || []).map((link) => ({
-              ...link,
-              external:
-                link.external || /^https?:\/\//i.test(link.path || ""),
-            })),
+            children:
+              iconKey === "flood"
+                ? [...floodArchiveLinks, ...floodCriticalMapLink]
+                : configuredChildren,
           };
         }),
-    [menuItems]
+    [floodSection, menuItems]
   );
   const routeSectionKey =
     getSectionForPath(sections, location.pathname)?.key || sections[0]?.key;

@@ -1,66 +1,16 @@
 /**
- * Flood daily reports and flood programme content.
- *
- * Mirrors the "Flood" section of the official RSAC-UP website, where daily
- * flood inundation reports are published during the monsoon season.
- * Historical local PDFs remain available while current rows come from the CMS.
+ * Local Flood defaults used until CMS content loads.
+ * Historical PDFs remain local while page labels and archive years come from
+ * the CMS.
  */
 
 const floodPdf2025 = (file) => `/documents/flood/2025/${file}`;
 
 export const floodSection = {
-  eyebrow: "Disaster Response",
-  title: "Flood Daily Reports & Monitoring",
-  intro:
-    "During the monsoon season, RSAC-UP publishes daily satellite-based flood inundation reports for affected districts of Uttar Pradesh. Reports combine multi-sensor satellite data with field inputs to support relief and response operations.",
-  note:
-    "Daily reports are published during the active monsoon period (typically July to October). Outside this period, the latest season's archive remains available below, and earlier seasons can be opened from the year-wise archive.",
-  programmeHeading: "Flood programme of RSAC-UP",
-  programmes: [
-    {
-      id: "daily-inundation",
-      title: "Daily Flood Inundation Mapping",
-      description:
-        "Near-real-time mapping of inundated areas from satellite passes during the monsoon, shared with the Relief Commissioner and district administration.",
-      icon: "radar",
-    },
-    {
-      id: "hazard-zonation",
-      title: "Flood Hazard Zonation",
-      description:
-        "Multi-year flood layers combined into hazard zonation maps that identify recurrently affected villages, embankments, and infrastructure.",
-      icon: "map",
-    },
-    {
-      id: "damage-assessment",
-      title: "Post-Flood Damage Assessment",
-      description:
-        "Crop-area and settlement damage assessment after major flood events to support compensation and rehabilitation planning.",
-      icon: "scan",
-    },
-  ],
-  archiveHeading: "Year-wise flood archive",
-  archiveNote:
-    "Older approved reports can be added as documents or archive links from the CMS.",
   archives: [],
-  resourcesHeading: "Related portals",
-  resources: [
-    {
-      label: "Relief Commissioner, Uttar Pradesh",
-      url: "https://rahat.up.nic.in",
-      description: "State disaster relief operations and flood bulletins.",
-    },
-    {
-      label: "India-WRIS",
-      url: "https://indiawris.gov.in",
-      description: "National water resources information system.",
-    },
-    {
-      label: "Bhuvan (NRSC)",
-      url: "https://bhuvan.nrsc.gov.in",
-      description: "ISRO geoportal with flood hazard services.",
-    },
-  ],
+  archiveItemLabel: "Flood",
+  criticalMapLabel: "Flood Critical Map",
+  criticalMapUrl: "/documents/flood/flood-critical-map.pdf",
 };
 
 export const floodReports = [

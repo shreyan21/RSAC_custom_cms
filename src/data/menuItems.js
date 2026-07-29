@@ -156,15 +156,9 @@ export const menuItems = [
   },
   {
     title: "Flood",
-    description: "Satellite-based daily flood inundation reports and flood maps.",
+    description: "Year-wise flood reports, maps, and the Flood Critical Map.",
     path: "/flood-reports",
-    links: [
-      {
-        label: "Flood Daily Reports",
-        path: "/flood-reports",
-        description: "Satellite-based daily flood inundation reports during the monsoon.",
-      },
-    ],
+    links: [],
   },
   {
     title: "Photo Gallery",

@@ -222,7 +222,6 @@ const additionalUiLabelDefaults = [
   "View",
   "Open official service",
   "Notices & Circulars",
-  "Flood Daily Reports",
   "Related Links",
   "Page",
   "Section",

@@ -28,7 +28,11 @@ import MissionPulse from "./components/sections/MissionPulse";
 import ServicesSection from "./components/sections/ServicesSection";
 import QuickAccess from "./components/sections/QuickAccess";
 import HomeGalleryPreview from "./components/sections/HomeGalleryPreview";
-import { useSiteSettings } from "./hooks/useData";
+import {
+  useFloodData,
+  useIsContentLoading,
+  useSiteSettings,
+} from "./hooks/useData";
 
 const OfficialContentIndexPage = lazy(() =>
   import("./pages/OfficialContentPage").then((module) => ({
@@ -85,6 +89,22 @@ const RouteFallback = () => (
 );
 
 const officialContentRoute = (element) => element;
+
+const FloodReportsRedirect = () => {
+  const { floodSection } = useFloodData();
+  const isLoading = useIsContentLoading();
+
+  if (isLoading) {
+    return <RouteFallback />;
+  }
+
+  const latestYear = (floodSection.archives || [])
+    .map(({ year }) => String(year || "").trim())
+    .filter(Boolean)
+    .sort((a, b) => Number(b) - Number(a))[0];
+
+  return <Navigate to={latestYear ? `/flood-reports/${latestYear}` : "/"} replace />;
+};
 
 // ======================
 // HOMEPAGE
@@ -427,7 +447,7 @@ function App() {
 
         <Route
           path="/flood-reports"
-          element={officialContentRoute(<FloodReportsPage />)}
+          element={officialContentRoute(<FloodReportsRedirect />)}
         />
 
         <Route

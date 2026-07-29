@@ -24,14 +24,6 @@ export const quickLinks = [
     accent: "#b7892f",
   },
   {
-    key: "flood-reports",
-    title: "Flood Daily Reports",
-    description: "Daily monsoon flood bulletins",
-    path: "/flood-reports",
-    iconKey: "flood",
-    accent: "#0f766e",
-  },
-  {
     key: "geoportals",
     title: "Geo-Portal Services",
     description: "Interactive maps and spatial data",
