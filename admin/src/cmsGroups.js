@@ -19,5 +19,22 @@ export const cmsGroups = [
       "organisation_roles",
     ],
   },
-  { title: "Public information", ids: ["public_info", "policies", "notices", "tenders", "faq", "flood_reports", "gallery", "mobile_apps"] },
+  {
+    title: "Public information",
+    ids: [
+      "rti_page",
+      "appellate_authority_page",
+      "memorandum_page",
+      "general_service_rules_page",
+      "feedback_page",
+      "tenders",
+      "faq",
+      "policies",
+      "notices",
+      "flood_page_settings",
+      "flood_reports",
+      "gallery",
+      "mobile_apps",
+    ],
+  },
 ];

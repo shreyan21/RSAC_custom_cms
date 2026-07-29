@@ -105,6 +105,32 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
     emitChange();
   };
 
+  const applyRowAlignment = (nextValue) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    const existingWrapper = editor.children.length === 1
+      && editor.firstElementChild?.hasAttribute("data-rsac-inline-align")
+      ? editor.firstElementChild
+      : null;
+    const wrapper = existingWrapper || document.createElement("span");
+
+    if (!existingWrapper) {
+      while (editor.firstChild) wrapper.appendChild(editor.firstChild);
+      editor.appendChild(wrapper);
+    }
+
+    wrapper.setAttribute("data-rsac-inline-align", nextValue);
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(wrapper);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    saveSelection();
+    emitChange();
+  };
+
   const setLink = () => {
     saveSelection();
     const href = window.prompt("Paste the link address", "");
@@ -148,10 +174,10 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
             {sizeOptions.map(([optionValue, label]) => <option value={optionValue} key={label}>{label}</option>)}
           </select>
         </label>
-        <button type="button" title="Align selected row left" aria-label="Align selected row left" onMouseDown={(event) => event.preventDefault()} onClick={() => applySpanAttribute("data-rsac-inline-align", "start")}><AlignLeft /></button>
-        <button type="button" title="Align selected row centre" aria-label="Align selected row centre" onMouseDown={(event) => event.preventDefault()} onClick={() => applySpanAttribute("data-rsac-inline-align", "center")}><AlignCenter /></button>
-        <button type="button" title="Align selected row right" aria-label="Align selected row right" onMouseDown={(event) => event.preventDefault()} onClick={() => applySpanAttribute("data-rsac-inline-align", "end")}><AlignRight /></button>
-        <button type="button" title="Justify selected row" aria-label="Justify selected row" onMouseDown={(event) => event.preventDefault()} onClick={() => applySpanAttribute("data-rsac-inline-align", "justify")}><AlignJustify /></button>
+        <button type="button" title="Align row left" aria-label="Align row left" onMouseDown={(event) => event.preventDefault()} onClick={() => applyRowAlignment("start")}><AlignLeft /></button>
+        <button type="button" title="Align row centre" aria-label="Align row centre" onMouseDown={(event) => event.preventDefault()} onClick={() => applyRowAlignment("center")}><AlignCenter /></button>
+        <button type="button" title="Align row right" aria-label="Align row right" onMouseDown={(event) => event.preventDefault()} onClick={() => applyRowAlignment("end")}><AlignRight /></button>
+        <button type="button" title="Justify row" aria-label="Justify row" onMouseDown={(event) => event.preventDefault()} onClick={() => applyRowAlignment("justify")}><AlignJustify /></button>
         <button type="button" title="Add or edit link" aria-label="Add or edit link" onMouseDown={(event) => event.preventDefault()} onClick={setLink}><Link2 /></button>
         <button type="button" title="Remove link" aria-label="Remove link" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("unlink")}><Unlink /></button>
         <button type="button" title="Clear formatting from selected text" aria-label="Clear formatting from selected text" onMouseDown={(event) => event.preventDefault()} onClick={() => runCommand("removeFormat")}><RemoveFormatting /></button>

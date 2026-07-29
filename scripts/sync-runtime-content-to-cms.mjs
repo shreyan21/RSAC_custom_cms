@@ -1,5 +1,8 @@
 import { pool } from "../server/db.js";
-import { floodReportsByYear } from "../src/data/floodReportsArchive.generated.js";
+import {
+  floodArchiveYears,
+  floodReportsByYear,
+} from "../src/data/floodReportsArchive.generated.js";
 
 const archiveReports = Object.values(floodReportsByYear).flat();
 const hindiCategory = {
@@ -10,18 +13,50 @@ const hindiCoverage = {
   "State-wide": "राज्यव्यापी",
   "Uttar Pradesh": "उत्तर प्रदेश",
 };
-const mobileThumbnails = new Map([
-  ["hrms", "/images/mobile-apps/hrms.png"],
-  ["field-survey", "/images/mobile-apps/field-survey.jpg"],
-  ["corridor-survey", "/images/mobile-apps/corridor-survey.png"],
-  ["orchard-mapping", "/images/mobile-apps/orchard-mapping.jpg"],
-  ["tomato-leaf-disease", "/images/mobile-apps/tomato-disease.png"],
+const mobileAppDefaults = new Map([
+  ["hrms", { thumbnail: "/images/mobile-apps/hrms.png", icon: "briefcase-business" }],
+  ["field-survey", { thumbnail: "/images/mobile-apps/field-survey.jpg", icon: "map-pinned" }],
+  ["corridor-survey", { thumbnail: "/images/mobile-apps/corridor-survey.png", icon: "route" }],
+  ["orchard-mapping", { thumbnail: "/images/mobile-apps/orchard-mapping.jpg", icon: "sprout" }],
+  ["tomato-leaf-disease", { thumbnail: "/images/mobile-apps/tomato-disease.png", icon: "scan-search" }],
 ]);
 
 const client = await pool.connect();
 let insertedReports = 0;
 let updatedApps = 0;
 let updatedHero = 0;
+let updatedFloodArchives = 0;
+
+const withCurrentFloodArchives = (data) => {
+  const settings = data?.settings || {};
+  const floodSection = settings.floodSection || {};
+  const existingArchives = Array.isArray(floodSection.archives)
+    ? floodSection.archives
+    : [];
+  const archivesByYear = new Map(
+    existingArchives.map((archive) => [String(archive.year), archive])
+  );
+  const archives = floodArchiveYears.map((year) => {
+    const yearKey = String(year);
+    return (
+      archivesByYear.get(yearKey) || {
+        year: yearKey,
+        url: `https://rsac.up.gov.in/en/page/flood-${yearKey}`,
+      }
+    );
+  });
+
+  return {
+    ...(data || {}),
+    settings: {
+      ...settings,
+      floodSection: {
+        ...floodSection,
+        archives,
+      },
+    },
+  };
+};
 
 try {
   await client.query("BEGIN");
@@ -45,15 +80,36 @@ try {
     insertedReports += result.rowCount;
   }
 
+  const siteSettingsRows = await client.query(
+    "SELECT id, data_en, data_hi FROM cms_entries WHERE collection='site_settings' AND entry_key='main' AND status <> 'archived' LIMIT 1 FOR UPDATE"
+  );
+  const siteSettings = siteSettingsRows.rows[0];
+  if (siteSettings) {
+    const nextDataEn = withCurrentFloodArchives(siteSettings.data_en);
+    const nextDataHi = withCurrentFloodArchives(siteSettings.data_hi);
+    if (
+      JSON.stringify(nextDataEn) !== JSON.stringify(siteSettings.data_en) ||
+      JSON.stringify(nextDataHi) !== JSON.stringify(siteSettings.data_hi)
+    ) {
+      await client.query(
+        "UPDATE cms_entries SET data_en=$1, data_hi=$2, version=version+1, updated_at=now() WHERE id=$3",
+        [nextDataEn, nextDataHi, siteSettings.id]
+      );
+      updatedFloodArchives = 1;
+    }
+  }
+
   const appRows = await client.query(
     "SELECT id, entry_key, data_en, data_hi FROM cms_entries WHERE collection='mobile_apps' AND status <> 'archived' FOR UPDATE"
   );
   for (const row of appRows.rows) {
-    const thumbnail = mobileThumbnails.get(row.entry_key);
-    if (!thumbnail || row.data_en?.thumbnail === thumbnail) continue;
+    const defaults = mobileAppDefaults.get(row.entry_key);
+    if (!defaults) continue;
+    const nextDataEn = { ...(row.data_en || {}), ...defaults };
+    if (JSON.stringify(nextDataEn) === JSON.stringify(row.data_en || {})) continue;
     await client.query(
       "UPDATE cms_entries SET data_en=$1, version=version+1 WHERE id=$2",
-      [{ ...(row.data_en || {}), thumbnail }, row.id]
+      [nextDataEn, row.id]
     );
     updatedApps += 1;
   }
@@ -79,7 +135,9 @@ try {
   }
 
   await client.query("COMMIT");
-  console.log(`CMS runtime content synchronized: ${insertedReports} flood reports added, ${updatedApps} mobile thumbnails updated, ${updatedHero} hero record updated.`);
+  console.log(
+    `CMS runtime content synchronized: ${insertedReports} flood reports added, ${updatedFloodArchives} flood archive setting updated, ${updatedApps} mobile app defaults updated, ${updatedHero} hero record updated.`
+  );
 } catch (error) {
   await client.query("ROLLBACK");
   throw error;

@@ -162,7 +162,7 @@ for (const [language, payload] of [["English", english], ["Hindi", hindi]]) {
   }
 }
 if (!removedLegacyTabStrips) throw new Error("Legacy imported tab-strip cleanup is not covering any CMS pages.");
-if (english.publicInfoPages.length !== 4 || english.policyPages.length !== 7) {
+if (english.publicInfoPages.length !== 7 || english.policyPages.length !== 7) {
   throw new Error("Public-service or policy page collections are incomplete.");
 }
 if (english.siteSettings.pageContent?.gallery?.title !== "" || hindi.siteSettings.pageContent?.gallery?.title !== "") {

@@ -12,6 +12,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 import {
   isUnmirroredLegacyMedia,
 } from "../../data/officialMedia";
+import { resolveCmsIcon } from "../icons/cmsIconRegistry";
 
 const mobileAppThemes = [
   {
@@ -91,7 +92,7 @@ const MobileAppsGrid = ({ showHeading = true }) => {
         {apps.map((app) => {
           const downloadUrl = app.url;
           const theme = getMobileAppTheme(app);
-          const AppIcon = theme.icon;
+          const AppIcon = resolveCmsIcon(app.icon || app.iconKey, theme.icon);
           const thumbnail = app.thumbnail || app.image;
           const isUnavailable =
             !app.isLocalFile &&

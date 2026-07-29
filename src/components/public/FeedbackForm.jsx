@@ -18,7 +18,7 @@ const initialForm = {
   website: "",
 };
 
-const FeedbackForm = () => {
+const FeedbackForm = ({ intro = "" }) => {
   const { t, language } = useLanguage();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -28,7 +28,7 @@ const FeedbackForm = () => {
 
   const L = {
     title: t("Feedback Form"),
-    intro: t("Complete the form below to send us your comments and feedback on the website. Your opinion and suggestions are very much appreciated. If you provide your contact information, we will be able to answer your questions."),
+    intro,
     mandatory: t("Fields marked with * are mandatory."),
     name: t("Name"),
     email: t("Email Id"),

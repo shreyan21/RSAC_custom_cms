@@ -21,7 +21,7 @@ const PublicInfoPage = ({ slug }) => {
     <PageShell
       eyebrow={page.eyebrow || t("Public Services")}
       title={page.title}
-      intro={page.summary}
+      intro={slug === "feedback" ? "" : page.summary}
       breadcrumbs={[
         { label: t("Home"), to: "/" },
         { label: t("Public Services") },
@@ -44,7 +44,7 @@ const PublicInfoPage = ({ slug }) => {
     >
       <div className="grid gap-8 lg:grid-cols-[0.72fr_0.28fr]">
         <div className="space-y-5">
-          {slug === "feedback" && <FeedbackForm />}
+          {slug === "feedback" && <FeedbackForm intro={page.summary} />}
           {page.sections.map((section) => (
             <article
               key={section.heading}

@@ -182,6 +182,21 @@ export const menuItems = [
         path: "/rti",
         description: "Public information officer details and RTI guidance.",
       },
+      {
+        label: "Appellate Authority",
+        path: "/appellate-authority",
+        description: "Official RTI appellate and public information officers.",
+      },
+      {
+        label: "Memorandum of Association",
+        path: "/memorandum-of-association",
+        description: "View the official RSAC-UP Memorandum of Association.",
+      },
+      {
+        label: "General Service Rules",
+        path: "/general-service-rules",
+        description: "View the official RSAC-UP General Service Rules document.",
+      },
     ],
   },
   {

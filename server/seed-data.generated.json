@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-28T06:54:56.004Z",
+  "generatedAt": "2026-07-29T06:27:05.309Z",
   "entries": [
     {
       "collection": "applications",
@@ -64515,6 +64515,314 @@
       }
     },
     {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-1",
+      "status": "published",
+      "sortOrder": 3279,
+      "dataEn": {
+        "id": "fr-archive-2026-1",
+        "url": "/documents/flood/2026/202607241100335253BAHRAICH.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "BAHRAICH",
+        "category": "District Report",
+        "coverage": "Bahraich",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-1",
+        "url": "/documents/flood/2026/202607241100335253BAHRAICH.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "BAHRAICH",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Bahraich",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-2",
+      "status": "published",
+      "sortOrder": 3280,
+      "dataEn": {
+        "id": "fr-archive-2026-2",
+        "url": "/documents/flood/2026/202607241101523506BALRAMPUR.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "BALRAMPUR",
+        "category": "District Report",
+        "coverage": "Balrampur",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-2",
+        "url": "/documents/flood/2026/202607241101523506BALRAMPUR.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "BALRAMPUR",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Balrampur",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-3",
+      "status": "published",
+      "sortOrder": 3281,
+      "dataEn": {
+        "id": "fr-archive-2026-3",
+        "url": "/documents/flood/2026/202607241121152502BARABANKI.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "BARABANKI",
+        "category": "District Report",
+        "coverage": "Barabanki",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-3",
+        "url": "/documents/flood/2026/202607241121152502BARABANKI.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "BARABANKI",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Barabanki",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-4",
+      "status": "published",
+      "sortOrder": 3282,
+      "dataEn": {
+        "id": "fr-archive-2026-4",
+        "url": "/documents/flood/2026/202607241122009941BASTI.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "BASTI",
+        "category": "District Report",
+        "coverage": "Basti",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-4",
+        "url": "/documents/flood/2026/202607241122009941BASTI.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "BASTI",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Basti",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-5",
+      "status": "published",
+      "sortOrder": 3283,
+      "dataEn": {
+        "id": "fr-archive-2026-5",
+        "url": "/documents/flood/2026/202607241123115087GONDA.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "GONDA",
+        "category": "District Report",
+        "coverage": "Gonda",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-5",
+        "url": "/documents/flood/2026/202607241123115087GONDA.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "GONDA",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Gonda",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-6",
+      "status": "published",
+      "sortOrder": 3284,
+      "dataEn": {
+        "id": "fr-archive-2026-6",
+        "url": "/documents/flood/2026/202607241123590324LAKHIMPUR-KHERI.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "LAKHIMPUR-KHERI",
+        "category": "District Report",
+        "coverage": "Lakhimpur-Kheri",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-6",
+        "url": "/documents/flood/2026/202607241123590324LAKHIMPUR-KHERI.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "LAKHIMPUR-KHERI",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Lakhimpur-Kheri",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-7",
+      "status": "published",
+      "sortOrder": 3285,
+      "dataEn": {
+        "id": "fr-archive-2026-7",
+        "url": "/documents/flood/2026/202607241124461842PILIBHIT.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "PILIBHIT",
+        "category": "District Report",
+        "coverage": "Pilibhit",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-7",
+        "url": "/documents/flood/2026/202607241124461842PILIBHIT.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "PILIBHIT",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Pilibhit",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-8",
+      "status": "published",
+      "sortOrder": 3286,
+      "dataEn": {
+        "id": "fr-archive-2026-8",
+        "url": "/documents/flood/2026/202607241127447570SHAHJAHANPUR.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "SHAHJAHANPUR",
+        "category": "District Report",
+        "coverage": "Shahjahanpur",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-8",
+        "url": "/documents/flood/2026/202607241127447570SHAHJAHANPUR.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "SHAHJAHANPUR",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Shahjahanpur",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-9",
+      "status": "published",
+      "sortOrder": 3287,
+      "dataEn": {
+        "id": "fr-archive-2026-9",
+        "url": "/documents/flood/2026/202607241128280672SHRAVASTI.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "SHRAVASTI",
+        "category": "District Report",
+        "coverage": "Shravasti",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-9",
+        "url": "/documents/flood/2026/202607241128280672SHRAVASTI.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "SHRAVASTI",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Shravasti",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-10",
+      "status": "published",
+      "sortOrder": 3288,
+      "dataEn": {
+        "id": "fr-archive-2026-10",
+        "url": "/documents/flood/2026/202607241129056666SIDDHARTH_NAGAR.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "SIDDHARTH NAGAR",
+        "category": "District Report",
+        "coverage": "Siddharth Nagar",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-10",
+        "url": "/documents/flood/2026/202607241129056666SIDDHARTH_NAGAR.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "SIDDHARTH NAGAR",
+        "category": "जिला रिपोर्ट",
+        "coverage": "Siddharth Nagar",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
+      "collection": "flood_reports",
+      "entryKey": "fr-archive-2026-11",
+      "status": "published",
+      "sortOrder": 3289,
+      "dataEn": {
+        "id": "fr-archive-2026-11",
+        "url": "/documents/flood/2026/202607241130248001UP_LIST_21st_July_2026.pdf",
+        "date": "2026-07-24",
+        "meta": "PDF | English",
+        "title": "UP LIST 21st July 2026",
+        "category": "Daily Report",
+        "coverage": "State-wide",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      },
+      "dataHi": {
+        "id": "fr-archive-2026-11",
+        "url": "/documents/flood/2026/202607241130248001UP_LIST_21st_July_2026.pdf",
+        "date": "2026-07-24",
+        "meta": "पीडीएफ | अंग्रेज़ी",
+        "title": "UP LIST 21st July 2026",
+        "category": "दैनिक रिपोर्ट",
+        "coverage": "राज्यव्यापी",
+        "dateLabel": "24/07/2026",
+        "archiveOnly": true
+      }
+    },
+    {
       "collection": "gallery",
       "entryKey": "g01",
       "status": "published",
@@ -66743,6 +67051,21 @@
             "path": "/rti",
             "label": "Right to Information (RTI)",
             "description": "Public information officer details and RTI guidance."
+          },
+          {
+            "path": "/appellate-authority",
+            "label": "Appellate Authority",
+            "description": "Official RTI appellate and public information officers."
+          },
+          {
+            "path": "/memorandum-of-association",
+            "label": "Memorandum of Association",
+            "description": "View the official RSAC-UP Memorandum of Association."
+          },
+          {
+            "path": "/general-service-rules",
+            "label": "General Service Rules",
+            "description": "View the official RSAC-UP General Service Rules document."
           }
         ],
         "title": "RTI",
@@ -66754,6 +67077,21 @@
             "path": "/rti",
             "label": "सूचना का अधिकार (आरटीआई)",
             "description": "जन सूचना अधिकारी का विवरण और आरटीआई मार्गदर्शन।"
+          },
+          {
+            "path": "/appellate-authority",
+            "label": "अपीलीय प्राधिकरण",
+            "description": "सूचना का अधिकार संबंधी अपीलीय एवं जन सूचना अधिकारी।"
+          },
+          {
+            "path": "/memorandum-of-association",
+            "label": "मेमोरेंडम ऑफ एसोसिएशन",
+            "description": "आरएसएसी-यूपी का आधिकारिक मेमोरेंडम ऑफ एसोसिएशन देखें।"
+          },
+          {
+            "path": "/general-service-rules",
+            "label": "सामान्य सेवा नियमावली",
+            "description": "आरएसएसी-यूपी की आधिकारिक सामान्य सेवा नियमावली देखें।"
           }
         ],
         "title": "आरटीआई",
@@ -66844,6 +67182,7 @@
       "dataEn": {
         "key": "hrms",
         "url": "/official-media/legacy-rsac/dam/HRMSFinal.apk",
+        "icon": "briefcase-business",
         "sort": 0,
         "title": "HRMS App",
         "download": null,
@@ -66863,6 +67202,7 @@
       "sortOrder": 1,
       "dataEn": {
         "url": "/official-media/legacy-rsac/dam/Field_Survey_RSACUP.apk",
+        "icon": "map-pinned",
         "title": "Field Survey RSAC-UP",
         "thumbnail": "/images/mobile-apps/field-survey.jpg",
         "description": "Ground-truth and field data collection for survey teams."
@@ -66880,6 +67220,7 @@
       "dataEn": {
         "key": "corridor-survey",
         "url": "/official-media/legacy-rsac/dam/corridor_field_survey_v2.apk",
+        "icon": "route",
         "sort": 2,
         "title": "Corridor Survey",
         "download": null,
@@ -66900,6 +67241,7 @@
       "dataEn": {
         "key": "orchard-mapping",
         "url": "/official-media/legacy-rsac/dam/orchard_App_v2.apk",
+        "icon": "sprout",
         "sort": 3,
         "title": "Orchard Mapping",
         "download": null,
@@ -66920,6 +67262,7 @@
       "dataEn": {
         "key": "tomato-leaf-disease",
         "url": "/official-media/legacy-rsac/dam/tomato_app.apk",
+        "icon": "scan-search",
         "sort": 4,
         "title": "Tomato Leaf Disease Detection",
         "download": null,
@@ -67243,8 +67586,6 @@
         ]
       },
       "dataHi": {
-        "icon": "shield",
-        "path": "/flood-reports",
         "label": "आपदा एवं बाढ़",
         "detail": "मानसून प्रतिक्रिया मानचित्रण",
         "tagline": "जब हर घंटा महत्वपूर्ण हो, बाढ़ आसूचना",
@@ -67715,6 +68056,41 @@
     },
     {
       "collection": "page_display_settings",
+      "entryKey": "rti",
+      "status": "published",
+      "sortOrder": -2,
+      "dataEn": {
+        "path": "/rti",
+        "intro": "",
+        "title": "",
+        "eyebrow": "",
+        "pageFont": "",
+        "hideIntro": false,
+        "hideTitle": false,
+        "mediaSize": "",
+        "afterBlocks": [],
+        "contentSize": "",
+        "eyebrowSize": "normal",
+        "headingFont": "",
+        "headingSize": "normal",
+        "hideEyebrow": false,
+        "beforeBlocks": [],
+        "bodyFontSize": 0,
+        "contentWidth": "",
+        "contentSpacing": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0
+      },
+      "dataHi": {
+        "intro": "",
+        "title": "",
+        "eyebrow": "",
+        "afterBlocks": [],
+        "beforeBlocks": []
+      }
+    },
+    {
+      "collection": "page_display_settings",
       "entryKey": "mobile-apps",
       "status": "published",
       "sortOrder": -1,
@@ -67816,17 +68192,22 @@
         "intro": "",
         "title": "Organisational Chart",
         "eyebrow": "",
+        "pageFont": "",
         "hideIntro": true,
         "hideTitle": false,
         "mediaSize": "",
         "afterBlocks": [],
         "contentSize": "",
-        "eyebrowSize": "normal",
+        "eyebrowSize": "compact",
+        "headingFont": "",
         "headingSize": "normal",
         "hideEyebrow": false,
         "beforeBlocks": [],
+        "bodyFontSize": "",
         "contentWidth": "",
-        "contentSpacing": ""
+        "contentSpacing": "",
+        "eyebrowFontSize": "",
+        "headingFontSize": ""
       },
       "dataHi": {
         "intro": "",
@@ -67846,17 +68227,22 @@
         "intro": "",
         "title": "Planning, Satellite Data, and Geospatial Service Access",
         "eyebrow": "",
+        "pageFont": "",
         "hideIntro": true,
         "hideTitle": false,
         "mediaSize": "",
         "afterBlocks": [],
         "contentSize": "",
-        "eyebrowSize": "large",
+        "eyebrowSize": "compact",
+        "headingFont": "",
         "headingSize": "compact",
         "hideEyebrow": false,
         "beforeBlocks": [],
+        "bodyFontSize": 0,
         "contentWidth": "",
-        "contentSpacing": ""
+        "contentSpacing": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0
       },
       "dataHi": {
         "intro": "",
@@ -68258,12 +68644,12 @@
         "eyebrowSize": "",
         "headingFont": "",
         "headingSize": "",
-        "bodyFontSize": "",
+        "bodyFontSize": 0,
         "contentWidth": "",
         "featuredImage": "",
         "contentSpacing": "",
-        "eyebrowFontSize": "",
-        "headingFontSize": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0,
         "hiddenProfileNames": [],
         "sectionContentVersion": 2
       },
@@ -68549,7 +68935,7 @@
             "type": "rich_text",
             "label": "Section: Remote Sensing Applications Centre",
             "value": "Remote Sensing Applications Centre",
-            "contentHtml": "<p>Uttar Pradesh was the first and foremost state in the country to establish the first state Remote Sensing Applications Centre, Uttar Pradesh (RSAC-UP) in May, 1982 at Lucknow. RSAC-UP has been utilizing the geospatial technologies of satellite remote sensing, Image Processing, GIS, GPS, LiDAR, Bathymetry, Customized Software Development using AI, ML, DL &amp; AL methods in conjunction with geophysical surveys, soil and water testing techniques for assessment, monitoring, utilization and management of various natural resources of the state with a view to achieve sustainable development. With the passage of time this RSAC-UP has diversified its domain from natural resource management to infrastructure mapping and monitoring, utility mapping, disaster management, Software development and is also involved in training, capacity building and vocational educational programme on geospatial technologies such as running M. Tech in “Remote Sensing and GIS”. RSAC-UP is carrying out the work in crop area and production estimation of different crops, Space Based Information Support for Decentralized Planning, Wetland Inventory Assessment,  Monitoring of Integrated watershed, Monitoring Vulnerability Assessment, desertification and Land Degradation, Assessment of Plantation outside forest areas, Water Sector Restructuring, Unauthorized Colony Mapping with the area of Development Authorities of U.P., Asset Mapping, Ground Water Targeting, Rural Urban planning including smart city and infrastructure planning. Further the Centre is also working on pilot basis for the projects such as assessment of one district one crop, selection of cold storages for crop management, rejuvenation of alluvial rivers, disaster management, pilot studies on site suitability of suitable sites for rain water harvesting, fruit belt development, fodder crops and solid waste disposal etc. The Centre is also working on GIS mapping for schools, development and updation of satellite data and GIS based geoportal. Further, the Centre is imparting training on remote sensing applications to the officials of user departments and also to the faculty members and research scholars of Universities. M.Tech in Remote Sensing and GIS in affiliation with AKTU is also being run by RSAC-UP since 2013.</p>",
+            "contentHtml": "<p>Uttar Pradesh was the first and foremost state in the country to establish the first state Remote Sensing Applications Centre, Uttar Pradesh (RSAC-UP) in May, 1982 at Lucknow. RSAC-UP has been utilizing the geospatial technologies of satellite remote sensing, Image Processing, GIS, GPS, LiDAR, Bathymetry, Customized Software Development using AI, ML, DL &amp; AL methods in conjunction with geophysical surveys, soil and water testing techniques for assessment, monitoring, utilization and management of various natural resources of the state with a view to achieve sustainable development. With the passage of time this RSAC-UP has diversified its domain from natural resource management to infrastructure mapping and monitoring, utility mapping, disaster management, Software development and is also involved in training, capacity building and vocational educational programme on geospatial technologies such as running M. Tech in “Remote Sensing and GIS”. RSAC-UP is carrying out the work in crop area and production estimation of different crops, Space Based Information Support for Decentralized Planning, Wetland Inventory Assessment, Monitoring of Integrated watershed, Monitoring Vulnerability Assessment, desertification and Land Degradation, Assessment of Plantation outside forest areas, Water Sector Restructuring, Unauthorized Colony Mapping with the area of Development Authorities of U.P., Asset Mapping, Ground Water Targeting, Rural Urban planning including smart city and infrastructure planning. Further the Centre is also working on pilot basis for the projects such as assessment of one district one crop, selection of cold storages for crop management, rejuvenation of alluvial rivers, disaster management, pilot studies on site suitability of suitable sites for rain water harvesting, fruit belt development, fodder crops and solid waste disposal etc. The Centre is also working on GIS mapping for schools, development and updation of satellite data and GIS based geoportal. Further, the Centre is imparting training on remote sensing applications to the officials of user departments and also to the faculty members and research scholars of Universities. M.Tech in Remote Sensing and GIS in affiliation with AKTU is also being run by RSAC-UP since 2013.</p>",
             "legacyChildren": [
               {
                 "key": "text-0002",
@@ -68565,16 +68951,22 @@
         "eyebrow": "",
         "summary": "",
         "cardIcon": "",
+        "pageFont": "",
         "cardColor": "",
         "mediaSize": "",
         "sourceUrl": "https://rsac.up.gov.in/en/page/read-more-about-us",
         "cardColor2": "",
         "sectionKey": "about-us",
         "contentSize": "",
+        "eyebrowSize": "",
+        "headingFont": "",
         "headingSize": "",
+        "bodyFontSize": 0,
         "contentWidth": "",
         "featuredImage": "",
         "contentSpacing": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0,
         "hiddenProfileNames": [],
         "sectionContentVersion": 2
       },
@@ -88638,16 +89030,22 @@
         "eyebrow": "",
         "summary": "Forest, ecology, biodiversity, wildlife, environment, landuse, and landcover applications of remote sensing and GIS.",
         "cardIcon": "",
+        "pageFont": "",
         "cardColor": "",
         "mediaSize": "",
         "sourceUrl": "https://rsac.up.gov.in/en/page/forest-resources-ecology-division",
         "cardColor2": "",
         "sectionKey": "divisions",
         "contentSize": "",
+        "eyebrowSize": "",
+        "headingFont": "",
         "headingSize": "",
+        "bodyFontSize": 0,
         "contentWidth": "",
         "featuredImage": "",
         "contentSpacing": "",
+        "eyebrowFontSize": 0,
+        "headingFontSize": 0,
         "hiddenProfileNames": [],
         "sectionContentVersion": 2
       },
@@ -139365,20 +139763,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "The official RSAC-UP terms page states that the website is designed, developed and maintained by Omni-Net Technologies Pvt. Ltd. on behalf of UPDESCO and hosted at Uttar Pradesh State Data Centre, Lucknow.",
-            "heading": "Website Management"
-          },
-          {
-            "body": "Although efforts are made to keep content accurate, website content should not be treated as a statement of law or used for legal purposes. Users should verify information with the concerned department or other appropriate sources when needed.",
-            "heading": "Accuracy and Legal Use"
-          },
-          {
-            "body": "The department, UPDESCO, and service provider are not liable for expense, loss, damage, indirect loss, consequential loss, or loss of use of data arising from website use. The terms are governed by Indian law and disputes are subject to Indian courts.",
-            "heading": "Liability and Jurisdiction"
-          },
-          {
-            "body": "The terms page directs users to the Privacy Policy, Copyright Policy, and Hyperlinking Policy for additional website-use conditions.",
-            "heading": "Related Policies"
+            "body": "<p>This website is designed, developed and maintained by Omni-Net Technologies Pvt. Ltd. on behalf of UPDESCO &amp; hosted at Uttar Pradesh State Data Centre, Lucknow.</p><p>Though all efforts have been made to ensure the accuracy of the content on this website, the same should not be construed as a statement of law or used for any legal purposes. In case of any ambiguity or doubts, users are advised to verify/check with the Department(s) and/or other source(s), and to obtain appropriate professional advice.</p><p>Under no circumstances will this Department/UPDESCO/Service Provider be liable for any expense, loss or damage including, without limitation, indirect or consequential loss or damage, or any expense, loss or damage whatsoever arising from use, or loss of use, of data, arising out of or in connection with the use of this website. These terms and conditions shall be governed by and construed in accordance with the Indian Laws. Any dispute arising under these terms and conditions shall be subject to the jurisdiction of the courts of India.</p><p>All of the content and Information brought to you by Remote Sensing Applications Centre, U.P., Government of Uttar Pradesh.</p><p>Please refer following Policies related Privacy, Copyright and Hyperlinking Policy of this Portal, If you need any more information than please visit following or feel free to contact us.</p><p>Privacy Policy<br />Copyright Policy<br />Hyperlinking Policy</p>",
+            "heading": "Terms and Conditions"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/terms-conditions"
@@ -139388,22 +139774,11 @@
         "summary": "",
         "sections": [
           {
-            "body": "RSAC-UP के आधिकारिक नियम और शर्तों वाले पेज के अनुसार, इस वेबसाइट को UPDESCO की ओर से Omni-Net Technologies Pvt. Ltd. ने डिज़ाइन, विकसित और मेंटेन किया है और इसे उत्तर प्रदेश स्टेट डेटा सेंटर, लखनऊ में होस्ट किया गया है।",
-            "heading": "वेबसाइट प्रबंधन"
-          },
-          {
-            "body": "हालांकि कंटेंट को सही रखने की कोशिश की जाती है, लेकिन वेबसाइट कंटेंट को कानून का बयान नहीं मानना चाहिए या कानूनी मकसद के लिए इस्तेमाल नहीं करना चाहिए। ज़रूरत पड़ने पर यूज़र्स को संबंधित डिपार्टमेंट या दूसरे सही सोर्स से जानकारी वेरिफ़ाई करनी चाहिए।",
-            "heading": "सटीकता और कानूनी उपयोग"
-          },
-          {
-            "body": "डिपार्टमेंट, UPDESCO, और सर्विस प्रोवाइडर वेबसाइट इस्तेमाल करने से होने वाले खर्च, नुकसान, डैमेज, इनडायरेक्ट नुकसान, कॉन्सिक्वेन्शिअल नुकसान, या डेटा के इस्तेमाल में कमी के लिए ज़िम्मेदार नहीं हैं। शर्तें भारतीय कानून के तहत आती हैं और झगड़े भारतीय कोर्ट के अधीन हैं।",
-            "heading": "दायित्व और अधिकार क्षेत्र"
-          },
-          {
-            "body": "टर्म्स पेज यूज़र्स को वेबसाइट इस्तेमाल की और शर्तों के लिए प्राइवेसी पॉलिसी, कॉपीराइट पॉलिसी और हाइपरलिंकिंग पॉलिसी पर ले जाता है।",
-            "heading": "संबंधित नीतियां"
+            "body": "<p>इस वेबसाइट की अभिकल्पना, विकास एवं अनुरक्षण उत्तर प्रदेश डेवलपमेंट सिस्टम्स कारपोरेशन लिमिटिड की ओर से ओमनी-नेट टेक्नोलॉजी प्राइवेट लिमिटिड द्वारा किया गया है तथा यह उत्तर प्रदेश स्टेट डाटा सेंटर, लखनऊ द्वारा होस्ट की गई है।</p><p>हालांकि इस वेबसाइट पर अंतर्वस्‍तु की सटीकता सुनिश्चित करने के लिए सभी प्रयास किए गए हैं, फिर भी इसे कानून के वक्‍तव्‍य के रूप में नहीं समझना चाहिए अथवा किसी कानूनी प्रयोजन के लिए प्रयुक्‍त नहीं करना चाहिए। रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश, उत्तर प्रदेश सरकार की सटीकता, पूर्णता, उपयोगिता या अन्‍यथा के संबंध में कोई जिम्‍मेदारी स्‍वीकार नहीं करता है। प्रयोक्‍ताओं को सलाह दी जाती है कि वेबसाइट पर प्रदान की गई किसी सूचना पर कार्रवाई करने से पूर्व सूचना की जांच / सत्‍यापन करें और कोई उपयुक्‍त पेशेवर सलाह प्राप्‍त करें।</p><p>किसी भी दशा में, रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश, उत्तर प्रदेश सरकार/ उत्तर प्रदेश डेवलपमेंट सिस्टम्स कारपोरेशन लिमिटिड/ सेवा प्रदाता डाटा के प्रयोग या प्रयोग की क्षति से उत्‍पन्‍न, इस वेबसाइट के प्रयोग के सिलसिले में या इसके प्रयोग से उत्‍पन्‍न किसी व्‍यय, क्षति या नुकसान जिसमें सीमा के बगैर प्रत्‍यक्ष या परिणामी नुकसान या क्षति या कोई व्‍यय, नुकसान या क्षति शामिल है, के लिए देनदार नहीं होगा।</p><p>प्रयोग की ये शर्तें भारतीय कानूनों के अनुसरण में अभिशासित होंगी और समझी जाएंगी। यदि इन शर्तों एवं निबंधनों के तहत कोई विवाद उत्‍पन्‍न होता है, तो वह भारत के न्‍यायालयों के अनन्‍य क्षेत्राधिकार के अधीन होगा।</p><p>सभी अंतर्वस्‍तु और सूचना रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश, भारत सरकार द्वारा आप तक लाई गई है।</p><p>कृपया इस वेबसाइट की निम्‍नलिखित निजता नीतियां, कॉपीराइट तथा हाइपरलिंकिंग नीति देखें। यदि आपको किसी और सूचना की जरूरत हो, तो कृपया निम्‍नलिखित पर जाएं या हमसे बेझिझक संपर्क करें।</p><p>गोपनीयता नीति<br />कॉपीराइट नीति<br />हाइपरलिंकिंग नीति</p>",
+            "heading": "नियम और शर्तें"
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/terms-and-conditions"
       }
     },
     {
@@ -139418,16 +139793,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "Material on the site is subject to copyright protection unless otherwise indicated.",
-            "heading": "Copyright Protection"
-          },
-          {
-            "body": "Material in file or printable form may be downloaded without requiring specific prior permission.",
-            "heading": "Download and Printing"
-          },
-          {
-            "body": "Any other proposed use of website material is subject to approval from Remote Sensing Applications Centre, U.P., Government of Uttar Pradesh. Permission requests should be made to director@rsacup.org.in.",
-            "heading": "Permission for Other Use"
+            "body": "<p>Material on this site is subject to copyright protection unless otherwise indicated. The material in form of file or printable matter may be downloaded without requiring specific prior permission. Any other proposed use of the material is subject to the approval of Remote Sensing Applications Centre, U.P., Government of Uttar Pradesh</p><p>Application for obtaining permission should be made to director@rsacup.org.in.</p>",
+            "heading": "Copyright Policy"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/copyright-policy"
@@ -139437,18 +139804,11 @@
         "summary": "",
         "sections": [
           {
-            "body": "जब तक अन्यथा न बताया गया हो, साइट पर मौजूद सामग्री कॉपीराइट सुरक्षा के अधीन है।",
-            "heading": "कॉपीराइट सुरक्षा"
-          },
-          {
-            "body": "फ़ाइल या प्रिंट करने लायक मटीरियल को बिना किसी खास पहले से इजाज़त के डाउनलोड किया जा सकता है।",
-            "heading": "डाउनलोड और प्रिंटिंग"
-          },
-          {
-            "body": "वेबसाइट के मटीरियल के किसी भी अन्य प्रस्तावित इस्तेमाल के लिए उत्तर प्रदेश सरकार के 'रिमोट सेंसिंग एप्लीकेशन्स सेंटर, यू.पी.' से मंज़ूरी लेनी होगी। अनुमति के लिए अनुरोध director@rsacup.org.in पर भेजे जाने चाहिए।",
-            "heading": "अन्य उपयोग की अनुमति"
+            "body": "<p>इस वेबसाइट पर मौजूद सामग्री कॉपीराइट संरक्षण के अधीन है बशर्ते ऐसा उल्लेख अन्यथा न हो। वेबसाइट में मौजूद किसी भी प्रकार की फ़ाइल या मुद्रण योग्य सामग्री पूर्व अनुमति की आवश्यकता के बिना डाउनलोड की जा सकती है। सामग्री का किसी भी अन्य प्रस्तावित उपयोग ( रिमोट सेंसिंग एप्लीकेशन सेंटर, उत्तर प्रदेश सरकार ) के अनुमोदन के अधीन है।</p><p>अनुमति प्राप्त करने के लिए आवेदन director@rsacup.org.in संपर्क सूत्र हेतु किया जाना चाहिए।</p>",
+            "heading": "कॉपीराइट नीति"
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/copyright-policy"
       }
     },
     {
@@ -139463,28 +139823,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "The official policy states that no personal information such as names or addresses is collected when users simply visit the website. If a user chooses to provide such information, it is used only to fulfill the request for information.",
-            "heading": "Personal Information"
-          },
-          {
-            "body": "When users browse, read pages, or download information, the site may store technical information such as service-provider domain, IP address, browser type, operating system, access date and time, visited pages or URLs, and referring website address. The policy states this information does not identify the visitor.",
-            "heading": "Automatically Stored Technical Information"
-          },
-          {
-            "body": "Technical data is used to make the site more useful, understand visitor counts, and understand visitor technology. The official policy states that individual users and their visits are not tracked or recorded.",
-            "heading": "Use of Technical Data"
-          },
-          {
-            "body": "The policy states that only non-persistent or per-session cookies are used. They support seamless navigation, do not collect personal information, are not stored permanently on the hard drive, and disappear when the browser is closed.",
-            "heading": "Cookies"
-          },
-          {
-            "body": "If users send personal information through a form or email address, it is used to respond to the message and provide requested information. It may be shared with another government agency only when the question relates to that agency or when required by law.",
-            "heading": "Information Sent by Users"
-          },
-          {
-            "body": "For site security and service availability, government computer systems may monitor network traffic to identify unauthorized attempts to upload, change information, or cause damage. Unauthorized attempts are prohibited and may be punishable under the Indian IT Act.",
-            "heading": "Site Security"
+            "body": "<p>Thanks for visiting website of Remote Sensing Applications Centre, U.P. , Government of Uttar Pradesh, and reviewing our privacy policy.</p><p>We collect no personal information, like names or addresses, when you visit our website. If you choose to provide that information to us, it is only used to fulfill your request for information.</p><p>We do collect some technical information when you visit to make your visit seamless. The section below explains how we handle and collect technical information when you visit our website.</p><p>Information collected and stored automatically:</p><p>When you browse, read pages, or download information on this website, we automatically gather and store certain technical information about your visit. This information never identifies who you are. The information we collect and store about your visit is listed below:</p><p>The Internet domain of your service provider (e.g. mtnl.net.in) and IP address (an IP address is a number that is automatically assigned to your computer whenever you are surfing the web) from which you access our website.<br />The type of browser (such as Firefox, Netscape, or Internet Explorer) and operating system (Windows, Linux) used to access our site.<br />The date and time you accessed our site.<br />The pages/URLs you have visited and<br />If you reached this website from another website, the address of that referring website.</p><p>This information is only used to help us make the site more useful for you. With this data, we learn about the number of visitors to our site and the types of technology our visitors use. We never track or record information about individuals and their visits.</p><p>Cookies</p><p>When you visit some websites, they may download small pieces of software known as cookies on your computer/browsing device. Some cookies collect personal information to Recognise your computer in the future. We only use non-persistent cookies or “per- session cookies”.</p><p>Per-session cookies serve technical purposes, like providing seamless navigation through this website. These cookies do not collect personal information of users and they are deleted as soon as you leave our website. The cookies do not permanently record data and they are not stored on your computer’s hard drive. The cookies are stored in memory and are only available during an active browser session. Again, once you close your browser, the cookie disappears.</p><p>If you send us personal information:</p><p>We do not collect personal information for any purpose other than to respond to you (for example, to respond to your questions or provide subscriptions you have chosen). If you choose to provide us with personal information— like filling out a Contact Us form, with an e-mail address or postal address, and submitting it to us through the website—we use that information to respond to your message, and to help you get the information you’ve requested. We only share the information you give us with another Government agency if your question relates to that agency, or as otherwise required by law.</p><p>Our website never collects information or creates individual profiles for commercial marketing. While you must provide an e-mail address for a Localised response to any incoming questions or comments to us, we recommend that you do NOT include any other personal information.</p><p>Site Security</p><p>For site security purposes and to ensure that this service remains available to all users, the Government computer system employs commercial software programs to monitor network traffic to identify Unauthorised attempts to upload or change information, or otherwise cause damage.</p><p>Except for Authorised law enforcement investigations, no other attempts are made to identify individual users or their usage habits. Raw data logs are used for no other purposes and are scheduled for regular deletion.</p><p>Unauthorised attempts to upload information or change information on this service are strictly prohibited and may be punishable under the Indian IT Act.</p>",
+            "heading": "Privacy Policy"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/privacy-policy"
@@ -139494,30 +139834,11 @@
         "summary": "",
         "sections": [
           {
-            "body": "आधिकारिक नीति के अनुसार, जब यूज़र सिर्फ़ वेबसाइट पर आते हैं, तो उनसे नाम या पते जैसी कोई निजी जानकारी नहीं ली जाती है। अगर कोई यूज़र ऐसी जानकारी देना चाहता है, तो उसका इस्तेमाल सिर्फ़ जानकारी की मांग को पूरा करने के लिए किया जाता है।",
-            "heading": "व्यक्तिगत जानकारी"
-          },
-          {
-            "body": "जब यूज़र ब्राउज़ करते हैं, पेज पढ़ते हैं या जानकारी डाउनलोड करते हैं, तो साइट कुछ तकनीकी जानकारी स्टोर कर सकती है, जैसे कि सर्विस-प्रोवाइडर डोमेन, IP एड्रेस, ब्राउज़र का प्रकार, ऑपरेटिंग सिस्टम, एक्सेस करने की तारीख और समय, देखे गए पेज या URL, और रेफर करने वाली वेबसाइट का पता। पॉलिसी के अनुसार, इस जानकारी से विज़िटर की पहचान नहीं होती है।",
-            "heading": "स्वचालित रूप से संग्रहीत तकनीकी जानकारी"
-          },
-          {
-            "body": "टेक्निकल डेटा का इस्तेमाल साइट को ज़्यादा काम का बनाने, विज़िटर की संख्या समझने और विज़िटर टेक्नोलॉजी को समझने के लिए किया जाता है। ऑफिशियल पॉलिसी में कहा गया है कि अलग-अलग यूज़र और उनके विज़िट को ट्रैक या रिकॉर्ड नहीं किया जाता है।",
-            "heading": "तकनीकी डेटा का उपयोग"
-          },
-          {
-            "body": "पॉलिसी में कहा गया है कि सिर्फ़ नॉन-परसिस्टेंट या पर-सेशन कुकीज़ का इस्तेमाल किया जाता है। वे आसान नेविगेशन को सपोर्ट करती हैं, पर्सनल जानकारी इकट्ठा नहीं करतीं, हार्ड ड्राइव पर परमानेंटली स्टोर नहीं होतीं, और ब्राउज़र बंद होने पर गायब हो जाती हैं।",
-            "heading": "कुकीज़"
-          },
-          {
-            "body": "अगर यूज़र किसी फ़ॉर्म या ईमेल एड्रेस से पर्सनल जानकारी भेजते हैं, तो इसका इस्तेमाल मैसेज का जवाब देने और मांगी गई जानकारी देने के लिए किया जाता है। इसे किसी दूसरी सरकारी एजेंसी के साथ तभी शेयर किया जा सकता है जब सवाल उस एजेंसी से जुड़ा हो या जब कानून के हिसाब से ज़रूरी हो।",
-            "heading": "उपयोगकर्ताओं द्वारा भेजी गई जानकारी"
-          },
-          {
-            "body": "साइट की सिक्योरिटी और सर्विस की उपलब्धता के लिए, सरकारी कंप्यूटर सिस्टम नेटवर्क ट्रैफिक को मॉनिटर कर सकते हैं ताकि बिना इजाज़त के अपलोड करने, जानकारी बदलने या नुकसान पहुंचाने की कोशिशों की पहचान की जा सके। बिना इजाज़त के कोशिशें मना हैं और इंडियन IT एक्ट के तहत सज़ा हो सकती है।",
-            "heading": "साइट सुरक्षा"
+            "body": "<p>रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश , उत्तर प्रदेश सरकार की वेबसाइट को देखने और हमारी गोपनीयता नीति का आकलन करने के लिए धन्यवाद।</p><p>आप जब हमारी वेबसाइट को प्रयोग करते हैं तब हम किसी भी प्रकार की निजी जानकारी, जैसे नाम, पता आदि नहीं एकत्र करते। यदि आप यह सूचना हमें देते हैं तो इसका प्रयोग केवल आपके द्वारा मांगी गई सूचना को आपको प्रदान करने के लिए होगा।</p><p>आप द्वारा हमारी वेबसाइट का उपयोग आसान और त्रुटि-रहित बनाने के लिए हम कुछ तकनीकी जानकारी एकत्र करते हैं। निम्नलिखित विवरण में यह बताया गया है कि आप द्वारा हमारी वेबसाइट के प्रयोग किये जाने के दौरान हम ऐसी तकनीकी सूचना कैसे एकत्र करते हैं और इसका उपयोग कैसे करते हैं।</p><p>जब आप वेबसाइट के पृष्ठों से गुजरते हैं, उन्हें पढ़ते हैं या इस वेबसाइट से किसी सूचना को डाउनलोड करते हैं, तो हम आपके इस आगमन से स्वतः कुछ तकनीकी सूचना एकत्र करते हैं और उसे संरक्षित करते हैं। इस सूचना से यह कभी नहीं पता लगाया जा सकता कि आप कौन हैं। जो सूचना हम एकत्र करते हैं और संरक्षित करते हैं वह इस प्रकार है:</p><p>आपके सेवा प्रदाता (सर्विस प्रोवाइडर) का इन्टरनेट डोमेन (उदहारण के लिए mtnl.net.in) और उस उपकरण का आई पी एड्रेस जहाँ से आप हमारी वेबसाइट से जुड़ते हैं (आई पी एड्रेस वह संख्या है जो आप द्वारा वेब से जुड़ने पर स्वतः आपके कंप्यूटर को दी जाती है)।<br />हमारी वेबसाइट से जुड़ने के लिए उपयुक्त हुआ ब्राउज़र का प्रकार (जैसे फायरफॉक्स, नेटस्केप या इन्टरनेट एक्स्प्लोरर) और ऑपरेटिंग सिस्टम (विंडोज, लिनक्स)<br />आप द्वारा हमारी साईट से जुड़ने की तिथि और समय<br />उन पृष्ठों और यू आर एल का विवरण जिन्हें आपने देखा<br />यदि आप किसी और वेबसाइट से इस वेबसाइट पर आये हैं, तो उस वेबसाइट का एड्रेस।</p><p>इस सूचना का उपयोग केवल हम अपनी वेबसाइट को आपके लिए और बेहतर बनाने के लिए करते हैं। इन आंकड़ों से हम अपनी वेबसाइट पर आने वाले आगंतुकों की संख्या का पता लगाते हैं और यह भी जानकारी लेते हैं कि हमारे प्रयोगकर्ता किस प्रकार की टेक्नोलॉजी का प्रयोग करते हैं। हम कभी भी प्रयोगकर्ताओं और उनके आगमन की सूचना चिन्हित या एकत्र नहीं करते।</p><p>कूकीज</p><p>जब आप कुछ वेबसाइट पर जाते हैं, तब वे वेबसाइट आपके कंप्यूटर/वेबसाइट देखने के लिए प्रयुक्त उपकरण पर कुछ बहुत सूक्ष्म सॉफ्टवेयर डाउनलोड करते हैं जिन्हें कुकी कहा जाता है। कुछ कुकी निजी जानकारी भी एकत्र करती हैं जिससे वे भविष्य में आपके कंप्यूटर को पहचान सकें। हम केवल ऐसी कुकी का प्रयोग करते हैं जो दोहराई नहीं जाती, या एक बार प्रयोग की जाने वाली होती हैं।</p><p>एक बार प्रयोग की जाने वाली कुकी का तकनीकी उपयोग होता है, जैसे इस वेबसाइट पर त्रुटि और बाधा रहित ब्राउज़िंग। ये कुकी प्रयोगकर्ताओं की कोई भी निजी सूचना नहीं एकत्र करती और जैसे ही आप हमारी वेबसाइट से हटते हैं इनका स्वतः अंत हो जाता है। ये कुकी किसी भी सूचना को स्थाई तौर पर नहीं एकत्र करती और ये आपके कंप्यूटर के हार्ड ड्राइव पर नहीं एकत्र होती है। ये कुकी केवल मेमोरी में एकत्र होती हैं और केवल ब्राउज़िंग के दौरान ही उपलब्ध होती हैं। जैसे ही आपका ब्राउज़िंग का सत्र समाप्त होता है ये कुकी विलुप्त हो जाती हैं।</p><p>यदि आप हमें निजी सूचना भेजते हैं</p><p>हम किसी भी उद्देश्य से कोई निजी सूचना नहीं एकत्र करते सिवाय उस स्थिति के जब हमें आपको उत्तर देना होता है (उदहारण के लिए, आपके प्रश्नों का जवाब, या आपके द्वारा चुनी गयी जानकारी आपको भेजने के लिए)। यदि आप हमें अपनी निजी जानकारी देते हैं – जैसे &quot;हमें संपर्क करें&quot; का फॉर्म भरते हुए, जिसमे ईमेल या डाक का पता दिया गया हो, और जिसे आप हमें इस वेबसाइट के द्वारा हमें भेजते हैं – तब हम उस जानकारी का प्रयोग आपके साथ पत्राचार करने के लिए और आपके द्वारा वांछित सूचना को आप तक भेजने में आप की मदद करने के लिए करते हैं। हम आपकी जानकारी किसी अन्य शासकीय संस्था के साथ उसी स्थिति में साझा करते हैं जब आप का प्रश्न उस शासकीय संस्थान से सम्बंधित होता है, या ऐसा किसी कानून के अंतर्गत वांछित होता है।</p><p>हमारी वेबसाइट कभी भी व्यापार से जुड़े विपणन (मार्केटिंग) के लिए जानकारी एकत्र नहीं करती या व्यक्तिगत प्रोफाइल नहीं बनाती है। यदि आपको अपने किसी प्रश्न के उत्तर में कोई स्थानीय सूचना चाहिए, या आप अपनी राय देना चाहते हैं, तो आपको अपना ईमेल पता देना आवश्यक है, लेकिन यह हमारी संस्तुति है कि आप अपनी कोई निजी जानकारी साझा न करें।</p><p>साईट की सुरक्षा</p><p>साईट की सुरक्षा के लिए और यह सुनिश्चित करने के लिए कि यह सेवा सभी प्रयोगकर्ताओं को हमेशा उपलब्ध रहे, हमारा शासकीय कंप्यूटर सिस्टम कतिपय वाणिज्यिक सॉफ्टवेयर का प्रयोग करता है जिनसे नेटवर्क की गतिविधियों पर नजर रखी जा सके जिससे अनधिकृत तौर पर सूचना डाले जाने या परिवर्तित करने के प्रयासों को रोका जा सके, या किसी अन्य तरह से इसे नुकसान पहुचाया जा सके।</p><p>अधिकृत कानून प्रवर्तन एजेंसियों के द्वारा की जाने वाली जांच के अतिरिक्त, ऐसा कोई भी प्रयास नहीं किया जाता जिससे व्यक्तिगत प्रयोगकर्ताओं को चिन्हित किया जा सके, या उनके द्वारा प्रयोग करने के तरीके को चिन्हित किया जा सके। स्व-जनित आंकड़ों के समूह को किसी भी अन्य प्रयोजन के लिए प्रयुक्त नहीं किया जाता और इन्हें लगातार सामाप्त किया जाता है।</p><p>इस सेवा पर अनिधिकृत तरीके से सूचना डाले जाने या इसे बदलने के प्रयास पूरी तरह से प्रतिबंधित हैं, और ऐसे कृत्यों को भारत के सूचना तकनीकी कानून (आई टी एक्ट) के अंतर्गत दण्डित किया जा सकता है।</p>",
+            "heading": "गोपनीयता नीति"
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/privacy-policy"
       }
     },
     {
@@ -139532,16 +139853,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "The official policy requires prior permission before hyperlinks are directed from any website to the RSAC-UP website.",
-            "heading": "Prior Permission"
-          },
-          {
-            "body": "Requests should state the nature of the content on the page from which the link will be given and the exact language of the hyperlink.",
-            "heading": "Request Details"
-          },
-          {
-            "body": "The official page directs users to send hyperlinking permission requests through the Contact Us route.",
-            "heading": "Contact Route"
+            "body": "<p>Prior permission is required before Hyperlinks are directed from any website to this site. Permission for the same, stating the nature of the content on the pages from where the link has to be given and the exact language of the Hyperlink should be obtained by sending a request at Contact Us.</p>",
+            "heading": "Hyperlinking Policy"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/hyperlinking-policy"
@@ -139551,18 +139864,11 @@
         "summary": "",
         "sections": [
           {
-            "body": "आधिकारिक नीति के अनुसार, किसी भी वेबसाइट से RSAC-UP वेबसाइट पर हाइपरलिंक भेजने से पहले पूर्व अनुमति लेना आवश्यक है।",
-            "heading": "पूर्व अनुमति"
-          },
-          {
-            "body": "रिक्वेस्ट में उस पेज के कंटेंट का नेचर और हाइपरलिंक की सही भाषा बताई जानी चाहिए, जिससे लिंक दिया जाएगा।",
-            "heading": "अनुरोध विवरण"
-          },
-          {
-            "body": "ऑफिशियल पेज यूज़र्स को Contact Us रूट से हाइपरलिंकिंग परमिशन रिक्वेस्ट भेजने के लिए कहता है।",
-            "heading": "संपर्क मार्ग"
+            "body": "<p>किसी अन्य वेबसाइट/पोर्टल से इस वेबसाइट के लिए किसी प्रकार की हाइपरलिंक को निर्देशित करने के लिए पूर्व अनुमति आवश्यक है। इस प्रकार की अनुमति प्राप्त करने के लिए director@rsacup.org.in पे अनुरोध किया जाना चाहिए और ऐसे आवेदन में उन पृष्ठों की सामग्री का ब्यौरा, जिनसे ऐसी लिंक निर्देशित की जानी है, और हाइपरलिंक की यथातथ्य भाषा, का उल्लेख आवश्यक है।</p>",
+            "heading": "हाइपरलिंकिंग नीति"
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/hyperlinking-policy"
       }
     },
     {
@@ -139577,24 +139883,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "The official disclaimer provides the website as-is, without express or implied representations or warranties about the website or its information and materials.",
-            "heading": "No Warranties"
-          },
-          {
-            "body": "The disclaimer states that the organization does not warrant that the website will be constantly available or that information is complete, true, accurate, or non-misleading.",
-            "heading": "Availability and Accuracy"
-          },
-          {
-            "body": "Nothing on the website constitutes advice. Users requiring legal, financial, medical, or organization-related advice should consult an appropriate professional.",
-            "heading": "Not Professional Advice"
-          },
-          {
-            "body": "The official disclaimer limits liability for direct loss where the website is provided free of charge, indirect or consequential loss, business losses, loss of revenue, contracts, goodwill, and loss or corruption of information or data.",
-            "heading": "Liability Limits"
-          },
-          {
-            "body": "The disclaimer does not exclude or limit warranties or liabilities where doing so would be unlawful, including death or personal injury caused by negligence, fraud, fraudulent misrepresentation, or other matters that cannot legally be excluded.",
-            "heading": "Exceptions"
+            "body": "<p>This website is provided “as is” without any representations or warranties, express or implied. Organization makes no representations or warranties in relation to this website or the information and materials provided on this website. Without prejudice to the generality of the foregoing paragraph, Organization does not warrant that:</p><p>This website will be constantly available, or available at all<br />The information on this website is complete, true, accurate or non-misleading.</p><p>Nothing on this website constitutes, or is meant to constitute, advice of any kind. If you require advice in relation to any legal, financial, medical or in relation to Organization matter you should consult an appropriate professional. Limitations of liability</p><p>Organization will not be liable to you (whether under the law of contract, the law of torts or any other Laws of India) in relation to the contents of, or use of, or otherwise in connection with, this website:</p><p>To the extent that the website is provided free-of-charge, for any direct loss<br />For any indirect, special or consequential loss<br />For any business losses, loss of revenue, income, profits or anticipated savings, loss of contracts or business relationships, loss of reputation or goodwill, or loss or corruption of information or data.</p><p>These limitations of liability apply even if Organization has been expressly advised of the potential loss. Exceptions Nothing in this website disclaimer will exclude or limit any warranty implied by law that it would be unlawful to exclude or limit; and nothing in this website disclaimer will exclude or limit Organization liability in respect of any:</p><p>Death or personal injury caused by Organization negligence<br />Fraud or fraudulent misrepresentation on the part of Organization<br />Matter which it would be illegal or unlawful for Organization to exclude or limit, or to attempt or purport to exclude or limit, its liability.</p>",
+            "heading": "Disclaimer"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/disclaimer"
@@ -139683,24 +139973,8 @@
         "summary": "",
         "sections": [
           {
-            "body": "The official Help page explains that some content may be available in non-HTML formats and may require plug-ins or compatible software for PDF, Word, Excel, PowerPoint, Flash, audio, or video files.",
-            "heading": "File Formats"
-          },
-          {
-            "body": "RSAC-UP supports assistive technologies, keyboard navigation, semantic page structure, text resizing, contrast controls, and reduced-motion preferences. The current frontend targets WCAG 2.1 Level AA and GIGW 3.0 accessibility requirements.",
-            "heading": "Screen Reader Access"
-          },
-          {
-            "body": "The official Help page describes a search facility placed at the top right of pages. In this frontend, the Search control in the top bar searches pages, divisions, profiles, notices, portals, and policies.",
-            "heading": "Search Facility"
-          },
-          {
-            "body": "The official Help page directs users to the Sitemap page for an overall view of site contents and navigation links.",
-            "heading": "Sitemap"
-          },
-          {
-            "body": "The official Help page directs visitors to use Feedback or Contact Us for comments, suggestions, ideas for improvement, or further help.",
-            "heading": "Feedback and Further Help"
+            "body": "<p>Viewing Information for Various File Formats</p><p>This website includes some content that is available in non-HTML format. They might not be visible properly if your browser does not have the required plug-ins.</p><p>For example, Acrobat Reader software is required to view Adobe Acrobat PDF files. If you do not have this software installed on your computer, you can download it for free. The following table lists some plug-ins that you will require.</p><p>Document Type\tDownload<br />PDF content\tAdobe Acrobat Reader<br />Word files\tIf you have already installed MS Word [Version 2003, 2007 or 2010] or OpenOffice then you can directly view Word files or you can download from below links.</p><p>Word Viewer 2003 (in any version till 2003)<br />Microsoft Office Compatibility Pack for Word (for 2007 version)<br />OpenOffice<br />Excel files\tIf You have already installed MS Excel [Version 2003, 2007 or 2010] or OpenOffice then you can directly view Excel files or you can download from below links.</p><p>Excel Viewer 2003 (in any version till 2003)<br />Microsoft Office Compatibility Pack for Excel (for 2007 version)<br />OpenOffice<br />PowerPoint presentations\tIf You have already installed MS PowerPoint [Version 2003, 2007 or 2010] or OpenOffice then you can directly view PowerPoint files or you can download from below links.</p><p>PowerPoint Viewer 2003 (in any version till 2003)<br />Microsoft Office Compatibility Pack for PowerPoint (for 2007 version)<br />OpenOffice<br />Flash content\tAdobe Flash Player<br />Audio/Video Files\tWindows Media Player<br />RealPlayer</p><p>Screen Reader Access</p><p>Remote Sensing Applications Centre, U.P. , Government of Uttar Pradesh website complies with World Wide Web Consortium (W3C) Web Content Accessibility Guidelines (WCAG) 2.0 level AA. This will enable people with visual impairments access the website using Assistive technologies, such as screen readers. The information of the website is accessible with different screen readers.</p><p>Speech Recognition Support</p><p>The information of the website is accessible with different speech recognition software, such as Dragon Naturally Speaking as well as Speech Recognition support available in Windows Vista and Windows 7 operating systems. This will enable people with mobility impairments, people with visual impairments and senior citizens access the website using Assistive technologies, such as speech recognition software.</p><p>Using the Search Facility</p><p>The Search facility is located at the top right hand corner of all the pages. The Basic Search enables you to search for a website using word OR phrase in site Title OR URL.</p><p>Sitemap</p><p>You can visit Sitemap page to get an overall view of the contents of this site. You can also navigate around the site by clicking on the Sitemap link.</p><p>Feedback/Suggestion</p><p>You can use the Feedback form to submit your comments, feedback, suggestions and ideas for improvements to Remote Sensing Applications Centre, U.P. , Government of Uttar Pradesh.</p><p>Do you need further help?</p><p>If you need further help, please Contact us.</p>",
+            "heading": "Help"
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/help"
@@ -139710,26 +139984,11 @@
         "summary": "",
         "sections": [
           {
-            "body": "आधिकारिक हेल्प पेज बताता है कि कुछ कंटेंट नॉन-HTML फ़ॉर्मैट में उपलब्ध हो सकते हैं और PDF, Word, Excel, PowerPoint, Flash, ऑडियो या वीडियो फ़ाइलों के लिए प्लग-इन या कम्पैटिबल सॉफ़्टवेयर की ज़रूरत पड़ सकती है।",
-            "heading": "फ़ाइल फ़ॉर्मैट"
-          },
-          {
-            "body": "RSAC-UP असिस्टिव टेक्नोलॉजी, कीबोर्ड नेविगेशन, सिमेंटिक पेज स्ट्रक्चर, टेक्स्ट का साइज़ बदलने की सुविधा, कंट्रास्ट कंट्रोल और कम-मोशन वाली प्राथमिकताओं को सपोर्ट करता है। मौजूदा फ्रंटएंड WCAG 2.1 लेवल AA और GIGW 3.0 एक्सेसिबिलिटी ज़रूरतों को पूरा करता है।",
-            "heading": "स्क्रीन रीडर एक्सेस"
-          },
-          {
-            "body": "आधिकारिक हेल्प पेज में पेजों के ऊपर दाईं ओर मौजूद सर्च सुविधा के बारे में बताया गया है। इस फ्रंट-एंड में, टॉप बार में मौजूद सर्च कंट्रोल पेजों, डिवीज़नों, प्रोफ़ाइलों, नोटिसों, पोर्टलों और नीतियों को खोजता है।",
-            "heading": "खोज सुविधा"
-          },
-          {
-            "body": "आधिकारिक 'हेल्प' पेज यूज़र्स को साइट के कंटेंट और नेविगेशन लिंक की पूरी जानकारी के लिए 'साइटमैप' पेज पर भेजता है।",
-            "heading": "साइटमैप"
-          },
-          {
-            "body": "आधिकारिक हेल्प पेज विज़िटर्स को सुझाव, सुधार के लिए विचार या और मदद के लिए 'फ़ीडबैक' या 'हमसे संपर्क करें' (Contact Us) का इस्तेमाल करने के लिए कहता है।",
-            "heading": "फ़ीडबैक और आगे की मदद"
+            "body": "<p>विभिन्‍न फाइल फार्मेट के लिए सूचना देखना</p><p>इस वेबसाइट में कुछ ऐसी अंतर्वस्‍तुएं शामिल हैं जो गैर एचटीएमएल फार्मेट में उपलब्‍ध हैं। यदि आपके ब्राउजर में अपेक्षित प्‍लग-इन नहीं होगा, तो हो सकता है कि वे ठीक से न दिखें।</p><p>उदाहरण के लिए, एडोब एक्रोबैट पीडीएफ फाइलों को देखने के लिए एक्रोबैट रीडर साफ्टवेयर अपेक्षित है। यदि आपके कंप्‍यूटर पर यह साफ्टवेयर इंस्‍टाल नहीं है, तो आप इसे मुफ्त में डाउनलोड कर सकते हैं। निम्‍नलिखित सारणी में कुछ प्‍लग-इन सूचीबद्ध किए गए हैं जिनकी आपको जरूरत होगी।</p><p>दस्‍तावेज का प्रकार\tडाउनलोड<br />पीडीएफ अंतर्वस्‍तु\tएडोब एक्रोबैट रीडर<br />वर्ड फाइल\tयदि आपने एमएस वर्ड [वर्जन 2003, 2007 या 2010] या ओपन ऑफिस पहले से इंस्‍टाल किया है, तो आप वर्ड की फाइलें सीधे देख सकते हैं अथवा आप नीचे दिए गए लिंक से डाउनलोड कर सकते हैं।</p><p>वर्ड व्‍यूअर 2003 (2003 तक किसी वर्जन में)<br />वर्ड (वर्जन 2007 के लिए) के लिए माइक्रोसॉफ्ट ऑफिस कंपैटिबिलिटी पैक<br />ओपन ऑफिस<br />एक्‍सल फाइल\tयदि आपने एमएस एक्‍सल [वर्जन 2003, 2007 या 2010] या ओपन ऑफिस पहले से इंस्‍टाल किया है, तो आप एक्‍सल की फाइलें सीधे देख सकते हैं अथवा आप नीचे दिए गए लिंक से डाउनलोड कर सकते हैं।</p><p>एक्‍सल व्‍यूअर 2003 (2003 तक किसी वर्जन में)<br />एक्‍सल (वर्जन 2007 के लिए) के लिए माइक्रोसॉफ्ट ऑफिस कंपैटिबिलिटी पैक<br />ओपन ऑफिस<br />पॉवरप्‍वाइंट प्रजेंटेशन\tयदि आपने एमएस पॉवरप्‍वाइंट [वर्जन 2003, 2007 या 2010] या ओपन ऑफिस पहले से इंस्‍टाल किया है, तो आप पॉवरप्‍वाइंट की फाइलें सीधे देख सकते हैं अथवा आप नीचे दिए गए लिंक से डाउनलोड कर सकते हैं।</p><p>पॉवरप्‍वाइंट व्‍यूअर 2003 (2003 तक किसी वर्जन में)<br />पॉवरप्‍वाइंट (वर्जन 2007 के लिए) के लिए माइोसॉफ्ट ऑफिस कंपैटिबिलिटी पैक<br />ओपन ऑफिस<br />फ्लैश अंतर्वस्‍तु\tएडोब फ्लैश प्‍लेयर<br />श्रव्य / दृश्‍य फाइल\tविंडोज मीडिया प्‍लेयर<br />रियल ऑफिस</p><p>स्‍क्रीन रीडर अक्‍सेस</p><p>रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश , उत्तर प्रदेश सरकार की वेबसाइट विश्‍वव्‍यापी वेब कंसोर्टियम (डब्‍ल्‍यू 3 सी) वेब अंतर्वस्‍तु अभिगम्‍यता दिशानिर्देश (डब्‍ल्‍यू सी ए जी) 2.0 लेवल एए का अनुपालन करता है। यह दृष्टि विकलांग व्‍यक्तियों को सहायक प्रौद्योगिकियों, जैसे कि स्‍क्रीन रीडर का प्रयोग करके वेबसाइट को अक्‍सेस करने में समर्थ बनाएगा। इस वेबसाइट की सूचना को विभिन्‍न स्‍क्रीन रीडर जैसे कि जे ए डब्‍ल्‍यू एस से अक्‍सेस किया जा सकता है।</p><p>वक्‍तृता पहचान सहायता</p><p>विभिन्‍न वक्‍तृता पहचान साफ्टवेयर जैसे कि ड्रैगन नेचुरली स्‍पीकिंग से इस वेबसाइट की सूचना को अक्‍सेस किया जा सकता है तथा विंडोज विस्‍टा एवं विंडोज 7 आपरेटिंग सिस्‍टम में वक्‍तृता पहचान सहायता उपलब्‍ध है ... यह चलने फिरने में असमर्थ व्‍यक्तियों, दृष्टि विकलांग व्‍यक्तियों तथा वरिष्‍ठ नागरिकों को सहायक प्रौद्योगिकियों जैसे कि वक्‍तृता पहचान साफ्टवेयर का प्रयोग करके वेबसाइट को अक्‍सेस करने में समर्थ बनाएगा।</p><p>सर्च सुविधा का प्रयोग करना</p><p>सर्च की सुविधा सभी पृष्‍ठों के शीर्ष पर दाएं कोने में मौजूद है। बेसिक सर्च आपको साइट टाइटल अथवा यू आर एल में शब्‍द या पदबंध का प्रयोग करके किसी वेबसाइट को सर्च करने में समर्थ बनाता है।</p><p>साइट मैप</p><p>इस साइट की अंतर्वस्‍तुओं का समग्र रूप में जायजा लेने के लिए आप साइट मैप पेज पर जा सकते हैं। आप साइट मैप लिंक पर क्लिक करके साइट के चारों ओर नेविगेट भी कर सकते हैं।</p><p>फीडबैक / सुझाव</p><p>आप सुधार के लिए रिमोट सेन्सिंग एप्लीकेशन सेंटर, उत्तर प्रदेश , उत्तर प्रदेश सरकार को अपनी टिप्‍पणियां, फीडबैक, सुझाव तथा विचार प्रस्‍तुत करने के लिए प्रतिक्रिया फार्म का प्रयोग कर सकते हैं।</p><p>क्‍या आपको और सहायता की जरूरत है?</p><p>यदि आपको और सहायता की जरूरत है, तो कृपया हमसे संपर्क करें।</p>",
+            "heading": "सहायता"
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/help"
       }
     },
     {
@@ -141920,9 +142179,205 @@
     },
     {
       "collection": "public_info",
-      "entryKey": "feedback",
+      "entryKey": "appellate-authority",
       "status": "published",
       "sortOrder": 1,
+      "dataEn": {
+        "slug": "appellate-authority",
+        "sort": 1,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "Right to Information (RTI)"
+          }
+        ],
+        "title": "Appellate Authority",
+        "eyebrow": "Right to Information",
+        "summary": "",
+        "sections": [
+          {
+            "address": "Remote Sensing Applications Centre, U.P., Sector-G, Jankipuram, Kursi Road, Lucknow-226021. Phone: 0522-2730451.",
+            "heading": "Appellate Authority",
+            "officers": [
+              {
+                "name": "Mr. Sushil Chandra",
+                "post": "First Appellate Officer",
+                "phone": "+91-8765977653"
+              },
+              {
+                "name": "Dr. Anil Kumar",
+                "post": "Public Information Officer",
+                "phone": "+91-8765977669"
+              },
+              {
+                "name": "Shri Ramakant",
+                "post": "Asstt. Public Information Officer",
+                "phone": "+91-8765977643"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/en/page/appellate-authority"
+      },
+      "dataHi": {
+        "slug": "appellate-authority",
+        "sort": 1,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "सूचना का अधिकार"
+          }
+        ],
+        "title": "अपीलीय प्राधिकरण",
+        "eyebrow": "सूचना का अधिकार",
+        "summary": "",
+        "sections": [
+          {
+            "address": "रिमोट सेंसिंग एप्लीकेशन्स सेंटर, उत्तर प्रदेश, सेक्टर-जी, जानकीपुरम, कुर्सी रोड, लखनऊ-226021। फोन: 0522-2730451।",
+            "heading": "अपीलीय प्राधिकरण",
+            "officers": [
+              {
+                "name": "श्री सुशील चंद्र",
+                "post": "प्रथम अपीलीय अधिकारी",
+                "phone": "+91-8765977653"
+              },
+              {
+                "name": "डॉ. अनिल कुमार",
+                "post": "जन सूचना अधिकारी",
+                "phone": "+91-8765977669"
+              },
+              {
+                "name": "श्री रमाकांत",
+                "post": "सहायक जन सूचना अधिकारी",
+                "phone": "+91-8765977643"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/appellate-authority"
+      }
+    },
+    {
+      "collection": "public_info",
+      "entryKey": "memorandum-of-association",
+      "status": "published",
+      "sortOrder": 2,
+      "dataEn": {
+        "slug": "memorandum-of-association",
+        "sort": 2,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "Right to Information (RTI)"
+          }
+        ],
+        "title": "Memorandum of Association",
+        "eyebrow": "Right to Information",
+        "summary": "",
+        "sections": [
+          {
+            "heading": "Memorandum of Association",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/pdf/memorendum_061017.pdf",
+                "meta": "Size: 1.3 MB | Language: English | Upload date: 30/12/2017",
+                "title": "Memorandum of Association"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/en/page/memorandum-of-association"
+      },
+      "dataHi": {
+        "slug": "memorandum-of-association",
+        "sort": 2,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "सूचना का अधिकार"
+          }
+        ],
+        "title": "मेमोरेंडम ऑफ एसोसिएशन",
+        "eyebrow": "सूचना का अधिकार",
+        "summary": "",
+        "sections": [
+          {
+            "heading": "मेमोरेंडम ऑफ एसोसिएशन",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/pdf/memorendum_061017.pdf",
+                "meta": "आकार: 1.3 MB | भाषा: अंग्रेजी | अपलोड तिथि: 30/12/2017",
+                "title": "मेमोरेंडम ऑफ एसोसिएशन"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/memorandum-of-association"
+      }
+    },
+    {
+      "collection": "public_info",
+      "entryKey": "general-service-rules",
+      "status": "published",
+      "sortOrder": 3,
+      "dataEn": {
+        "slug": "general-service-rules",
+        "sort": 3,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "Right to Information (RTI)"
+          }
+        ],
+        "title": "General Service Rules",
+        "eyebrow": "Public Services",
+        "summary": "",
+        "sections": [
+          {
+            "heading": "General Service Rules",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/pdf/general-service_161017.pdf",
+                "meta": "Size: 5.5 MB | Language: English | Upload date: 30/12/2017",
+                "title": "General Service Rules"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/en/page/general-service-rules"
+      },
+      "dataHi": {
+        "slug": "general-service-rules",
+        "sort": 3,
+        "links": [
+          {
+            "path": "/rti",
+            "label": "सूचना का अधिकार"
+          }
+        ],
+        "title": "सामान्य सेवा नियमावली",
+        "eyebrow": "जन सेवाएं",
+        "summary": "",
+        "sections": [
+          {
+            "heading": "सामान्य सेवा नियमावली",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/pdf/general-service_161017.pdf",
+                "meta": "आकार: 5.5 MB | भाषा: अंग्रेजी | अपलोड तिथि: 30/12/2017",
+                "title": "सामान्य सेवा नियमावली"
+              }
+            ]
+          }
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/general-service-rules"
+      }
+    },
+    {
+      "collection": "public_info",
+      "entryKey": "feedback",
+      "status": "published",
+      "sortOrder": 4,
       "dataEn": {
         "slug": "feedback",
         "sort": 1,
@@ -141938,26 +142393,9 @@
         ],
         "title": "Feedback",
         "eyebrow": "Public Services",
-        "summary": "",
-        "sections": [
-          {
-            "body": "Visitors are encouraged to share feedback on navigation, accessibility, content clarity, downloads, and overall usability of the RSAC-UP website. Feedback helps the centre maintain a GIGW-aligned and citizen-friendly digital presence.",
-            "heading": "Website Feedback"
-          },
-          {
-            "body": "Please mention the page URL or section name, the device and browser used if relevant, and a short description of the issue or suggestion. For scientific or project-related queries, use the division or contact routes instead of this feedback channel.",
-            "heading": "What to Include"
-          },
-          {
-            "body": "Email your feedback to director.rsac-up@rsac.up.gov.in with the subject line Website Feedback. For training, project, or academic enquiries, contact the relevant officer listed on the Contact page.",
-            "heading": "Submit Feedback"
-          },
-          {
-            "body": "Actionable feedback related to website content, accessibility, or navigation is reviewed by the Web Information Manager and the website support team. RSAC-UP aims to respond to valid public feedback in a reasonable time frame.",
-            "heading": "Response"
-          }
-        ],
-        "sourceUrl": "https://rsac.up.gov.in/en/page/en-feedback"
+        "summary": "Complete the below form to send us your comments and feedback on the website. Your opinion, suggestions and feedback will be very much appreciated. If you provide us with your contact information, we will be able to answer your questions.",
+        "sections": [],
+        "sourceUrl": "https://rsac.up.gov.in/en/feedback"
       },
       "dataHi": {
         "links": [
@@ -141972,32 +142410,16 @@
         ],
         "title": "प्रतिक्रिया",
         "eyebrow": "जन सेवाएं",
-        "summary": "",
-        "sections": [
-          {
-            "body": "आगंतुकों को आरएसएसी-यूपी वेबसाइट के नेविगेशन, अभिगम्यता, सामग्री की स्पष्टता, डाउनलोड और समग्र उपयोगिता पर प्रतिक्रिया साझा करने के लिए प्रोत्साहित किया जाता है। प्रतिक्रिया केंद्र को जीआईजीडब्ल्यू अनुरूप और नागरिक-अनुकूल डिजिटल उपस्थिति बनाए रखने में सहायता करती है।",
-            "heading": "वेबसाइट प्रतिक्रिया"
-          },
-          {
-            "body": "कृपया पृष्ठ का यूआरएल या अनुभाग का नाम, आवश्यक होने पर प्रयुक्त उपकरण और ब्राउज़र तथा समस्या या सुझाव का संक्षिप्त विवरण दें। वैज्ञानिक या परियोजना संबंधी प्रश्नों के लिए इस प्रतिक्रिया माध्यम के बजाय संबंधित प्रभाग या संपर्क माध्यम का उपयोग करें।",
-            "heading": "क्या शामिल करें"
-          },
-          {
-            "body": "अपनी वेबसाइट प्रतिक्रिया director.rsac-up@rsac.up.gov.in पर वेबसाइट प्रतिक्रिया विषय के साथ ईमेल करें। प्रशिक्षण, परियोजना या शैक्षणिक पूछताछ के लिए संपर्क पृष्ठ पर सूचीबद्ध संबंधित अधिकारी से संपर्क करें।",
-            "heading": "प्रतिक्रिया भेजें"
-          },
-          {
-            "body": "वेबसाइट सामग्री, अभिगम्यता या नेविगेशन से संबंधित उपयोगी प्रतिक्रिया की समीक्षा वेब सूचना प्रबंधक और वेबसाइट सहायता दल द्वारा की जाती है। आरएसएसी-यूपी का लक्ष्य वैध सार्वजनिक प्रतिक्रिया का उचित समय में उत्तर देना है।",
-            "heading": "उत्तर"
-          }
-        ]
+        "summary": "वेबसाइट पर अपनी टिप्पणियां और प्रतिक्रिया भेजने के लिए नीचे दिया गया फॉर्म भरें। आपकी राय, सुझाव और प्रतिक्रिया की बहुत सराहना की जाएगी। यदि आप हमें अपनी संपर्क जानकारी प्रदान करते हैं, तो हम आपके प्रश्नों का उत्तर दे सकेंगे।",
+        "sections": [],
+        "sourceUrl": "https://rsac.up.gov.in/hi/feedback"
       }
     },
     {
       "collection": "public_info",
       "entryKey": "tenders",
       "status": "published",
-      "sortOrder": 2,
+      "sortOrder": 5,
       "dataEn": {
         "slug": "tenders",
         "sort": 2,
@@ -142076,7 +142498,7 @@
       "collection": "public_info",
       "entryKey": "faq",
       "status": "published",
-      "sortOrder": 3,
+      "sortOrder": 6,
       "dataEn": {
         "slug": "faq",
         "sort": 3,
@@ -142099,28 +142521,87 @@
         "summary": "",
         "sections": [
           {
-            "body": "Remote Sensing Applications Centre, Uttar Pradesh applies satellite remote sensing, GIS, and GPS to agriculture, water, forests, land use, urban survey, and disaster management for government departments of Uttar Pradesh.",
-            "heading": "What does RSAC-UP do?"
+            "body": "<p>The director of the centre is the post as the Head of the Department and is entitled to all the powers of the Head of the Department. The director is appointed by the Chairman of the General Body on the recommendation of the Chairman of the Governing Body. The Chairman of the General Body is the appointing authority of the director.</p><p>The director is the member secretary of the Governing Body. The main rights and liabilities of the director are as follows:</p><ul><li>Discharge all administrative, financial, and technical obligations of the Centre.</li><li>Convene meetings of the Governing Body and present policy matters of the Centre.</li><li>Ensure compliance with decisions taken by the Governing Body.</li><li>Guide, arrange, and monitor implementation of the Centre's projects.</li><li>Constitute committees for smooth operation, decide on their recommendations, and review their proceedings.</li><li>Act as appointing and disciplinary authority for scientists in the scientific cadre.</li><li>Act as appointing and disciplinary authority for administrative and assistant technical personnel.</li><li>Approve leave and travel schedules of all heads.</li><li>Coordinate with the Government of Uttar Pradesh at different levels.</li><li>Proceed according to the General Service Rules.</li></ul>",
+            "heading": "Question 1: Director's Compulsory Liability and Rights"
           },
           {
-            "body": "Departments and institutions may request geo-referenced data, thematic maps, and project support by writing to the Director office. Use the Geo-Portal directory for self-service datasets and map services.",
-            "heading": "How can I request geo-referenced data or maps?"
+            "heading": "Question 2: Sample formats for generation of geo-referenced data/Map, diversion of forest land for non-forestry purposes (under the Forest (Conservation) Act, 1980).",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/201808231536565467GDGNF_format_090218.pdf",
+                "meta": "Size: 1.46 MB | Language: English",
+                "title": "Sample formats for generation of geo-referenced data/Map"
+              }
+            ]
           },
           {
-            "body": "Personnel and HR services are provided through Vanshika HR Services Private Limited, Lucknow.",
-            "heading": "Who provides manpower and HR services to RSAC-UP?"
+            "heading": "Question 3: Chief Secretary's Order; Remote Sensing, GIS & GPS related technologies work by Remote Sensing Applications Centre U.P.",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202309141059266354Remote-Sensing-GIS-GPS-Technique.pdf",
+                "meta": "Date: 14-09-2023 | Language: English",
+                "title": "Chief Secretary's Order - 14-09-2023"
+              },
+              {
+                "url": "/official-media/siteContent/faq/202303101531269500Adobe-Scan-Mar-10-2023.pdf",
+                "meta": "Date: 18-12-2018 | Language: English",
+                "title": "Chief Secretary's Order - 18-12-2018"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906532625-01-2016_220120.pdf",
+                "meta": "Date: 25-01-2016 | Language: English",
+                "title": "Chief Secretary's Order - 25-01-2016"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906532605-08-2013_220120.pdf",
+                "meta": "Date: 05-08-2013 | Language: English",
+                "title": "Chief Secretary's Order - 05-08-2013"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906517017-09-2004_220120.pdf",
+                "meta": "Date: 17-09-2004 | Language: English",
+                "title": "Chief Secretary's Order - 17-09-2004"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906501325-09-2000_220120.pdf",
+                "meta": "Date: 25-09-2000 | Language: English",
+                "title": "Chief Secretary's Order - 25-09-2000"
+              }
+            ]
           },
           {
-            "body": "The National Geospatial Policy lays down the framework, objectives, and guidelines for acquiring, producing, and sharing geospatial data in India, enabling open access and a strong domestic geospatial ecosystem.",
-            "heading": "What is the National Geospatial Policy?"
+            "heading": "Question 4: Scientist's Seniority List.",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202405131456216687seniority-list.pdf",
+                "meta": "Date: 13-09-2023 | Language: Hindi",
+                "title": "Scientists' Seniority List - 13-09-2023"
+              }
+            ]
           },
           {
-            "body": "The scientists' seniority list and related establishment orders are published as official documents in the Notices section of this website.",
-            "heading": "Where can I find the seniority list of scientists?"
+            "body": "<p><strong>Vanshika HR Services Private Limited</strong></p><p>7 & 8, Second Floor, Rani Saltanat Plaza,<br>Hazratganj, Lucknow-226001</p><p>vanshikahrservices@gmail.com<br>www.vanshikahr.in</p><p>Office (11:00 AM to 7:00 PM); Contact no. +91-9120002814<br>Mr. Indrajeet Singh, Manager; Contact no. +91-9307945418</p>",
+            "heading": "Question 5: Who will provide the services of Personnel to RSAC-UP?"
           },
           {
-            "body": "RTI applications can be submitted to the Public Information Officer. See the RTI page for the process, and the Contact page for address, phone, and email.",
-            "heading": "How do I file an RTI request or contact the centre?"
+            "heading": "Question 6: What are the provisions and objectives of India's most recent National Geospatial Policy?",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202512221637247612National-Geospatial-Policy-2022.pdf",
+                "meta": "Size: 1.56 MB | Language: Hindi/English",
+                "title": "National Geospatial Policy-2022"
+              }
+            ]
+          },
+          {
+            "heading": "Question 7: What are the Survey of India's recommended and guiding tender specifications for surveying activities such as drone operations, GNSS surveys, and related geospatial data acquisition?",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202512221549121876SURVEY-OF-INDIA.pdf",
+                "meta": "Size: 254 kB | Language: English",
+                "title": "Survey of India"
+              }
+            ]
           }
         ],
         "sourceUrl": "https://rsac.up.gov.in/en/page/faq"
@@ -142145,30 +142626,90 @@
         "summary": "",
         "sections": [
           {
-            "body": "रिमोट सेंसिंग एप्लीकेशन्स सेंटर, उत्तर प्रदेश उपग्रह सुदूर संवेदन, जीआईएस और जीपीएस का उपयोग कृषि, जल, वन, भू-उपयोग, नगरीय सर्वेक्षण और आपदा प्रबंधन हेतु उत्तर प्रदेश के विभागों के लिए करता है।",
-            "heading": "आरएसएसी-यूपी क्या कार्य करता है?"
+            "body": "<p>केन्द्र के निदेशक का पद विभागाध्यक्ष का पद है एवं उन्हें विभागाध्यक्ष के समस्त अधिकार प्रदत्त हैं। केन्द्र के निदेशक की नियुक्ति केन्द्र के सभापति द्वारा प्रबन्धकारिणी समिति की संस्तुति के आधार पर की जाती है और वे ही केन्द्र के निदेशक के नियुक्ति प्राधिकारी होते हैं।</p><p>केन्द्र के निदेशक केन्द्र की प्रबन्धकारिणी समिति के पदेन सदस्य सचिव होते हैं। निदेशक के प्रमुख दायित्व एवं अधिकार निम्नवत हैं:</p><ul><li>केन्द्र के प्रशासन, वित्तीय एवं तकनीकी दायित्वों का सम्पूर्ण निर्वहन करना।</li><li>प्रबन्धकारिणी समिति की समय-समय पर बैठकें बुलाना तथा समिति के समक्ष केन्द्र के नीतिगत प्रकरण प्रस्तुत करना।</li><li>प्रबन्धकारिणी समिति द्वारा लिये गये निर्णयों का अनुपालन सुनिश्चित कराना।</li><li>केन्द्र की विभिन्न परियोजनाओं में मार्गदर्शन प्रदान करना तथा उनके क्रियान्वयन की व्यवस्था एवं अनुश्रवण करना।</li><li>केन्द्र के सुचारू संचालन हेतु समितियों का गठन करना, उनकी संस्तुतियों पर निर्णय लेना और कार्यवाही की समीक्षा करना।</li><li>वैज्ञानिक संवर्ग के वैज्ञानिकों के नियुक्ति प्राधिकारी एवं दण्डाधिकारी के रूप में कार्य करना।</li><li>समस्त प्रशासकीय एवं सहायक तकनीकी कार्मिकों के नियुक्ति प्राधिकारी एवं दण्डाधिकारी के रूप में कार्य करना।</li><li>समस्त प्रभागाध्यक्षों के अवकाश एवं यात्रा कार्यक्रम स्वीकृत करना।</li><li>उत्तर प्रदेश शासन से विभिन्न स्तरों पर समन्वय स्थापित करना।</li><li>केन्द्र की सामान्य सेवा नियमावली के अनुरूप कार्यवाही करना।</li></ul>",
+            "heading": "प्रश्न 1: निदेशक के पदगत दायित्व एवं अधिकार"
           },
           {
-            "body": "विभाग और संस्थाएं भू-संदर्भित डाटा, विषयगत मानचित्र और परियोजना सहायता हेतु निदेशक कार्यालय को आवेदन कर सकते हैं। स्व-सेवा डाटासेट और मानचित्र सेवाओं हेतु जियो-पोर्टल निर्देशिका देखें।",
-            "heading": "भू-संदर्भित डाटा या मानचित्र कैसे प्राप्त करें?"
+            "heading": "प्रश्न 2: भू-संदर्भित डेटा/मानचित्र तथा गैर-वानिकी प्रयोजनों के लिए वन भूमि के उपयोग हेतु नमूना प्रारूप का सृजन (वन (संरक्षण) अधिनियम, 1980 के अंतर्गत)।",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/201808231536565467GDGNF_format_090218.pdf",
+                "meta": "आकार: 1.46 MB | भाषा: अंग्रेजी | अपलोड तिथि: 23/08/2018",
+                "title": "भू-संदर्भित डेटा/मानचित्र हेतु नमूना प्रारूप"
+              }
+            ]
           },
           {
-            "body": "कार्मिक एवं एचआर सेवाएं वांशिका एचआर सर्विसेज प्राइवेट लिमिटेड, लखनऊ के माध्यम से प्रदान की जाती हैं।",
-            "heading": "आरएसएसी-यूपी को कार्मिक सेवाएं कौन प्रदान करता है?"
+            "heading": "प्रश्न 3: सुदूर संवेदन, जीआईएस एवं जीपीएस तकनीक से संबंधित कार्य आरएसएसी-यूपी द्वारा कराये जाने के संबंध में मुख्य सचिव के आदेश।",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202309141059266354Remote-Sensing-GIS-GPS-Technique.pdf",
+                "meta": "दिनांक: 14-09-2023 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 14-09-2023"
+              },
+              {
+                "url": "/official-media/siteContent/faq/202303101531269500Adobe-Scan-Mar-10-2023.pdf",
+                "meta": "दिनांक: 18-12-2018 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 18-12-2018"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906532625-01-2016_220120.pdf",
+                "meta": "दिनांक: 25-01-2016 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 25-01-2016"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906532605-08-2013_220120.pdf",
+                "meta": "दिनांक: 05-08-2013 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 05-08-2013"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906517017-09-2004_220120.pdf",
+                "meta": "दिनांक: 17-09-2004 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 17-09-2004"
+              },
+              {
+                "url": "/official-media/siteContent/faq/20200122172906501325-09-2000_220120.pdf",
+                "meta": "दिनांक: 25-09-2000 | भाषा: अंग्रेजी",
+                "title": "मुख्य सचिव का आदेश - 25-09-2000"
+              }
+            ]
           },
           {
-            "body": "राष्ट्रीय भू-स्थानिक नीति भारत में भू-स्थानिक डाटा के अधिग्रहण, निर्माण और साझाकरण हेतु ढांचा, उद्देश्य और दिशानिर्देश निर्धारित करती है, जिससे खुली पहुंच और सशक्त घरेलू भू-स्थानिक तंत्र संभव होता है।",
-            "heading": "राष्ट्रीय भू-स्थानिक नीति क्या है?"
+            "heading": "प्रश्न 4: वैज्ञानिकों की वरिष्ठता सूची",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202405131456216687seniority-list.pdf",
+                "meta": "दिनांक: 13-09-2023 | भाषा: हिन्दी",
+                "title": "वैज्ञानिकों की वरिष्ठता सूची - 13-09-2023"
+              }
+            ]
           },
           {
-            "body": "वैज्ञानिकों की वरिष्ठता सूची और संबंधित स्थापना आदेश इस वेबसाइट के सूचना अनुभाग में आधिकारिक दस्तावेज के रूप में प्रकाशित किए जाते हैं।",
-            "heading": "वैज्ञानिकों की वरिष्ठता सूची कहां मिलेगी?"
+            "body": "<p><strong>वांशिका एचआर सर्विसेज प्राइवेट लिमिटेड</strong></p><p>7 और 8, दूसरी मंजिल, रानी सल्तनत प्लाजा,<br>हजरतगंज, लखनऊ-226001</p><p>vanshikahrservices@gmail.com<br>www.vanshikahr.in</p><p>कार्यालय समय (11:00 AM से 7:00 PM); संपर्क नंबर: +91-9120002814<br>श्री इन्द्रजीत सिंह, प्रबंधक; संपर्क नंबर: +91-9307945418</p>",
+            "heading": "प्रश्न 5: आरएसएसी-यूपी को कार्मिक सेवाएं कौन प्रदान करेगा?"
           },
           {
-            "body": "आरटीआई आवेदन जन सूचना अधिकारी को प्रस्तुत किए जा सकते हैं। प्रक्रिया हेतु आरटीआई पृष्ठ और पता, दूरभाष एवं ईमेल हेतु संपर्क पृष्ठ देखें।",
-            "heading": "आरटीआई आवेदन या संपर्क कैसे करें?"
+            "heading": "प्रश्न 6: भारत की नवीनतम राष्ट्रीय भू-स्थानिक नीति के प्रावधान और उद्देश्य क्या हैं?",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202512221637247612National-Geospatial-Policy-2022.pdf",
+                "meta": "आकार: 1.56 MB | भाषा: हिन्दी/अंग्रेजी | अपलोड तिथि: 22/12/2025",
+                "title": "राष्ट्रीय भू-स्थानिक नीति-2022"
+              }
+            ]
+          },
+          {
+            "heading": "प्रश्न 7: ड्रोन संचालन, जीएनएसएस सर्वेक्षण और संबंधित भू-स्थानिक डेटा अधिग्रहण जैसी गतिविधियों के लिए सर्वे ऑफ इंडिया के अनुशंसित निविदा विनिर्देश क्या हैं?",
+            "documents": [
+              {
+                "url": "/official-media/siteContent/faq/202512221549121876SURVEY-OF-INDIA.pdf",
+                "meta": "आकार: 254 kB | भाषा: अंग्रेजी | अपलोड तिथि: 22/12/2025",
+                "title": "सर्वे ऑफ इंडिया"
+              }
+            ]
           }
-        ]
+        ],
+        "sourceUrl": "https://rsac.up.gov.in/hi/article/faq"
       }
     },
     {
@@ -143080,6 +143621,18 @@
                   "label": "Right to Information (RTI)"
                 },
                 {
+                  "path": "/appellate-authority",
+                  "label": "Appellate Authority"
+                },
+                {
+                  "path": "/memorandum-of-association",
+                  "label": "Memorandum of Association"
+                },
+                {
+                  "path": "/general-service-rules",
+                  "label": "General Service Rules"
+                },
+                {
                   "path": "/gallery",
                   "label": "Photo Gallery"
                 },
@@ -143093,10 +143646,6 @@
                 }
               ],
               "primaryLinks": [
-                {
-                  "path": "/",
-                  "label": "Home"
-                },
                 {
                   "path": "/about-us",
                   "label": "About Us"
@@ -143472,6 +144021,10 @@
             "eyebrow": "Disaster Response",
             "archives": [
               {
+                "url": "https://rsac.up.gov.in/en/page/flood-2026",
+                "year": "2026"
+              },
+              {
                 "url": "https://rsac.up.gov.in/en/page/flood-2025",
                 "year": "2025"
               },
@@ -143761,8 +144314,8 @@
             "eyebrow": "Operational Domains",
             "description": "RSAC-UP's scientific divisions convert multi-sensor earth observation into crop forecasts, water assessments, forest monitoring, urban planning inputs, and flood response for departments across Uttar Pradesh.",
             "panelHeading": "Domain Brief",
-            "cardOpenLabel": "Open",
-            "cardViewLabel": "View",
+            "cardOpenLabel": "Close",
+            "cardViewLabel": "Open",
             "primaryAction": {
               "path": "/divisions",
               "label": "Scientific divisions"
@@ -144835,6 +145388,18 @@
                   "label": "सूचना का अधिकार"
                 },
                 {
+                  "path": "/appellate-authority",
+                  "label": "अपीलीय प्राधिकरण"
+                },
+                {
+                  "path": "/memorandum-of-association",
+                  "label": "मेमोरेंडम ऑफ एसोसिएशन"
+                },
+                {
+                  "path": "/general-service-rules",
+                  "label": "सामान्य सेवा नियमावली"
+                },
+                {
                   "path": "/gallery",
                   "label": "फोटो गैलरी"
                 },
@@ -145226,6 +145791,10 @@
             "title": "बाढ़ दैनिक रिपोर्ट एवं अनुश्रवण",
             "eyebrow": "आपदा प्रतिक्रिया",
             "archives": [
+              {
+                "url": "https://rsac.up.gov.in/en/page/flood-2026",
+                "year": "2026"
+              },
               {
                 "url": "https://rsac.up.gov.in/en/page/flood-2025",
                 "year": "2025"

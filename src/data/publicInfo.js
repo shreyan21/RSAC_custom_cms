@@ -71,32 +71,87 @@ export const publicInfoPages = [
     ],
   },
   {
+    slug: "appellate-authority",
+    title: "Appellate Authority",
+    summary: "",
+    source: "https://rsac.up.gov.in/en/page/appellate-authority",
+    sections: [
+      {
+        heading: "Appellate Authority",
+        officers: [
+          {
+            name: "Mr. Sushil Chandra",
+            post: "First Appellate Officer",
+            phone: "+91-8765977653",
+          },
+          {
+            name: "Dr. Anil Kumar",
+            post: "Public Information Officer",
+            phone: "+91-8765977669",
+          },
+          {
+            name: "Shri Ramakant",
+            post: "Asstt. Public Information Officer",
+            phone: "+91-8765977643",
+          },
+        ],
+        address:
+          "Remote Sensing Applications Centre, U.P., Sector-G, Jankipuram, Kursi Road, Lucknow-226021. Phone: 0522-2730451.",
+      },
+    ],
+    links: [
+      { label: "Right to Information (RTI)", path: "/rti" },
+    ],
+  },
+  {
+    slug: "memorandum-of-association",
+    title: "Memorandum of Association",
+    summary: "",
+    source: "https://rsac.up.gov.in/en/page/memorandum-of-association",
+    sections: [
+      {
+        heading: "Memorandum of Association",
+        documents: [
+          {
+            title: "Memorandum of Association",
+            url: "/official-media/siteContent/pdf/memorendum_061017.pdf",
+            meta: "Size: 1.3 MB | Language: English | Upload date: 30/12/2017",
+          },
+        ],
+      },
+    ],
+    links: [
+      { label: "Right to Information (RTI)", path: "/rti" },
+    ],
+  },
+  {
+    slug: "general-service-rules",
+    title: "General Service Rules",
+    summary: "",
+    source: "https://rsac.up.gov.in/en/page/general-service-rules",
+    sections: [
+      {
+        heading: "General Service Rules",
+        documents: [
+          {
+            title: "General Service Rules",
+            url: "/official-media/siteContent/pdf/general-service_161017.pdf",
+            meta: "Size: 5.5 MB | Language: English | Upload date: 30/12/2017",
+          },
+        ],
+      },
+    ],
+    links: [
+      { label: "Right to Information (RTI)", path: "/rti" },
+    ],
+  },
+  {
     slug: "feedback",
     title: "Feedback",
     summary:
       "Share comments, suggestions, and ideas to improve the RSAC-UP website and public services.",
-    source: "https://rsac.up.gov.in/en/page/en-feedback",
-    sections: [
-      {
-        heading: "Website Feedback",
-        body:
-          "Visitors are encouraged to share feedback on navigation, accessibility, content clarity, downloads, and overall usability of the RSAC-UP website. Feedback helps the centre maintain a GIGW-aligned and citizen-friendly digital presence.",
-      },
-      {
-        heading: "What to Include",
-        body:
-          "Please mention the page URL or section name, the device and browser used if relevant, and a short description of the issue or suggestion. For scientific or project-related queries, use the division or contact routes instead of this feedback channel.",
-      },
-      {
-        heading: "Submit Feedback",
-        body: `Email your feedback to ${contactDetails.email} with the subject line "Website Feedback". For training, project, or academic enquiries, contact the relevant officer listed on the Contact page.`,
-      },
-      {
-        heading: "Response",
-        body:
-          "Actionable feedback related to website content, accessibility, or navigation is reviewed by the Web Information Manager and the website support team. RSAC-UP aims to respond to valid public feedback in a reasonable time frame.",
-      },
-    ],
+    source: "https://rsac.up.gov.in/en/feedback",
+    sections: [],
     links: [
       { label: "Contact RSAC-UP", path: "/contact" },
       { label: "Accessibility Statement", path: "/accessibility-statement" },
@@ -138,44 +193,100 @@ export const publicInfoPages = [
   {
     slug: "faq",
     title: "Frequently Asked Questions",
-    summary:
-      "Common questions about RSAC-UP services, data requests, recruitment, and geospatial policy.",
+    summary: "",
     source: "https://rsac.up.gov.in/en/page/faq",
     sections: [
       {
-        heading: "What does RSAC-UP do?",
-        body:
-          "Remote Sensing Applications Centre, Uttar Pradesh applies satellite remote sensing, GIS, and GPS to agriculture, water, forests, land use, urban survey, and disaster management for government departments of Uttar Pradesh.",
+        heading: "Question 1: Director's Compulsory Liability and Rights",
+        body: [
+          "<p>The director of the centre is the post as the Head of the Department and is entitled to all the powers of the Head of the Department. The director is appointed by the Chairman of the General Body on the recommendation of the Chairman of the Governing Body. The Chairman of the General Body is the appointing authority of the director.</p>",
+          "<p>The director is the member secretary of the Governing Body. The main rights and liabilities of the director are as follows:</p>",
+          "<ul><li>Discharge all administrative, financial, and technical obligations of the Centre.</li><li>Convene meetings of the Governing Body and present policy matters of the Centre.</li><li>Ensure compliance with decisions taken by the Governing Body.</li><li>Guide, arrange, and monitor implementation of the Centre's projects.</li><li>Constitute committees for smooth operation, decide on their recommendations, and review their proceedings.</li><li>Act as appointing and disciplinary authority for scientists in the scientific cadre.</li><li>Act as appointing and disciplinary authority for administrative and assistant technical personnel.</li><li>Approve leave and travel schedules of all heads.</li><li>Coordinate with the Government of Uttar Pradesh at different levels.</li><li>Proceed according to the General Service Rules.</li></ul>",
+        ].join(""),
       },
       {
-        heading: "How can I request geo-referenced data or maps?",
-        body:
-          "Departments and institutions may request geo-referenced data, thematic maps, and project support by writing to the Director office. Use the Geo-Portal directory for self-service datasets and map services.",
+        heading: "Question 2: Sample formats for generation of geo-referenced data/Map, diversion of forest land for non-forestry purposes (under the Forest (Conservation) Act, 1980).",
+        documents: [
+          {
+            title: "Sample formats for generation of geo-referenced data/Map",
+            url: "/official-media/siteContent/faq/201808231536565467GDGNF_format_090218.pdf",
+            meta: "Size: 1.46 MB | Language: English",
+          },
+        ],
       },
       {
-        heading: "Who provides manpower and HR services to RSAC-UP?",
-        body:
-          "Personnel and HR services are provided through Vanshika HR Services Private Limited, Lucknow.",
+        heading: "Question 3: Chief Secretary's Order; Remote Sensing, GIS & GPS related technologies work by Remote Sensing Applications Centre U.P.",
+        documents: [
+          {
+            title: "Chief Secretary's Order - 14-09-2023",
+            url: "/official-media/siteContent/faq/202309141059266354Remote-Sensing-GIS-GPS-Technique.pdf",
+            meta: "Date: 14-09-2023 | Language: English",
+          },
+          {
+            title: "Chief Secretary's Order - 18-12-2018",
+            url: "/official-media/siteContent/faq/202303101531269500Adobe-Scan-Mar-10-2023.pdf",
+            meta: "Date: 18-12-2018 | Language: English",
+          },
+          {
+            title: "Chief Secretary's Order - 25-01-2016",
+            url: "/official-media/siteContent/faq/20200122172906532625-01-2016_220120.pdf",
+            meta: "Date: 25-01-2016 | Language: English",
+          },
+          {
+            title: "Chief Secretary's Order - 05-08-2013",
+            url: "/official-media/siteContent/faq/20200122172906532605-08-2013_220120.pdf",
+            meta: "Date: 05-08-2013 | Language: English",
+          },
+          {
+            title: "Chief Secretary's Order - 17-09-2004",
+            url: "/official-media/siteContent/faq/20200122172906517017-09-2004_220120.pdf",
+            meta: "Date: 17-09-2004 | Language: English",
+          },
+          {
+            title: "Chief Secretary's Order - 25-09-2000",
+            url: "/official-media/siteContent/faq/20200122172906501325-09-2000_220120.pdf",
+            meta: "Date: 25-09-2000 | Language: English",
+          },
+        ],
       },
       {
-        heading: "What is the National Geospatial Policy?",
-        body:
-          "The National Geospatial Policy lays down the framework, objectives, and guidelines for acquiring, producing, and sharing geospatial data in India, enabling open access and a strong domestic geospatial ecosystem.",
+        heading: "Question 4: Scientist's Seniority List.",
+        documents: [
+          {
+            title: "Scientists' Seniority List - 13-09-2023",
+            url: "/official-media/siteContent/faq/202405131456216687seniority-list.pdf",
+            meta: "Date: 13-09-2023 | Language: Hindi",
+          },
+        ],
       },
       {
-        heading: "Where can I find the seniority list of scientists?",
-        body:
-          "The scientists' seniority list and related establishment orders are published as official documents in the Notices section of this website.",
+        heading: "Question 5: Who will provide the services of Personnel to RSAC-UP?",
+        body: [
+          "<p><strong>Vanshika HR Services Private Limited</strong></p>",
+          "<p>7 & 8, Second Floor, Rani Saltanat Plaza,<br>Hazratganj, Lucknow-226001</p>",
+          "<p>vanshikahrservices@gmail.com<br>www.vanshikahr.in</p>",
+          "<p>Office (11:00 AM to 7:00 PM); Contact no. +91-9120002814<br>Mr. Indrajeet Singh, Manager; Contact no. +91-9307945418</p>",
+        ].join(""),
       },
       {
-        heading: "How do I file an RTI request or contact the centre?",
-        body:
-          "RTI applications can be submitted to the Public Information Officer. See the RTI page for the process, and the Contact page for address, phone, and email.",
+        heading: "Question 6: What are the provisions and objectives of India's most recent National Geospatial Policy?",
+        documents: [
+          {
+            title: "National Geospatial Policy-2022",
+            url: "/official-media/siteContent/faq/202512221637247612National-Geospatial-Policy-2022.pdf",
+            meta: "Size: 1.56 MB | Language: Hindi/English",
+          },
+        ],
       },
       {
-        heading: "Organisation Details",
-        body:
-          "Company Name: Remote Sensing Applications Centre, U.P. PAN: AABAR0170L. TAN: LKNR05718G. GSTIN: 09AABAR0170L1ZG.",
+        heading: "Question 7: What are the Survey of India's recommended and guiding tender specifications for surveying activities such as drone operations, GNSS surveys, and related geospatial data acquisition?",
+        documents: [
+          {
+            title: "Survey of India",
+            url: "/official-media/siteContent/faq/202512221549121876SURVEY-OF-INDIA.pdf",
+            meta: "Size: 254 kB | Language: English",
+          },
+        ],
       },
     ],
     links: [

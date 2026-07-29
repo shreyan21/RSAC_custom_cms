@@ -441,6 +441,27 @@ function App() {
         />
 
         <Route
+          path="/appellate-authority"
+          element={officialContentRoute(
+            <PublicInfoPage slug="appellate-authority" />
+          )}
+        />
+
+        <Route
+          path="/memorandum-of-association"
+          element={officialContentRoute(
+            <PublicInfoPage slug="memorandum-of-association" />
+          )}
+        />
+
+        <Route
+          path="/general-service-rules"
+          element={officialContentRoute(
+            <PublicInfoPage slug="general-service-rules" />
+          )}
+        />
+
+        <Route
           path="/feedback"
           element={officialContentRoute(<PublicInfoPage slug="feedback" />)}
         />

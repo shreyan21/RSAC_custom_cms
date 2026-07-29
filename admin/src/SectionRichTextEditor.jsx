@@ -48,10 +48,19 @@ const RsacTextAlignment = Extension.create({
   },
   addCommands() {
     return {
-      setRsacTextAlign: (textAlign) => ({ commands }) => safeAlignments.has(textAlign)
-        && this.options.types.every((type) => commands.updateAttributes(type, { textAlign })),
-      unsetRsacTextAlign: () => ({ commands }) => this.options.types
-        .every((type) => commands.resetAttributes(type, "textAlign")),
+      setRsacTextAlign: (textAlign) => ({ commands }) => {
+        if (!safeAlignments.has(textAlign)) return false;
+        this.options.types.forEach((type) => {
+          commands.updateAttributes(type, { textAlign });
+        });
+        return true;
+      },
+      unsetRsacTextAlign: () => ({ commands }) => {
+        this.options.types.forEach((type) => {
+          commands.resetAttributes(type, "textAlign");
+        });
+        return true;
+      },
     };
   },
 });
