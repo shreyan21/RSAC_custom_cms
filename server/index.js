@@ -15,6 +15,7 @@ import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
 import { preserveStoredUndeclaredFields, validateEntryPayload } from "./contentValidation.js";
+import { prepareFormerRosterSave } from "./formerRosterSync.js";
 import { feedbackMailConfigured, sendFeedbackNotification } from "./feedbackMailer.js";
 import {
   liveDivisionOptions,
@@ -632,6 +633,10 @@ app.get("/api/admin/content/:collection", async (req, res, next) => {
 
 app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req, res, next) => {
   try {
+    const hasExplicitSortOrder = req.body?.sortOrder !== ""
+      && req.body?.sortOrder !== null
+      && req.body?.sortOrder !== undefined
+      && Number.isFinite(Number(req.body.sortOrder));
     const { definition, dataEn, dataHi, status, sortOrder } = validateEntryPayload(req.params.collection, req.body || {});
     const automaticEntryKey = !String(req.body?.entryKey || "").trim();
     let baseEntryKey = entryKeyFor(req.body, dataEn);
@@ -647,7 +652,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
         automatic: automaticEntryKey,
       });
       let effectiveSortOrder = sortOrder;
-      if (!definition.singleton) {
+      if (!definition.singleton && (definition.autoNewestFirst || !hasExplicitSortOrder)) {
         const minimum = await client.query("SELECT COALESCE(min(sort_order),1)::int AS value FROM cms_entries WHERE collection=$1 AND status <> 'archived'", [definition.id]);
         effectiveSortOrder = Number(minimum.rows[0].value) - 1;
       }
@@ -681,14 +686,37 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
       if (definition.id === "page_display_settings") await assertUniquePageDisplayPath(client, dataEn, status, req.params.id);
-      const nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
-      const nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
+      let nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
+      let nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
+      let formerRosterProfileChanges = [];
+      if (definition.id === "pages") {
+        const preparedRoster = await prepareFormerRosterSave(
+          client,
+          before.rows[0],
+          nextDataEn,
+          nextDataHi,
+          { actorId: req.cmsUser.id }
+        );
+        nextDataEn = preparedRoster.dataEn;
+        nextDataHi = preparedRoster.dataHi;
+        formerRosterProfileChanges = preparedRoster.profileChanges;
+      }
       const updated = await client.query(
         `UPDATE cms_entries SET entry_key=$1, status=$2, sort_order=$3, data_en=$4, data_hi=$5,
                 version=version+1, updated_by=$6 WHERE id=$7 RETURNING *`,
         [entryKey, status, sortOrder, nextDataEn, nextDataHi, req.cmsUser.id, req.params.id]
       );
       await audit(client, req, "update", updated.rows[0], before.rows[0], updated.rows[0]);
+      for (const change of formerRosterProfileChanges) {
+        await audit(
+          client,
+          req,
+          "sync_former_roster_profile",
+          change.after,
+          change.before,
+          change.after
+        );
+      }
       if (definition.id === "divisions") {
         const synced = await syncDivisionPage(client, updated.rows[0], {
           previousDivisionData: before.rows[0].data_en,

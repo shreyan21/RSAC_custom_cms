@@ -71,6 +71,7 @@ const peoplePageTitles = {
   "scientific-manpower": "Scientific Manpower",
 };
 const titleOf = (page) => peoplePageTitles[page?.entryKey] || page?.dataEn?.title || page?.entryKey || "Untitled division";
+const orderOf = (page) => Number.isFinite(Number(page?.sortOrder)) ? Number(page.sortOrder) : 0;
 const isPeopleSection = (block) => /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(
   `${block?.sourceLabel || ""} ${block?.value || ""} ${block?.label || ""}`
 );
@@ -183,7 +184,9 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   const richEditorRef = useRef(null);
   const { openPreview } = useLivePreview({ collection: "pages", draft, language, notify });
 
-  const filteredPages = useMemo(() => pages.filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase())), [pages, search]);
+  const filteredPages = useMemo(() => pages
+    .filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase()))
+    .sort((left, right) => orderOf(left) - orderOf(right) || titleOf(left).localeCompare(titleOf(right))), [pages, search]);
   const englishBlocks = draft?.dataEn?.blocks || [];
   const usesCanonicalSections = englishBlocks.some((block) =>
     block && Object.hasOwn(block, "contentHtml")
@@ -418,7 +421,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>No page HTML. Choose the {itemName} whose content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> Collections</button></div>
         <label className="workspace-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
-        <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span className="workspace-card__meta"><span>Open sections</span><span className={`status ${page.status || "published"}`}>{visibilityLabel(page.status)}</span></span></button>)}</div>
+        <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span className="workspace-card__meta"><span>Order {orderOf(page)} · Open sections</span><span className={`status ${page.status || "published"}`}>{visibilityLabel(page.status)}</span></span></button>)}</div>
       </section>
     );
   }
@@ -428,7 +431,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
       <section className="division-workspace">
         <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose one section. Each section has one complete editor per language.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : workspaceKind === "people" ? "People pages" : "Pages"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save order"}</button></div></div>
         <p className="workspace-order-note">Use the arrow buttons to change the section order on the website. The same order is kept for English and Hindi; select Save order when finished.</p>
-        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => setSectionIndex("page-details")}><strong>Page heading and layout</strong><span>Edit the title, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
+        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => setSectionIndex("page-details")}><strong>Page heading and layout</strong><span>Edit the title, display order, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
           const localizedIndex = findLocalizedDivisionBlockIndex(draft.dataHi, block, index);
           const localizedBlock = localizedIndex >= 0 ? draft.dataHi?.blocks?.[localizedIndex] : null;
@@ -448,7 +451,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
     return (
       <section className="division-workspace division-workspace-editor">
         <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>{workspaceKind === "divisions" ? "The main heading controls the opened division page. Its directory-card name is edited separately in Divisions." : "Edit the page heading, introduction, media, sizing, and layout."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
-        <div className="workspace-publishing"><label>{itemName.charAt(0).toUpperCase() + itemName.slice(1)} visibility<select value={draft.status || "published"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Visible on website</option><option value="draft">Hidden draft</option><option value="archived">Archived</option></select></label><div><span className={`status ${draft.status || "published"}`}>{visibilityLabel(draft.status)}</span><p>{draft.status === "published" ? `The ${itemName} is public after Save.` : draft.status === "archived" ? `The ${itemName} stays stored in CMS but is removed from the public website.` : `The ${itemName} stays editable here but is hidden from the public website.`}</p></div></div>
+        <div className="workspace-publishing"><label>{itemName.charAt(0).toUpperCase() + itemName.slice(1)} visibility<select value={draft.status || "published"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Visible on website</option><option value="draft">Hidden draft</option><option value="archived">Archived</option></select></label><label className="display-order-field">Display order<input type="number" step="1" value={draft.sortOrder ?? ""} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value === "" ? "" : Number(event.target.value) }))} /><small>Use 0 first, then 1, 2, 3, and so on.</small></label><div><span className={`status ${draft.status || "published"}`}>{visibilityLabel(draft.status)}</span><p>{draft.status === "published" ? `The ${itemName} is public after Save.` : draft.status === "archived" ? `The ${itemName} stays stored in CMS but is removed from the public website.` : `The ${itemName} stays editable here but is hidden from the public website.`}</p></div></div>
         <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
         <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
         <div className="editor-fields">

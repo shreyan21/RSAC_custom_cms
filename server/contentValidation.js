@@ -146,10 +146,12 @@ const cleanValue = (field, value) => {
   if (field.type === "select") {
     const allowed = (field.options || []).map((option) => String(typeof option === "object" ? option.value : option));
     const selected = String(value || "").trim();
+    if (!selected) return "";
     if (allowed.includes(selected)) return selected;
-    return field.allowCustom && /^[a-z0-9][a-z0-9;&-]{0,159}$/iu.test(selected)
-      ? selected
-      : "";
+    if (field.allowCustom && /^[a-z0-9][a-z0-9;&-]{0,159}$/iu.test(selected)) {
+      return selected;
+    }
+    throw new Error(`Unsupported option: ${selected}`);
   }
   if (field.type === "list") return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 200) : typeof value === "string" ? value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : [];
   if (field.type === "json") {

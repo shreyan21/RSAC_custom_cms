@@ -45,7 +45,6 @@ export const hiTranslations = {
   Academics: "शैक्षिक",
   "Geo-Portals": "जिओ-पोर्टल",
   "Geo-Portal Services": "जिओ-पोर्टल",
-  "Flood Daily Reports": "बाढ़",
   "Right to Information (RTI)": "सूचना का अधिकार",
   "Tenders & Procurement": "निविदाएँ",
   Contact: "संपर्क सूत्र",
@@ -548,7 +547,6 @@ export const hiTranslations = {
   reports: "रिपोर्ट",
   "No reports have been published for this year yet.":
     "इस वर्ष के लिए अभी तक कोई रिपोर्ट प्रकाशित नहीं हुई है।",
-  "Flood Daily Reports & Monitoring": "बाढ़ दैनिक रिपोर्ट एवं अनुश्रवण",
   "During the monsoon season, RSAC-UP publishes daily satellite-based flood inundation reports for affected districts of Uttar Pradesh. Reports combine multi-sensor satellite data with field inputs to support relief and response operations.":
     "मानसून अवधि में आरएसएसी-यूपी उत्तर प्रदेश के प्रभावित जनपदों के लिए उपग्रह आधारित दैनिक बाढ़ जलमग्नता रिपोर्ट प्रकाशित करता है। ये रिपोर्ट राहत और प्रतिक्रिया कार्यों में सहायता हेतु बहु-सेंसर उपग्रह डाटा और क्षेत्रीय सूचनाओं को जोड़ती हैं।",
   "Daily reports are published during the active monsoon period (typically July to October). Outside this period, the latest season's archive remains available below, and earlier seasons can be opened from the year-wise archive.":
@@ -563,7 +561,6 @@ export const hiTranslations = {
   "Post-Flood Damage Assessment": "बाढ़ उपरांत क्षति आकलन",
   "Crop-area and settlement damage assessment after major flood events to support compensation and rehabilitation planning.":
     "मुख्य बाढ़ घटनाओं के बाद क्षतिपूर्ति और पुनर्वास योजना में सहायता हेतु फसल क्षेत्र और बस्ती क्षति का आकलन।",
-  "Daily flood reports": "दैनिक बाढ़ रिपोर्ट",
   Date: "दिनांक",
   Report: "रिपोर्ट",
   Coverage: "कवरेज",

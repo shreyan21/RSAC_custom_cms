@@ -27,6 +27,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import PageShell from "../components/layout/PageShell";
 import Lightbox from "../components/media/Lightbox";
 import BackButton from "../components/navigation/BackButton";
+import { cmsIconMap } from "../components/icons/cmsIconRegistry";
 import {
   useRsacOfficialSections,
   useAdministrationProfiles,
@@ -359,29 +360,8 @@ const defaultOfficialCardTheme = {
     "linear-gradient(135deg, rgba(11, 111, 164, 0.86), rgba(15, 111, 66, 0.68)), repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 20px), repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 1px, transparent 1px 20px)",
 };
 
-// Editors pick these by name in custom CMS page fields.
-const officialCardIconChoices = {
-  "bed-double": BedDouble,
-  "book-open": BookOpen,
-  building: Building2,
-  sprout: Sprout,
-  cpu: Cpu,
-  mountain: Mountain,
-  trees: Trees,
-  droplets: Droplets,
-  database: Database,
-  map: MapIcon,
-  waves: Waves,
-  "graduation-cap": GraduationCap,
-  landmark: Landmark,
-  "user-round": UserRound,
-  satellite: Satellite,
-  "flask-conical": FlaskConical,
-  printer: Printer,
-  "scan-line": ScanLine,
-  wrench: Wrench,
-  "file-text": FileText,
-};
+// Every icon exposed by the CMS is supported by directory cards.
+const officialCardIconChoices = cmsIconMap;
 
 const hexToRgba = (hex, alpha) => {
   const value = String(hex || "").trim().replace(/^#/, "");
@@ -411,7 +391,8 @@ const getOfficialCardTheme = (section, page) => {
   // CMS overrides from Website Pages: editor-picked icon and card colors win
   // over the automatic theme; the texture is rebuilt from the custom colors so
   // the whole card header follows them.
-  const cmsIcon = officialCardIconChoices[String(page?.cardIcon || "").trim()];
+  const cmsIconKey = String(page?.cardIcon || "").trim().toLowerCase();
+  const cmsIcon = officialCardIconChoices[cmsIconKey];
   const cardColor = page?.cardColor || page?.cardAccent;
   const cardColor2 = page?.cardColor2 || page?.cardAccent2;
   const accent = hexToRgba(cardColor, 1) ? cardColor : "";
@@ -5379,7 +5360,9 @@ const CanonicalRichSections = ({ page }) => {
     if (!block || block.hidden || !Object.hasOwn(block, "contentHtml")) return false;
     const hasBody = Boolean(String(block.contentHtml || "").trim());
     const hasMedia = flexibleItems(block.assets).some((asset) => !asset?.hidden && (asset?.value || asset?.sourceValue));
-    return hasBody || hasMedia;
+    const isEditorCreated = String(block.id || "").startsWith("cms-section-");
+    const hasHeading = Boolean(String(block.value || "").trim());
+    return hasBody || hasMedia || (isEditorCreated && hasHeading);
   });
 
   if (!blocks.length) return null;
@@ -5399,6 +5382,53 @@ const CanonicalRichSections = ({ page }) => {
           </section>
         );
       })}
+    </div>
+  );
+};
+
+const OfficialProfilePageContent = ({ page, scientistProfiles }) => {
+  const blocks = flexibleItems(page.blocks).filter((block) => block && !block.hidden);
+  const content = [];
+  let renderedProfiles = false;
+
+  blocks.forEach((block, index) => {
+    const isEditorCreated = String(block.id || "").startsWith("cms-section-");
+
+    if (isEditorCreated) {
+      content.push(
+        <CanonicalRichSections
+          key={block.id || `profile-section-${index}`}
+          page={{ ...page, blocks: [block] }}
+        />
+      );
+      return;
+    }
+
+    if (!renderedProfiles) {
+      content.push(
+        <OfficialProfileGrid
+          key={`${page.slug}-profiles`}
+          page={page}
+          scientistProfiles={scientistProfiles}
+        />
+      );
+      renderedProfiles = true;
+    }
+  });
+
+  if (!renderedProfiles) {
+    content.unshift(
+      <OfficialProfileGrid
+        key={`${page.slug}-profiles`}
+        page={page}
+        scientistProfiles={scientistProfiles}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-8" data-cms-profile-page-content="true">
+      {content}
     </div>
   );
 };
@@ -6543,7 +6573,12 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
     };
     return rank(left) - rank(right);
   });
+  const formerCardPage =
+    section.pages.find((page) => page.slug === "our-former") ||
+    section.pages.find((page) => formerPages.includes(page.slug)) ||
+    {};
   const formerTheme = getOfficialCardTheme(section, {
+    ...formerCardPage,
     title: "Our Formers",
     summary: "Former Chairman Governing Body, Directors, and Scientists.",
   });
@@ -6582,6 +6617,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
               <div
                 className="official-index-card__visual"
                 data-card-theme={getOfficialCardThemeKey(formerTheme)}
+                data-card-icon={String(formerCardPage.cardIcon || "").trim().toLowerCase()}
                 aria-hidden="true"
               >
                 <div className="official-index-card__stalk" />
@@ -6639,6 +6675,7 @@ export const OfficialContentIndexPage = ({ sectionKey }) => {
                 <div
                   className="official-index-card__visual"
                   data-card-theme={getOfficialCardThemeKey(theme)}
+                  data-card-icon={String(page.cardIcon || "").trim().toLowerCase()}
                   aria-hidden="true"
                 >
                   {page.featuredImage && (
@@ -6910,7 +6947,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
               scientistProfiles={scientistProfiles}
             />
           ) : profilePageSlugs.has(page.slug) ? (
-            <OfficialProfileGrid
+            <OfficialProfilePageContent
               page={page}
               scientistProfiles={scientistProfiles}
             />

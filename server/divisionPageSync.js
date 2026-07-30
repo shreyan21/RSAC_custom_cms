@@ -7,6 +7,9 @@ const comparable = (value) => compact(value)
   .replace(/[^\p{Letter}\p{Number}]+/gu, "");
 
 const rowData = (row) => row?.data_en || row?.dataEn || row || {};
+const sortOrderOf = (row) => Number.isFinite(Number(row?.sort_order))
+  ? Number(row.sort_order)
+  : 0;
 
 const identityValues = (value) => {
   const data = rowData(value);
@@ -147,15 +150,16 @@ export const syncDivisionPage = async (
 
   if (page) {
     const nextStatus = divisionRow.status;
-    if (page.status === nextStatus) {
+    const nextSortOrder = sortOrderOf(divisionRow);
+    if (page.status === nextStatus && sortOrderOf(page) === nextSortOrder) {
       return { row: page, before: page, created: false, changed: false };
     }
     const updated = (await client.query(
       `UPDATE cms_entries
-          SET status=$1, version=version+1, updated_by=$2
-        WHERE id=$3
+          SET status=$1, sort_order=$2, version=version+1, updated_by=$3
+        WHERE id=$4
         RETURNING *`,
-      [nextStatus, actorId, page.id]
+      [nextStatus, nextSortOrder, actorId, page.id]
     )).rows[0];
     return { row: updated, before: page, created: false, changed: true };
   }
@@ -184,7 +188,7 @@ export const syncDivisionPage = async (
     [
       entryKey,
       divisionRow.status,
-      Number(divisionRow.sort_order) || 0,
+      sortOrderOf(divisionRow),
       generated.dataEn,
       generated.dataHi,
       actorId,
@@ -203,15 +207,16 @@ export const syncDivisionStatusFromPage = async (
   }
   const divisions = await readDivisions(client, true);
   const division = findDivision(divisions, pageRow, previousPageData);
-  if (!division || division.status === pageRow.status) {
+  const nextSortOrder = sortOrderOf(pageRow);
+  if (!division || (division.status === pageRow.status && sortOrderOf(division) === nextSortOrder)) {
     return { row: division || null, before: division || null, changed: false };
   }
   const updated = (await client.query(
     `UPDATE cms_entries
-        SET status=$1, version=version+1, updated_by=$2
-      WHERE id=$3
+        SET status=$1, sort_order=$2, version=version+1, updated_by=$3
+      WHERE id=$4
       RETURNING *`,
-    [pageRow.status, actorId, division.id]
+    [pageRow.status, nextSortOrder, actorId, division.id]
   )).rows[0];
   return { row: updated, before: division, changed: true };
 };

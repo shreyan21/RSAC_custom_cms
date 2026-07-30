@@ -13,6 +13,17 @@ const assetKindLabel = {
   link: "Web link",
 };
 
+const selectedFileName = (value) => {
+  const cleanValue = String(value || "").split(/[?#]/)[0];
+  const lastPart = cleanValue.split(/[\\/]/).filter(Boolean).pop();
+  if (!lastPart) return "Selected file";
+  try {
+    return decodeURIComponent(lastPart);
+  } catch {
+    return lastPart;
+  }
+};
+
 function AssetUploadField({ asset, onChange, onBusy, onError }) {
   const fileRef = useRef(null);
   const upload = async (file) => {
@@ -36,24 +47,30 @@ function AssetUploadField({ asset, onChange, onBusy, onError }) {
       : asset.kind === "audio"
         ? ".mp3,.wav,.ogg,.m4a"
         : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip,.apk,image/*,video/mp4,video/webm";
-  const sourceLabel = asset.kind === "link" || asset.kind === "embed"
-    ? "Local file or webpage URL"
-    : "Local file URL";
+  const acceptsExternalAddress = asset.kind === "link" || asset.kind === "embed";
 
   return (
-    <label className="imported-asset-source">
-      <span>{sourceLabel}</span>
+    <div className="imported-asset-source">
+      <span>{acceptsExternalAddress ? "File or external website" : "Local file"}</span>
       <div className="imported-asset-url">
-        <input
-          value={asset.value || ""}
-          aria-label={`${asset.label} URL`}
-          placeholder={sourceLabel}
-          onChange={(event) => onChange({ value: event.target.value })}
-        />
+        <div className="imported-asset-selection">
+          <strong>{asset.value ? selectedFileName(asset.value) : "No file selected"}</strong>
+          <small>Choose a file from this computer; the CMS handles the local address.</small>
+        </div>
         <input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} />
-        <button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Upload / replace</button>
+        <button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> {asset.value ? "Replace file" : "Choose file"}</button>
+        <details className="technical-value" open={acceptsExternalAddress && !asset.value}>
+          <summary>{acceptsExternalAddress ? "Use an external website instead" : "Use an existing local file address"}</summary>
+          <p>{acceptsExternalAddress ? "Paste only an approved external website address." : "Normally use Choose file. Open this only when the website administrator gives you an existing local address."}</p>
+          <input
+            value={asset.value || ""}
+            aria-label={`${asset.label} address`}
+            placeholder="https://example.gov.in/page"
+            onChange={(event) => onChange({ value: event.target.value })}
+          />
+        </details>
       </div>
-    </label>
+    </div>
   );
 }
 

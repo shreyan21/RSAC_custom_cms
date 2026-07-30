@@ -418,16 +418,11 @@ export const assembleBootstrap = (rows, language = "en") => {
           highlights: division.highlights?.length ? division.highlights : page.highlights,
         };
       });
-    const orderingRecords = section.key === "divisions"
-      ? divisions
-      : section.key === "facilities" && facilities.length
-        ? facilities
-        : [];
     return {
       ...section,
-      pages: orderPagesLike(sectionPages, orderingRecords, sortOrders(
-        section.key === "divisions" ? "divisions" : "facilities"
-      )),
+      pages: section.key === "divisions"
+        ? orderPagesLike(sectionPages, divisions, sortOrders("divisions"))
+        : sectionPages,
     };
   });
   const siteSettings = first("site_settings")?.settings || {};

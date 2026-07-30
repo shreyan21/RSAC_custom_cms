@@ -13,13 +13,23 @@ import SectionRichTextEditor from "./SectionRichTextEditor";
 
 const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", headingSize: "normal", eyebrowSize: "normal", mediaSize: "normal", spacing: "normal" });
 const itemFields = {
-  cards: [["title", "Card title"], ["text", "Description"], ["image", "Image URL"], ["alt", "Image alt text"], ["url", "Link URL"]],
+  cards: [["title", "Card title"], ["text", "Description"], ["image", "Photo"], ["alt", "Image description"], ["url", "Where this card should open"]],
   stats: [["value", "Value"], ["label", "Label"]],
-  links: [["title", "Link label"], ["url", "Link URL"]],
-  gallery: [["url", "Image URL"], ["alt", "Image alt text"], ["caption", "Caption"]],
+  links: [["title", "Link label"], ["url", "Document or website link"]],
+  gallery: [["url", "Photo"], ["alt", "Image description"], ["caption", "Caption"]],
 };
 
 const cleanSourceLabel = (value) => String(value || "").replace(/^Section:\s*/i, "").trim();
+const selectedFileName = (value) => {
+  const cleanValue = String(value || "").split(/[?#]/)[0];
+  const lastPart = cleanValue.split(/[\\/]/).filter(Boolean).pop();
+  if (!lastPart) return "Selected file";
+  try {
+    return decodeURIComponent(lastPart);
+  } catch {
+    return lastPart;
+  }
+};
 
 const importedSourceLabel = (block) => {
   const ownLabel = [block?.heading, block?.value, block?.label].map(cleanSourceLabel).find((label) => label && label.length <= 80);
@@ -74,7 +84,26 @@ function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "im
     }
   };
   return (
-    <label>{label}<div className="block-media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" title={`Upload ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{showPreview && value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div></label>
+    <label>
+      {label}
+      <div className="block-media-field">
+        <div className="block-media-field__selection">
+          <span>{value ? selectedFileName(value) : "No file selected"}</span>
+          <small>Choose a local file; the CMS handles its website address.</small>
+        </div>
+        <input ref={fileRef} hidden type="file" accept={accept} onChange={(event) => upload(event.target.files?.[0])} />
+        <div className="block-media-field__actions">
+          <button type="button" className="secondary" title={`Choose ${label.toLowerCase()}`} onClick={() => fileRef.current?.click()}><Upload /> {value ? "Replace" : "Choose file"}</button>
+          {value && <button type="button" className="danger-icon" title={`Remove ${label.toLowerCase()}`} onClick={() => onChange("")}><Trash2 /></button>}
+        </div>
+        <details className="technical-value">
+          <summary>Use an existing file or external website</summary>
+          <p>Normally use Choose file. Paste an address here only for an approved external website or an existing local file.</p>
+          <input value={value || ""} onChange={(event) => onChange(event.target.value)} />
+        </details>
+        {showPreview && value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}
+      </div>
+    </label>
   );
 }
 
@@ -198,7 +227,7 @@ function StructuredItems({ block, onChange, onBusy, onError }) {
   if (!fields) return null;
   const items = Array.isArray(block.items) ? block.items : [];
   const updateItem = (index, name, value) => onChange({ items: items.map((item, position) => position === index ? { ...(typeof item === "object" ? item : {}), [name]: value } : item) });
-  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "File or link URL" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : "image/*"} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
+  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "Document or website link" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : "image/*"} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
 export default function BlockEditor({ value, referenceValue, pageData, referencePageData, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {

@@ -1,8 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Archive, ArrowLeft, BookOpen, Check, ChevronRight, FileText,
-  Eye, History, Languages, LayoutDashboard, LoaderCircle, LogOut, Menu, MessageSquare,
-  Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Users, X,
+  Archive, ArrowLeft, BookOpen, Building2, Check, ChevronRight, ContactRound,
+  Eye, FileText, GraduationCap, History, Images, Landmark, Languages, LayoutDashboard,
+  LibraryBig, LoaderCircle, LogOut, MapPinned, Menu, MessageSquare, Microscope,
+  Pencil, Plus, RefreshCw, Satellite, Save, Scale, Search, ShieldCheck,
+  Smartphone, UserCog, Users, UsersRound, Waves, Wrench, X,
 } from "lucide-react";
 import upEmblem from "../../src/assets/images/up-emblem.webp";
 import rsacLogo from "../../src/assets/images/rsac-logo.webp";
@@ -25,7 +27,7 @@ const FLOOD_REPORT_PAGE_SIZE = 20;
 const emptyEntry = (definition) => ({
   entryKey: "",
   status: "published",
-  sortOrder: 0,
+  sortOrder: "",
   dataEn: { ...(definition?.presetDataEn || {}) },
   dataHi: {},
   version: 0,
@@ -33,6 +35,32 @@ const emptyEntry = (definition) => ({
 const titleOf = (entry) => entry?.dataEn?.title || entry?.dataEn?.name || entry?.dataEn?.label || entry?.entryKey || "Untitled";
 const hasLanguage = (entry, key) => Object.values(entry?.[key] || {}).some((value) => value !== "" && value !== null && value !== undefined);
 const slugify = (value) => String(value || "page").normalize("NFKD").replace(/[^a-zA-Z0-9\s-]/g, "").trim().toLowerCase().replace(/\s+/g, "-").replace(/-+/g, "-") || `page-${Date.now()}`;
+const collectionIconFor = (collection) => {
+  const text = `${collection?.id || ""} ${collection?.label || ""}`.toLowerCase();
+  const rules = [
+    [/former/, <History aria-hidden="true" />],
+    [/administration|administrative|auxiliary|staff/, <UserCog aria-hidden="true" />],
+    [/scientist|people|leadership|official|profile|manpower/, <UsersRound aria-hidden="true" />],
+    [/about|institution|memorandum/, <Landmark aria-hidden="true" />],
+    [/organisation|organization|chart/, <MapPinned aria-hidden="true" />],
+    [/division/, <Satellite aria-hidden="true" />],
+    [/facilit|laborator|workshop/, <Building2 aria-hidden="true" />],
+    [/academic|training|student|thesis/, <GraduationCap aria-hidden="true" />],
+    [/gallery|photo|media/, <Images aria-hidden="true" />],
+    [/mobile app/, <Smartphone aria-hidden="true" />],
+    [/flood|surface water/, <Waves aria-hidden="true" />],
+    [/policy|rules|terms|disclaimer|rti/, <Scale aria-hidden="true" />],
+    [/contact|feedback/, <ContactRound aria-hidden="true" />],
+    [/library|publication|research|report|document|notice|tender/, <LibraryBig aria-hidden="true" />],
+    [/menu|navigation|sitemap|quick link|geoportal/, <MapPinned aria-hidden="true" />],
+    [/scientific/, <Microscope aria-hidden="true" />],
+    [/setting|homepage|design|font|heading/, <LayoutDashboard aria-hidden="true" />],
+    [/help|guide|faq/, <BookOpen aria-hidden="true" />],
+    [/service/, <Wrench aria-hidden="true" />],
+  ];
+  return rules.find(([pattern]) => pattern.test(text))?.[1] || <FileText aria-hidden="true" />;
+};
+const CollectionCardIcon = ({ collection }) => collectionIconFor(collection);
 const floodReportYearOf = (entry) =>
   `${entry?.dataEn?.date || ""} ${entry?.dataEn?.dateLabel || ""} ${entry?.entryKey || ""}`
     .match(/\b(?:19|20)\d{2}\b/)?.[0] || "";
@@ -449,7 +477,8 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
           <h3>Publishing</h3>
           <label>Visibility<select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived - hidden</option></select></label>
           <p>{draft.status === "published" ? "Changes become public after Save." : "This stays hidden from the live website after Save. Private preview remains available for checking."}</p>
-          <details className="editor-advanced"><summary>Advanced options</summary>{!definition.autoNewestFirst && <label>Sort order<input type="number" value={draft.sortOrder ?? 0} onChange={(event) => setDraft({ ...draft, sortOrder: Number(event.target.value) })} /></label>}{!definition.autoNewestFirst && <label>Internal key<input value={draft.entryKey || ""} onChange={(event) => setDraft({ ...draft, entryKey: event.target.value })} placeholder="Generated automatically" /></label>}<small>Lower order appears first. Do not change existing internal keys.</small></details>
+          {!definition.singleton && !definition.autoNewestFirst && <label className="display-order-field">Display order<input type="number" step="1" value={draft.sortOrder ?? ""} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value === "" ? "" : Number(event.target.value) }))} /><small>Use 0 for the first item, 1 for the second, then 2, 3, and so on. Use a different number for each item.</small></label>}
+          {!definition.autoNewestFirst && <details className="editor-advanced"><summary>Advanced options</summary><label>Internal key<input value={draft.entryKey || ""} onChange={(event) => setDraft((current) => ({ ...current, entryKey: event.target.value }))} placeholder="Generated automatically" /></label><small>Internal keys connect saved content to the website. Do not change an existing key.</small></details>}
         </aside>
         <section className="editor-fields">
           <div className="language-tabs" role="tablist" aria-label="Editing language">
@@ -478,7 +507,7 @@ function GuideView() {
     ["Add division research or projects", "Open the required division section. Add a paragraph or list item in its rich-text box, complete English and Hindi separately, then Save."],
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
     ["Rename a homepage tab", "Open Homepage Navigation Tabs under Homepage, select the tab, change Visible tab name in English or Hindi, and Save. Its destination page path stays unchanged."],
-    ["Change card order", "Open Advanced options and set Sort order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
+    ["Change card order", "Open the item and set Display order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
     ["Edit a person or fix a repeated card", "Open People and Our Formers, then choose the exact public group such as Current Scientists, Leadership, or Former Scientists. Search the name, keep the correct record and archive the extra."],
     ["Edit Our Formers", "Open Our Formers: Card Rosters for the visible Chairman, Director and Former Scientist source cards. Use Our Formers: Former Scientists for master photos and full bilingual former-scientist details."],
@@ -497,7 +526,7 @@ function GuideView() {
       <div className="guide-warning"><ShieldCheck /><p><strong>Golden rule:</strong> edit English and Hindi separately. Never paste passwords, personal files, or unapproved documents into public content.</p></div>
       <div className="guide-grid">{tasks.map(([title, text], index) => <article key={title}><span>{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
       <div className="guide-detail"><h3>Which collection should I open?</h3><dl><div><dt>Homepage layout, text and section sizes</dt><dd>Homepage, Sitemap and Global Text controls section visibility/order, per-section sizes, Hero, About, Services, Statistics, Location, Gallery and Footer text.</dd></div><div><dt>Homepage cards</dt><dd>Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows.</dd></div><div><dt>Facilities</dt><dd>Use Facilities only. It contains every facility detail page, section editor and shared photograph.</dd></div><div><dt>Create a division</dt><dd>Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections.</dd></div><div><dt>Division sections</dt><dd>Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Page Sections shows every section with separate English and Hindi rich editors.</dd></div><div><dt>Full pages</dt><dd>Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. A body page appears in only one of these editors.</dd></div><div><dt>Gallery heading</dt><dd>Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading.</dd></div><div><dt>Heading visibility</dt><dd>Page Headings and Subheadings controls small heading, main title, introduction and heading size by route.</dd></div><div><dt>Website font and base size</dt><dd>Website Design and Fonts controls safe bundled English/Hindi fonts and the responsive site-wide base size.</dd></div><div><dt>People page headings</dt><dd>People Page Headings and Labels contains the English and Hindi headings, introductions, back buttons and group labels used across all People and Our Formers pages.</dd></div><div><dt>People profiles</dt><dd>Under People and Our Formers, open the exact group shown on the website: Current Scientists, Leadership, Government Officials, Former Scientists, Technical Staff, or Administration Profiles.</dd></div><div><dt>Our Formers source cards</dt><dd>Our Formers: Card Rosters contains the visible Former Chairmen, Former Directors and Former Scientists page sections.</dd></div><div><dt>Official public pages</dt><dd>RTI, Appellate Authority, Memorandum of Association, General Service Rules, Feedback, Tenders and FAQ each have their own editor card. Page documents can be uploaded or replaced inside their section.</dd></div><div><dt>Flood content</dt><dd>Flood Page Settings controls the official table labels, compact list controls, archive menu years and Critical Map. Flood Reports contains every report and PDF; search a year such as 2026 to edit that season.</dd></div><div><dt>Site-wide content</dt><dd>Header / Footer Menu, Contact, Logos and Homepage, Sitemap and Global Text.</dd></div><div><dt>More editors</dt><dd>Administrators use Users to create, reset, deactivate and assign Editor or Administrator roles.</dd></div></dl></div>
-      <div className="guide-checklist"><h3>Before clicking Save</h3><ul><li>English and Hindi are in the correct language tabs.</li><li>Sort order does not duplicate another important item unnecessarily.</li><li>Links and documents open.</li><li>Images have useful alt text.</li><li>Draft or Published status is intentional.</li><li>The website still works on phone and desktop.</li></ul></div>
+      <div className="guide-checklist"><h3>Before clicking Save</h3><ul><li>English and Hindi are in the correct language tabs.</li><li>Display order uses a different number for each important item.</li><li>Links and documents open.</li><li>Images have useful alt text.</li><li>Draft or Published status is intentional.</li><li>The website still works on phone and desktop.</li></ul></div>
     </section>
   );
 }
@@ -693,7 +722,17 @@ export default function App() {
   if (editing) return <><EntryEditor definition={selected} entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshCollection(); }} notify={notify} />{notice && <div className={`toast ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}</>;
 
   const divisionWorkspaceDefinition = collections.find((item) => item.id === "division_pages");
-  const navButton = (id, icon, label, action = () => openView(id)) => <button className={view === id ? "active" : ""} onClick={action}>{icon}{label}</button>;
+  const navButton = (id, icon, label, action = () => openView(id)) => (
+    <button
+      className={view === id ? "active" : ""}
+      onClick={() => {
+        action();
+        setMenuOpen(false);
+      }}
+    >
+      {icon}{label}
+    </button>
+  );
   return (
     <div className="admin-app">
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
@@ -703,12 +742,13 @@ export default function App() {
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>
+      {menuOpen && <button className="sidebar-scrim" type="button" aria-label="Close CMS navigation" onClick={() => setMenuOpen(false)} />}
       <main className="main-content">
-        <header className="top-header"><button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
+        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.storageId === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
-        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose website area, then edit an item or add new content.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: facilities, gallery, division, footer..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><FileText /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
+        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose the same website area a visitor sees. Uploads and lists do not require technical addresses or code.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: about, former staff, facilities, gallery..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><CollectionCardIcon collection={collection} /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
         {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} profiles={profileEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "people_scientists"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
         {view === "collection" && selected && (
           <section className={`collection-view ${isFloodReportCollection ? "collection-view--flood" : ""}`}>
@@ -764,7 +804,7 @@ export default function App() {
                   ? "Choose a year or search for a report. Only 20 records are shown at once, and each PDF remains in its own editable record."
                   : selected.autoNewestFirst
                     ? "New items appear first automatically and are numbered from 1."
-                    : "Lower Sort order appears first."}
+                    : "Display order controls the sequence: 0 first, then 1, 2, 3, and so on."}
               {" "}Open website tabs update automatically after published changes.
             </div>
             <div className="content-table-wrap">
@@ -775,7 +815,7 @@ export default function App() {
                     <th>English</th>
                     <th>Hindi</th>
                     <th>Status</th>
-                    <th>Order</th>
+                    <th>Display order</th>
                     <th />
                   </tr>
                 </thead>
@@ -804,7 +844,7 @@ export default function App() {
                       <td data-label="Status">
                         <span className={`status ${entry.status}`}>{entry.status}</span>
                       </td>
-                      <td data-label="Order">
+                      <td data-label="Display order">
                         {selected.autoNewestFirst ? "Auto" : entry.sortOrder}
                       </td>
                       <td className="content-actions">

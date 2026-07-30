@@ -79934,16 +79934,6 @@
             "sourceLabel": "Page images, files and links",
             "legacyChildren": [],
             "controlsSectionLabel": false
-          },
-          {
-            "id": "3d27817f-3234-43a8-a0f3-58295ab2d227",
-            "key": "text-0001",
-            "type": "rich_text",
-            "label": "Section: Visitor's Book",
-            "value": "Visitor's Book",
-            "hidden": true,
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -80043,16 +80033,6 @@
             "contentHtml": "",
             "sourceLabel": "Page images, files and links",
             "controlsSectionLabel": false
-          },
-          {
-            "id": "682bef0e-a8da-46fd-b423-ff63ec2c1160",
-            "key": "text-0001",
-            "type": "rich_text",
-            "label": "आगंतुक पुस्तिका",
-            "value": "आगंतुक पुस्तिका",
-            "hidden": true,
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -80128,15 +80108,6 @@
                 "value": "Dedicated State-of-art Laboratory for LiDAR & SONAR data processing at Centre, with advanced computation resources and services focuses on planning, processing of 3D point cloud data collected from  Mobile LiDAR and Terrestrial LiDAR survey data and Bathymetry SONAR survey of shallow water bodies, along with high resolution satellite images for flood control management, decision-making etc. LiDAR team is led by a group of talented manpower. LIDAR Lab aims at pushing the boundary for intelligent decision, 3D Printing, future planning, as preservation of heritage as long-term goal. It also equipped with dedicated Server and High Performance Computing Cluster mostly workstations for computation requirements along with desired software licenses."
               }
             ]
-          },
-          {
-            "id": "ba623f39-8be2-48fa-bd61-d49b825216d3",
-            "key": "text-0003",
-            "type": "rich_text",
-            "label": "Section: LiDAR & Bathymetry Facilities",
-            "value": "",
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -80218,18 +80189,6 @@
                 "value": "केंद्र में लिडार और सोनार डेटा प्रोसेसिंग के लिए एक अत्याधुनिक प्रयोगशाला है जिसमें मोबाइल और स्थलीय लिडार सर्वेक्षण से एकत्र किए गए 3D पॉइंट क्लाउड डाटा की प्रोसेसिंग के साथ जलमग्न क्षेत्र का सर्वेक्षण तथा बाढ़ नियंत्रण प्रबंधन, आदि का कार्य उच्च विभेदन उपग्रह आंकड़ों के साथ किया जाता है। लिडार टीम का नेतृत्व प्रतिभाशाली वैज्ञानिकों के एक समूह द्वारा किया जाता है। लिडार लैब का एक उद्देश्य प्रदेश में त्रियामी मानचित्रीकरण को लिडार एवं सोनार उपकरण के डाटा को स्थापित कर प्रदेश में मानचित्रीकरण कार्य एवं नयी दिशा देना है।  लिडार लैब वांछित लाइसेंस सॉफ्टवेयर व वर्कस्टेशन के साथ समर्पित सर्वर भी है।"
               }
             ],
-            "controlsSectionLabel": true
-          },
-          {
-            "id": "ba623f39-8be2-48fa-bd61-d49b825216d3",
-            "key": "text-0003",
-            "type": "rich_text",
-            "label": "लिडार & बैथिमेट्री सुविधाएं",
-            "value": "",
-            "assets": [],
-            "contentHtml": "",
-            "sourceLabel": "Section: LiDAR & Bathymetry Facilities",
-            "legacyChildren": [],
             "controlsSectionLabel": true
           }
         ],
@@ -92780,15 +92739,6 @@
                 "value": "pH, EC, TDS, Total hardness, CO3, HCO3, Cl, NO3, SO4, F, Ca, Mg, Na, K, Fe, As, Hg, Cd, Ni,"
               }
             ]
-          },
-          {
-            "id": "8c7f8889-20ee-4071-b693-4d752a470ba4",
-            "key": "text-0011",
-            "type": "rich_text",
-            "label": "Section: Water Analysis Lab INSTRUMENTS",
-            "value": "INSTRUMENTS",
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -92980,18 +92930,6 @@
                 "value": "pH, EC, TDS, टोटल हार्डनेस्स, CO3, HCO3, Cl, NO3, SO4, F, Ca, Mg, Na, K, Fe, As, Hg, Cd, Ni"
               }
             ],
-            "controlsSectionLabel": true
-          },
-          {
-            "id": "8c7f8889-20ee-4071-b693-4d752a470ba4",
-            "key": "text-0011",
-            "type": "rich_text",
-            "label": "जल विश्लेषण प्रयोगशाला उपकरण",
-            "value": "उपकरण",
-            "assets": [],
-            "contentHtml": "",
-            "sourceLabel": "Section: Water Analysis Lab INSTRUMENTS",
-            "legacyChildren": [],
             "controlsSectionLabel": true
           }
         ],
@@ -103044,7 +102982,8 @@
             "key": "text-0002",
             "type": "rich_text",
             "label": "Section: Prof. R.S. Chaturvedi",
-            "value": "Prof. R.S. Chaturvedi",
+            "value": "Prof. R.S. Chaturvedis",
+            "profileEntryKey": "former-31",
             "children": [
               {
                 "key": "text-0003",
@@ -121309,16 +121248,6 @@
                 "value": "Plastic Lamination Machine"
               }
             ]
-          },
-          {
-            "id": "44ca4c15-025a-4227-a562-991a7f28e0eb",
-            "key": "text-0010",
-            "type": "rich_text",
-            "label": "Section: Cartography & Reprography",
-            "value": "",
-            "hidden": true,
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -121435,19 +121364,6 @@
                 "value": "प्लास्टिक लैमिनेशन मशीन"
               }
             ],
-            "controlsSectionLabel": true
-          },
-          {
-            "id": "44ca4c15-025a-4227-a562-991a7f28e0eb",
-            "key": "text-0010",
-            "type": "rich_text",
-            "label": "नक्शानवीसी & और रीप्रोग्राफी",
-            "value": "",
-            "assets": [],
-            "hidden": true,
-            "contentHtml": "",
-            "sourceLabel": "Section: Cartography & Reprography",
-            "legacyChildren": [],
             "controlsSectionLabel": true
           }
         ],
@@ -132668,16 +132584,6 @@
                 "value": "3 phase 7.5 HP Submersible pump."
               }
             ]
-          },
-          {
-            "id": "0dfa1215-de3a-4d16-936d-3c82469fe3cd",
-            "key": "text-0011",
-            "type": "rich_text",
-            "label": "Section: Service Block",
-            "value": "",
-            "hidden": true,
-            "contentHtml": "",
-            "legacyChildren": []
           }
         ],
         "eyebrow": "",
@@ -132785,19 +132691,6 @@
                 "value": "3 चरण 7.5 एचपी सुमेरसिबब्ल पंप"
               }
             ],
-            "controlsSectionLabel": true
-          },
-          {
-            "id": "0dfa1215-de3a-4d16-936d-3c82469fe3cd",
-            "key": "text-0011",
-            "type": "rich_text",
-            "label": "सर्विस ब्लॉक",
-            "value": "",
-            "assets": [],
-            "hidden": true,
-            "contentHtml": "",
-            "sourceLabel": "Section: Service Block",
-            "legacyChildren": [],
             "controlsSectionLabel": true
           }
         ],
@@ -140040,7 +139933,7 @@
       "status": "published",
       "sortOrder": 0,
       "dataEn": {
-        "name": "Prof. R.S. Chaturvedi",
+        "name": "Prof. R.S. Chaturvedis",
         "role": "",
         "sort": 0,
         "email": "",

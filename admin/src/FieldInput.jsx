@@ -29,6 +29,102 @@ function SuggestionInput({ id, value, options = [], language = "en", onChange })
   );
 }
 
+const destinationOptions = [
+  ["/", "Homepage"],
+  ["/about-us", "About Us"],
+  ["/about-us/read-more-about-us", "About RSAC-UP"],
+  ["/about-us/our-formers", "Our Formers"],
+  ["/about-us/administrative-and-auxiliary-staff", "Administrative and Auxiliary Staff"],
+  ["/organisation-chart", "Organisational Chart"],
+  ["/leadership", "Leadership and Governance"],
+  ["/scientists", "Scientific Manpower"],
+  ["/administration", "Administration"],
+  ["/divisions", "All Divisions"],
+  ["/divisions/agriculture-resources-division", "Agriculture Resources Division"],
+  ["/divisions/computer-image-processing-division", "Computer Image Processing and Data Management Division"],
+  ["/divisions/earth-resources-division", "Earth Resources Division"],
+  ["/divisions/forest-resources-division", "Forest Resources and Ecology Division"],
+  ["/divisions/groundwater-resources-division", "Groundwater Resources Division"],
+  ["/divisions/land-use-land-cover-division", "Land Use / Land Cover Division"],
+  ["/divisions/surface-water-resources-division", "Surface Water Resources Division"],
+  ["/divisions/training-division", "Training Division"],
+  ["/facilities", "All Facilities"],
+  ["/academics", "Academics"],
+  ["/mobile-apps", "Mobile Applications"],
+  ["/geoportals", "Geoportal Services"],
+  ["/flood-reports", "Flood Reports"],
+  ["/gallery", "Photo Gallery"],
+  ["/rti", "Right to Information"],
+  ["/appellate-authority", "Appellate Authority"],
+  ["/memorandum-of-association", "Memorandum of Association"],
+  ["/general-service-rules", "General Service Rules"],
+  ["/tenders", "Tenders"],
+  ["/notices", "Notices"],
+  ["/faq", "Frequently Asked Questions"],
+  ["/feedback", "Feedback"],
+  ["/contact", "Contact"],
+  ["/sitemap", "Sitemap"],
+  ["/help", "Help"],
+];
+
+function DestinationPicker({ value, onChange }) {
+  const [choosingCustom, setChoosingCustom] = useState(false);
+  const known = destinationOptions.some(([path]) => path === value);
+  const selectValue = choosingCustom || (value && !known) ? "__other__" : value || "";
+  return (
+    <div className="destination-picker">
+      <select
+        value={selectValue}
+        onChange={(event) => {
+          if (event.target.value === "__other__") {
+            setChoosingCustom(true);
+            return;
+          }
+          setChoosingCustom(false);
+          onChange(event.target.value);
+        }}
+      >
+        <option value="">No destination</option>
+        {destinationOptions.map(([path, label]) => <option value={path} key={path}>{label}</option>)}
+        <option value="__other__">Another page or external website</option>
+      </select>
+      {selectValue === "__other__" && (
+        <details className="technical-value" open={choosingCustom || !value}>
+          <summary>{value ? "View or change the current custom destination" : "Enter another destination"}</summary>
+          <p>Paste the approved external website address, or ask the website administrator for a new internal page.</p>
+          <input value={value || ""} placeholder="https://example.gov.in/page" onChange={(event) => onChange(event.target.value)} />
+        </details>
+      )}
+    </div>
+  );
+}
+
+function CustomSelectInput({ field, value, onChange }) {
+  const listId = useId();
+  return (
+    <>
+      <input list={listId} value={value || ""} onChange={(event) => onChange(event.target.value)} />
+      <datalist id={listId}>
+        {(field.options || []).map((option) => {
+          const item = typeof option === "object" ? option : { value: option, label: option };
+          return <option value={item.value} key={item.value}>{item.label}</option>;
+        })}
+      </datalist>
+    </>
+  );
+}
+
+const selectedFileName = (value) => {
+  const cleanValue = String(value || "").split(/[?#]/)[0];
+  const lastPart = cleanValue.split(/[\\/]/).filter(Boolean).pop();
+  if (!lastPart) return "Selected file";
+  try {
+    return decodeURIComponent(lastPart);
+  } catch {
+    return lastPart;
+  }
+};
+
 function JsonEditor({ field, value, onChange, onError }) {
   const textareaRef = useRef(null);
   const serializedValue = typeof value === "string" ? value : JSON.stringify(value || {}, null, 2);
@@ -689,7 +785,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
 }
 
 const objectListFields = {
-  links: [["label", "Link label"], ["path", "Website path or URL"], ["description", "Description"]],
+  links: [["label", "Link label"], ["path", "Where this link should open"], ["description", "Description"]],
   contacts: [["role", "Role"], ["information", "Purpose / information"], ["name", "Name"], ["detail", "Phone / email"]],
 };
 
@@ -697,7 +793,7 @@ function ObjectListEditor({ field, value, onChange }) {
   const rows = Array.isArray(value) ? value : [];
   const fields = objectListFields[field.name];
   const update = (index, name, nextValue) => onChange(rows.map((row, position) => position === index ? { ...row, [name]: nextValue } : row));
-  return <div className="object-list-editor">{rows.map((row, index) => <section key={index}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
+  return <div className="object-list-editor">{rows.map((row, index) => <section key={index}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : name === "path" ? <DestinationPicker value={row[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
 }
 
 function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
@@ -737,8 +833,11 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
               />
             </label>
             <label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label>
-            <label>External webpage URL<input value={section.externalUrl || ""} onChange={(event) => update(index, { externalUrl: event.target.value })} /></label>
-            <label>External button label<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label>
+            <details className="optional-external-link">
+              <summary>Optional external webpage button</summary>
+              <label>Button text<input value={section.actionLabel || ""} onChange={(event) => update(index, { actionLabel: event.target.value })} /></label>
+              <label>External website address<input value={section.externalUrl || ""} placeholder="https://example.gov.in/page" onChange={(event) => update(index, { externalUrl: event.target.value })} /></label>
+            </details>
           </div>
           <NestedSectionRows label="Officers" rows={section.officers} fields={[["name", "Name"], ["post", "Post"], ["phone", "Phone"]]} onChange={(officers) => update(index, { officers })} onBusy={onBusy} onError={onError} />
           <NestedSectionRows label="Documents" rows={section.documents} fields={[["title", "Document title"], ["meta", "Document details"], ["url", "Upload / replace document", "media"]]} onChange={(documents) => update(index, { documents })} onBusy={onBusy} onError={onError} />
@@ -765,6 +864,7 @@ export default function FieldInput({ field, value, referenceValue, language = "e
   };
   if (field.type === "blocks") return <BlockEditor value={value} referenceValue={referenceValue} language={language} pageData={pageData} referencePageData={referencePageData} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;
+  if (field.type === "select" && field.allowCustom) return <CustomSelectInput field={field} value={value} onChange={onChange} />;
   if (field.type === "select") return <select value={value || field.defaultValue || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
   if (field.type === "suggestions") return <SuggestionInput id={suggestionId} value={value} options={field.options} language={language} onChange={onChange} />;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
@@ -772,12 +872,13 @@ export default function FieldInput({ field, value, referenceValue, language = "e
   if (field.type === "json" && field.name === "sections") return <SectionListEditor key={language} value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
   if (field.type === "json") return <JsonEditor field={field} value={value} onChange={onChange} onError={onError} />;
-  if (field.type === "media") return <div className="media-field"><input value={value || ""} placeholder="Uploaded file URL" onChange={(event) => onChange(event.target.value)} /><input ref={fileRef} hidden type="file" onChange={(event) => upload(event.target.files?.[0])} /><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> Upload</button>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
+  if (field.type === "media") return <div className="media-field"><div className="media-field__selection"><span>{value ? selectedFileName(value) : "No file selected"}</span><small>{value ? "This local file will be used after you save." : "Choose a photo, PDF, document, video, or other approved file."}</small></div><input ref={fileRef} hidden type="file" accept={field.accept} onChange={(event) => upload(event.target.files?.[0])} /><div className="media-field__actions"><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> {value ? "Replace file" : "Choose file"}</button>{value && <button type="button" className="danger-icon" title="Remove selected file" onClick={() => onChange("")}><Trash2 /></button>}</div><details className="technical-value"><summary>Use an existing local file address</summary><p>Normally use Choose file above. Open this only when a website administrator gives you an existing local address.</p><input value={value || ""} onChange={(event) => onChange(event.target.value)} /></details>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
   if (field.type === "color") {
     const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";
     return <div className="color-field"><input type="color" value={color} aria-label={`${field.label} colour picker`} onChange={(event) => onChange(event.target.value)} /><input value={value || ""} placeholder="#0f6f42" pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></div>;
   }
   if (field.type === "richtext") return <SectionRichTextEditor value={value} onChange={onChange} ariaLabel={field.label} />;
   if (["textarea"].includes(field.type)) return <textarea rows="6" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
+  if (field.name === "path" || field.name === "route") return <DestinationPicker value={value || ""} onChange={onChange} />;
   return <input type={["email", "number", "date"].includes(field.type) ? field.type : "text"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />;
 }

@@ -22,12 +22,15 @@ const virtualDashboardCollections = new Set([
   "people_page_text", "our_formers_pages", "scientific_manpower_page",
   "people_scientists", "people_leadership", "people_officials",
   "people_former_scientists", "people_technical_staff", "people_administration",
+  "rti_page", "appellate_authority_page", "memorandum_page",
+  "general_service_rules_page", "feedback_page", "flood_page_settings",
 ]);
 const intentionallyHiddenCollections = new Set([
   "division_section_items",
   "downloads",
   "facilities",
   "profiles",
+  "public_info",
 ]);
 const problems = [];
 const legacyFields = new Map();
