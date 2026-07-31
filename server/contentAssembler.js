@@ -188,6 +188,10 @@ const sharedSiteSettingRowIconPaths = [
   ["homeSections", "navigation"],
 ];
 
+const sharedSiteSettingRowMediaPaths = [
+  ["hero", "leaders"],
+];
+
 const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
   const merged = { ...(localizedSettings || {}) };
 
@@ -221,6 +225,27 @@ const mergeSharedSiteSettingControls = (localizedSettings, englishSettings) => {
     target[path.at(-1)] = localizedRows.map((row, index) => ({
       ...row,
       icon: englishRows[index]?.icon ?? row?.icon,
+    }));
+  }
+
+  for (const path of sharedSiteSettingRowMediaPaths) {
+    let englishRows = englishSettings;
+    let localizedRows = merged;
+    for (const key of path) {
+      englishRows = englishRows?.[key];
+      localizedRows = localizedRows?.[key];
+    }
+    if (!Array.isArray(englishRows) || !Array.isArray(localizedRows)) continue;
+
+    let target = merged;
+    for (const key of path.slice(0, -1)) {
+      target[key] = { ...(target[key] || {}) };
+      target = target[key];
+    }
+    target[path.at(-1)] = localizedRows.map((row, index) => ({
+      ...row,
+      image: englishRows[index]?.image ?? "",
+      objectPosition: englishRows[index]?.objectPosition ?? row?.objectPosition,
     }));
   }
 
@@ -425,7 +450,7 @@ export const assembleBootstrap = (rows, language = "en") => {
         : sectionPages,
     };
   });
-  const siteSettings = first("site_settings")?.settings || {};
+  const siteSettings = structuredClone(first("site_settings")?.settings || {});
   const homepageFeatures = list("homepage_features").map((item) => ({
     ...item,
     buttonPath: item.buttonPath || item.path,

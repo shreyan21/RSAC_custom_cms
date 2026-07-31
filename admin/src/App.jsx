@@ -123,17 +123,16 @@ const aboutPagesManagedElsewhere = new Set([
   "scientific-manpower",
 ]);
 
-const ourFormerPageKeys = new Set([
+const formerLeadershipRosterPageKeys = new Set([
   "our-chairman's-governing-body",
   "director's",
-  "our-former",
 ]);
 
 const profileViewDefinitions = [
   ["people_scientists", "Current Scientists", "scientist", "Names, photographs, roles and full bilingual profiles shown on Scientific Manpower and scientist cards."],
   ["people_leadership", "Leadership", "leadership", "People shown on the Leadership and Governance page."],
-  ["people_officials", "Government Officials and Hero Portraits", "official", "Official records and portraits shared with the homepage leadership area."],
-  ["people_former_scientists", "Our Formers: Former Scientists", "former", "Master photographs and bilingual details used by the Former Scientists cards."],
+  ["people_officials", "Government Officials", "official", "Official records and photographs shown on government-official and leadership-update cards."],
+  ["people_former_scientists", "Our Formers: Former Scientists", "former", "The single editor for former-scientist cards: names, photographs, bilingual details, order, adding, and visibility."],
   ["people_technical_staff", "Technical Staff", "technical", "People shown on the Technical Staff page."],
   ["people_administration", "Administration Profiles", "administration", "People shown on the Administration profile page."],
 ];
@@ -277,9 +276,9 @@ const buildPeopleViews = (definitions, pageEntries, profileEntries) => {
     peopleTextView,
     peoplePageWorkspace(
       "our_formers_pages",
-      "Our Formers: Card Rosters",
-      "Edit the visible Former Chairmen, Former Directors and Former Scientists roster sections in English and Hindi.",
-      (entry) => ourFormerPageKeys.has(entry.entryKey)
+      "Our Formers: Chairmen and Directors",
+      "Edit only the historical Former Chairmen and Former Directors cards. Former Scientists have one separate, complete editor.",
+      (entry) => formerLeadershipRosterPageKeys.has(entry.entryKey)
     ),
     peoplePageWorkspace(
       "scientific_manpower_page",
@@ -510,7 +509,7 @@ function GuideView() {
     ["Change card order", "Open the item and set Display order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
     ["Edit a person or fix a repeated card", "Open People and Our Formers, then choose the exact public group such as Current Scientists, Leadership, or Former Scientists. Search the name, keep the correct record and archive the extra."],
-    ["Edit Our Formers", "Open Our Formers: Card Rosters for the visible Chairman, Director and Former Scientist source cards. Use Our Formers: Former Scientists for master photos and full bilingual former-scientist details."],
+    ["Edit Our Formers", "Use Our Formers: Chairmen and Directors for those two historical groups. Use Our Formers: Former Scientists as the only place to add, edit, reorder, hide, archive, or replace a former scientist and photograph."],
     ["Add division-only profile information", "Open Division Page Sections, choose the division and Scientific Manpower. The photo and master profile remain shared; write extra English or Hindi content beside that person and Save."],
     ["Add page sections", "Open the matching page collection. Flexible page blocks provide Add item buttons for text, cards, images, galleries, tables, links, or dividers."],
     ["Change page headings", "Open Page Headings and Subheadings. Hide, rename or resize a heading or introduction for an exact route such as /gallery or a route group such as /divisions/*."],
@@ -520,12 +519,31 @@ function GuideView() {
     ["Preview before publishing", "Open an item or page section, choose English or हिन्दी, then click Preview. One private preview tab stays open and updates automatically as you type, without saving or changing live content."],
     ["Publish safely", "Check spelling, dates, URLs, English, Hindi, keyboard access and mobile layout before publishing."],
   ];
+  const collectionGuide = [
+    ["Homepage layout, text and section sizes", "Homepage, Sitemap and Global Text controls section visibility/order, per-section sizes, Hero, About, Services, Statistics, Location, Gallery and Footer text."],
+    ["Homepage cards", "Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows."],
+    ["Facilities", "Use Facilities only. It contains every facility detail page, section editor and shared photograph."],
+    ["Create a division", "Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections."],
+    ["Division sections", "Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Page Sections shows every section with separate English and Hindi rich editors."],
+    ["Full pages", "Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. A body page appears in only one of these editors."],
+    ["Gallery heading", "Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading."],
+    ["Heading visibility", "Page Headings and Subheadings controls small heading, main title, introduction and heading size by route."],
+    ["Website font and base size", "Website Design and Fonts controls safe bundled English/Hindi fonts and the responsive site-wide base size."],
+    ["People page headings", "People Page Headings and Labels contains the English and Hindi headings, introductions, back buttons and group labels used across all People and Our Formers pages."],
+    ["People profiles", "Open the exact group shown on the website: Current Scientists, Leadership, Government Officials, Former Scientists, Technical Staff, or Administration Profiles."],
+    ["Former Scientists", "Use Our Formers: Former Scientists only. It controls cards, names, photographs, bilingual details, order, adding, Draft, and Archive."],
+    ["Former Chairmen and Directors", "Use Our Formers: Chairmen and Directors for these two historical card groups only."],
+    ["Official public pages", "RTI, Appellate Authority, Memorandum of Association, General Service Rules, Feedback, Tenders and FAQ each have their own editor card. Page documents can be uploaded or replaced inside their section."],
+    ["Flood content", "Flood Page Settings controls the official Flood report table labels, compact list controls, year menu and Flood Critical Map. Flood Reports contains every report and PDF; search a year such as 2026 to edit that season."],
+    ["Site-wide content", "Header / Footer Menu, Contact, Logos and Homepage, Sitemap and Global Text."],
+    ["More editors", "Administrators use Users to create, reset, deactivate and assign Editor or Administrator roles."],
+  ];
   return (
     <section className="guide-view">
       <div className="guide-hero"><BookOpen /><div><span>Editor handbook</span><h2>How to update the RSAC-UP website</h2><p>Simple workflows for authorised nontechnical editors.</p></div></div>
       <div className="guide-warning"><ShieldCheck /><p><strong>Golden rule:</strong> edit English and Hindi separately. Never paste passwords, personal files, or unapproved documents into public content.</p></div>
       <div className="guide-grid">{tasks.map(([title, text], index) => <article key={title}><span>{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
-      <div className="guide-detail"><h3>Which collection should I open?</h3><dl><div><dt>Homepage layout, text and section sizes</dt><dd>Homepage, Sitemap and Global Text controls section visibility/order, per-section sizes, Hero, About, Services, Statistics, Location, Gallery and Footer text.</dd></div><div><dt>Homepage cards</dt><dd>Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows.</dd></div><div><dt>Facilities</dt><dd>Use Facilities only. It contains every facility detail page, section editor and shared photograph.</dd></div><div><dt>Create a division</dt><dd>Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections.</dd></div><div><dt>Division sections</dt><dd>Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Page Sections shows every section with separate English and Hindi rich editors.</dd></div><div><dt>Full pages</dt><dd>Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. A body page appears in only one of these editors.</dd></div><div><dt>Gallery heading</dt><dd>Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading.</dd></div><div><dt>Heading visibility</dt><dd>Page Headings and Subheadings controls small heading, main title, introduction and heading size by route.</dd></div><div><dt>Website font and base size</dt><dd>Website Design and Fonts controls safe bundled English/Hindi fonts and the responsive site-wide base size.</dd></div><div><dt>People page headings</dt><dd>People Page Headings and Labels contains the English and Hindi headings, introductions, back buttons and group labels used across all People and Our Formers pages.</dd></div><div><dt>People profiles</dt><dd>Under People and Our Formers, open the exact group shown on the website: Current Scientists, Leadership, Government Officials, Former Scientists, Technical Staff, or Administration Profiles.</dd></div><div><dt>Our Formers source cards</dt><dd>Our Formers: Card Rosters contains the visible Former Chairmen, Former Directors and Former Scientists page sections.</dd></div><div><dt>Official public pages</dt><dd>RTI, Appellate Authority, Memorandum of Association, General Service Rules, Feedback, Tenders and FAQ each have their own editor card. Page documents can be uploaded or replaced inside their section.</dd></div><div><dt>Flood content</dt><dd>Flood Page Settings controls the official table labels, compact list controls, archive menu years and Critical Map. Flood Reports contains every report and PDF; search a year such as 2026 to edit that season.</dd></div><div><dt>Site-wide content</dt><dd>Header / Footer Menu, Contact, Logos and Homepage, Sitemap and Global Text.</dd></div><div><dt>More editors</dt><dd>Administrators use Users to create, reset, deactivate and assign Editor or Administrator roles.</dd></div></dl></div>
+      <div className="guide-detail"><h3>Which collection should I open?</h3><dl>{collectionGuide.map(([title, text]) => <div key={title}><dt>{title}</dt><dd>{text}</dd></div>)}</dl></div>
       <div className="guide-checklist"><h3>Before clicking Save</h3><ul><li>English and Hindi are in the correct language tabs.</li><li>Display order uses a different number for each important item.</li><li>Links and documents open.</li><li>Images have useful alt text.</li><li>Draft or Published status is intentional.</li><li>The website still works on phone and desktop.</li></ul></div>
     </section>
   );

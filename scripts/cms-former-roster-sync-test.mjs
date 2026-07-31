@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { pool } from "../server/db.js";
 import { prepareFormerRosterSave } from "../server/formerRosterSync.js";
+import { extractFormerRosterPhotos } from "../server/formerProfilePhotoMigration.js";
 
 const client = await pool.connect();
 
@@ -14,6 +15,12 @@ try {
   );
   const page = rows[0];
   assert.ok(page, "Our Formers roster page is missing");
+  const rosterPhotos = extractFormerRosterPhotos(page.data_en?.html);
+  assert.equal(rosterPhotos.length, 21);
+  assert.equal(
+    rosterPhotos.find((item) => /anjani kumar tangri/iu.test(item.name))?.photo,
+    "/official-media/siteContent/202108311454132094tangri_sir.jpg"
+  );
 
   const dataEn = structuredClone(page.data_en);
   const dataHi = structuredClone(page.data_hi);

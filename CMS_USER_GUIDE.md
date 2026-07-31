@@ -64,8 +64,9 @@ Each block can be moved up/down, duplicated, hidden, or removed. **Section layou
 | Divisions | Division cards and summaries |
 | Facility Ordering Data | Advanced ordering records for facility directory cards |
 | People Page Headings and Labels | Headings, introductions, back buttons and group labels for all People pages |
-| Our Formers: Card Rosters | Visible Former Chairmen, Former Directors and Former Scientists source cards |
-| Current Scientists / Leadership / Officials / Former Scientists / Technical Staff / Administration Profiles | Names, roles, photos, contact and bilingual profile details for the matching public group |
+| Our Formers: Chairmen and Directors | Visible Former Chairmen and Former Directors historical cards |
+| Our Formers: Former Scientists | The only editor for former-scientist cards, names, photos, bilingual details, order, adding and visibility |
+| Current Scientists / Leadership / Officials / Technical Staff / Administration Profiles | Names, roles, photos, contact and bilingual profile details for the matching public group |
 | Projects | Ongoing and completed projects |
 | Publications / Research / Reports | Papers, publications, technical reports, atlases and plans |
 | Notices | Public notices and dates |
@@ -219,7 +220,7 @@ Profile and CMS previews use one fixed frame, so portrait and landscape source p
 
 For a CMS person record, open the matching named collection under **People and Our Formers**, search the name, open both matching records, keep the complete one, and archive the extra. The CMS warns about existing possible duplicates and blocks a new same-type profile when its name, employee ID, email, or real profile photo matches another active record. Shared placeholder photos are allowed.
 
-For an imported historical card on **Our Formers**, open **People and Our Formers -> Our Formers: Card Rosters**, choose Former Chairmen, Former Directors, or Former Scientists, then edit its visible card section. Open **Page heading and layout** and enter an exact unwanted name under **Hide profile cards** when a source card must be suppressed. Save once; this shared visibility control applies to English and Hindi.
+For Former Chairmen or Former Directors, open **People and Our Formers -> Our Formers: Chairmen and Directors** and choose the required historical group. For a former scientist, use **Our Formers: Former Scientists** only. Change Visibility to Draft or Archived to hide a former scientist in both languages.
 
 ### Change Navigation
 

@@ -11,6 +11,7 @@ import { DataContext } from "./DataContextCore";
 
 const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v2";
 const previewMessageType = "rsac-cms-preview:update";
+const previewReadyMessageType = "rsac-cms-preview:ready";
 const cmsAdminOrigin = (() => {
   try {
     return new URL(import.meta.env.VITE_CMS_ADMIN_URL || "http://localhost:5174").origin;
@@ -70,7 +71,7 @@ const decorateBootstrap = (value) => value ? {
 
 export function DataProvider({ children }) {
   const { language, t } = useLanguage();
-  const [previewToken] = useState(readPreviewToken);
+  const [previewToken, setPreviewToken] = useState(readPreviewToken);
   const [data, setData] = useState(() =>
     decorateBootstrap(previewToken ? null : readCachedBootstrap(language))
   );
@@ -81,6 +82,17 @@ export function DataProvider({ children }) {
   const dataRef = useRef(data);
   const languageRef = useRef(language);
   const inFlightLoadsRef = useRef(new Map());
+
+  useEffect(() => {
+    const refreshPreviewToken = () => {
+      const nextToken = readPreviewToken();
+      setPreviewToken((currentToken) =>
+        currentToken === nextToken ? currentToken : nextToken
+      );
+    };
+    window.addEventListener("hashchange", refreshPreviewToken);
+    return () => window.removeEventListener("hashchange", refreshPreviewToken);
+  }, []);
 
   useEffect(() => {
     dataRef.current = data;
@@ -232,6 +244,20 @@ export function DataProvider({ children }) {
     };
 
     window.addEventListener("message", receivePreviewUpdate);
+    const referrerOrigin = (() => {
+      try {
+        return new URL(document.referrer).origin;
+      } catch {
+        return "";
+      }
+    })();
+    const adminOrigin = referrerOrigin || cmsAdminOrigin;
+    if (window.opener && adminOrigin) {
+      window.opener.postMessage(
+        { type: previewReadyMessageType, token: previewToken },
+        adminOrigin
+      );
+    }
     return () => window.removeEventListener("message", receivePreviewUpdate);
   }, [load, previewToken]);
 

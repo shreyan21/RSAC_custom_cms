@@ -8,11 +8,11 @@ export const cmsGroups = [
     ids: [
       "people_page_text",
       "our_formers_pages",
+      "people_former_scientists",
       "scientific_manpower_page",
       "people_scientists",
       "people_leadership",
       "people_officials",
-      "people_former_scientists",
       "people_technical_staff",
       "people_administration",
       "manpower",

@@ -937,6 +937,7 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
   // use the other language or a different honorific.
   const scientists = getCanonicalProfileData(scientistProfiles);
   const profileId = String(profile?.id || profile?.profileId || "");
+  const profileEntryKey = String(profile?.profileEntryKey || "").trim();
   const employeeId = getProfileEmployeeId(profile);
   const profileName = normalizeEquivalentHonorifics(getProfileName(profile));
   const profileNames = new Set([
@@ -945,6 +946,8 @@ const getKnownScientistProfile = (profile, scientistProfiles) => {
   ].filter(Boolean));
 
   const matched = (
+    (profileEntryKey &&
+      scientists.find((scientist) => String(scientist?.key || "") === profileEntryKey)) ||
     (profileId && scientists.find((scientist) => String(scientist?.id || "") === profileId)) ||
     (employeeId &&
       scientists.find(
@@ -990,11 +993,13 @@ const mergeKnownScientistDetails = (
     getProfileDetails(profile)
   );
   const preferredProfile = knownProfile || supplements[0] || profile;
-  const preferredName = getProfileName(preferredProfile);
-  const preferredImage =
-    getProfileImage(knownProfile || {}) ||
-    supplements.map(getProfileImage).find(Boolean) ||
-    getProfileImage(profile);
+  const preferredName = profile.preferRosterName
+    ? getProfileName(profile)
+    : getProfileName(preferredProfile);
+  const managedImage = getExplicitCmsProfileImage(knownProfile);
+  const preferredImage = managedImage.specified
+    ? managedImage.value
+    : supplements.map(getProfileImage).find(Boolean) || getProfileImage(profile);
 
   return {
     ...profile,
@@ -1033,6 +1038,13 @@ const getProfileImage = (profile) =>
       profile._embedded?.["wp:featuredmedia"]?.[0]
   );
 
+const getExplicitCmsProfileImage = (profile) => {
+  if (!profile || !Object.prototype.hasOwnProperty.call(profile, "photo")) {
+    return { specified: false, value: "" };
+  }
+  return { specified: true, value: getImageUrl(profile.photo) };
+};
+
 const scientistProfilesMatch = (leftProfile, rightProfile) => {
   const leftId = getProfileEmployeeId(leftProfile);
   const rightId = getProfileEmployeeId(rightProfile);
@@ -1069,11 +1081,15 @@ const isPlaceholderProfileImage = (value) =>
 const getProfileIdentityKeys = (profile) => {
   const keys = new Set();
   const profileId = String(profile?.id || profile?.profileId || "").trim();
+  const profileEntryKey = String(profile?.profileEntryKey || profile?.key || "").trim();
   const employeeId = getProfileEmployeeId(profile);
   const email = compactText(profile.email || profile.acf?.email).toLowerCase();
 
   if (profileId) {
     keys.add(`id:${profileId}`);
+  }
+  if (profileEntryKey) {
+    keys.add(`entry:${profileEntryKey}`);
   }
   if (employeeId && employeeId !== "notlisted") {
     keys.add(`employee:${employeeId}`);
@@ -1128,12 +1144,52 @@ const filterHiddenPageProfiles = (page, profiles) => {
   );
 };
 
+const rosterSourceName = (block) =>
+  compactText(
+    String(block?.sourceLabel || block?.label || "")
+      .replace(/^section\s*:\s*/iu, "")
+  );
+
+const attachRosterProfileLinks = (page, profiles) => {
+  if (page?.slug !== "our-former") return profiles;
+
+  const rosterBlocks = flexibleItems(page.blocks).filter(
+    (block) => block?.profileEntryKey && Array.isArray(block.children)
+  );
+  const usedBlocks = new Set();
+
+  return profiles.map((profile) => {
+    const profileName = normalizeName(getProfileName(profile));
+    const match = rosterBlocks.find((block) =>
+      !usedBlocks.has(block) &&
+      profileName &&
+      normalizeName(block.value) === profileName
+    );
+    if (!match) return profile;
+
+    usedBlocks.add(match);
+    const sourceName = rosterSourceName(match);
+    return {
+      ...profile,
+      profileEntryKey: match.profileEntryKey,
+      preferRosterName: Boolean(
+        sourceName &&
+        normalizeName(match.value) !== normalizeName(sourceName)
+      ),
+    };
+  });
+};
+
 const getPageProfiles = (page, scientistProfiles) => {
-  const profiles = filterHiddenPageProfiles(page, Array.isArray(page.profiles)
+  const extractedProfiles = Array.isArray(page.profiles)
     ? page.profiles
     : extractProfileCards(
         applyImportedPageBlocks(page.html, page.blocks, { insertNewAssets: false })
-      ));
+      );
+  const profiles = filterHiddenPageProfiles(
+    page,
+    attachRosterProfileLinks(page, extractedProfiles)
+  );
 
   if (page.slug !== "scientific-manpower") {
     return dedupeProfileCards(profiles);
@@ -1223,6 +1279,10 @@ const getFormerProfileNameKeys = (profile) => {
     }
     add(name);
   }
+  const profileEntryKey = String(profile?.profileEntryKey || profile?.key || "").trim();
+  if (profileEntryKey) {
+    keys.add(`entry:${profileEntryKey}`);
+  }
 
   return keys;
 };
@@ -1301,13 +1361,18 @@ const applyFormerProfileOverride = (profile, override) => {
     }
   });
 
+  const rosterName = getProfileName(profile);
   const overrideName = getProfileName(override);
+  const preferredName = profile.preferRosterName
+    ? rosterName
+    : overrideName;
+  const managedImage = getExplicitCmsProfileImage(override);
 
   return {
     ...profile,
     ...override,
-    name: overrideName !== "Profile" ? overrideName : getProfileName(profile),
-    image: getProfileImage(override) || getProfileImage(profile),
+    name: preferredName !== "Profile" ? preferredName : rosterName,
+    image: managedImage.specified ? managedImage.value : getProfileImage(profile),
     duration:
       getProfileDurationValue(override) ||
       getProfileDurationValue(profile) ||
@@ -1327,28 +1392,23 @@ const mergeFormerProfileOverrides = (profiles, overrides) => {
   const seenKeys = new Set();
   const markSeen = (keys) => keys.forEach((key) => seenKeys.add(key));
 
-  const mergedProfiles = profiles.map((profile) => {
+  const mergedProfiles = profiles.flatMap((profile) => {
     const keys = getFormerProfileNameKeys(profile);
-    markSeen(keys);
     const entry = findOverrideEntry(keys);
 
     if (!entry) {
-      return {
-        ...profile,
-        duration: getProfileDurationValue(profile),
-      };
+      return [];
     }
 
     entry.matched = true;
+    markSeen(keys);
     markSeen(entry.keys);
-    return applyFormerProfileOverride(profile, entry.override);
+    return [applyFormerProfileOverride(profile, entry.override)];
   });
 
-  // Roster completeness: the Hindi page HTML can be missing a person's card
-  // entirely (their CMS profile then silently vanished in Hindi). Append every
-  // known roster person the page didn't render, with their CMS override
-  // applied when one exists.
-  // Genuinely new CMS-only people — not on the page and not in the roster.
+  // Former Scientists are managed in one canonical CMS collection. Append
+  // newly created CMS profiles that are not present in the imported roster;
+  // imported cards without a published CMS profile stay hidden.
   overrideEntries.forEach((entry) => {
     if (entry.matched || formerKeysOverlap(entry.keys, seenKeys)) {
       return;

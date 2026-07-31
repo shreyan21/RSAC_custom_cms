@@ -63,6 +63,7 @@ const previewLifetimeMs = 15 * 60 * 1000;
 const maxPreviewSessions = 100;
 const previewSessions = new Map();
 const publicBootstrapCache = new Map();
+let publishedRowsCache = { version: "", rows: null };
 const publicContentSubscribers = new Set();
 let contentVersionCache = { checkedAt: 0, value: "" };
 
@@ -118,7 +119,10 @@ const readBootstrapPayload = async (language) => {
   const cached = publicBootstrapCache.get(language);
   if (cached?.version === currentVersion) return cached.body;
 
-  const rows = await readPublishedEntries();
+  const rows = publishedRowsCache.version === currentVersion && publishedRowsCache.rows
+    ? publishedRowsCache.rows
+    : await readPublishedEntries();
+  publishedRowsCache = { version: currentVersion, rows };
   const data = assembleBootstrap(rows, language);
   const body = JSON.stringify({ data, generatedAt: new Date().toISOString() });
   publicBootstrapCache.set(language, { version: data.contentVersion, body });
@@ -127,6 +131,7 @@ const readBootstrapPayload = async (language) => {
 
 const invalidatePublicContentCache = () => {
   publicBootstrapCache.clear();
+  publishedRowsCache = { version: "", rows: null };
   contentVersionCache = { checkedAt: 0, value: "" };
   broadcastPublicContentUpdate();
 };
@@ -329,7 +334,12 @@ app.get("/api/content/preview/:token", async (req, res, next) => {
     }
 
     const language = req.query.lang === "hi" ? "hi" : "en";
-    const rows = await readPublishedEntries();
+    const currentVersion = await readContentVersion();
+    const publishedRows = publishedRowsCache.version === currentVersion && publishedRowsCache.rows
+      ? publishedRowsCache.rows
+      : await readPublishedEntries();
+    publishedRowsCache = { version: currentVersion, rows: publishedRows };
+    const rows = [...publishedRows];
     const previewIndex = rows.findIndex((row) =>
       preview.entryId
         ? String(row.id) === preview.entryId

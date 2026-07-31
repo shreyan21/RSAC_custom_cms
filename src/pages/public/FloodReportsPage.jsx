@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "../../components/layout/PageShell";
+import BackButton from "../../components/navigation/BackButton";
 import { getCmsFloodReportsByYear } from "../../data/customCmsClient";
 import { useFloodData, useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -80,7 +81,10 @@ const FloodReportsPage = () => {
   const allReportsVisible = visibleReportCount >= reports.length;
 
   return (
-    <PageShell title={`${floodSection.archiveItemLabel} ${year}`}>
+    <PageShell
+      title={`${floodSection.archiveItemLabel} ${year}`}
+      actions={<BackButton fallback="/" />}
+    >
       <section aria-label={`${floodSection.archiveItemLabel} ${year}`}>
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_16px_50px_rgba(18,50,74,0.06)]">
           <div className="hidden border-b border-slate-200 bg-[#f8fbfd] px-5 py-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-500 md:grid md:grid-cols-[5rem_minmax(0,1fr)_7rem] md:gap-4">

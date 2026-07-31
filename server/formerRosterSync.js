@@ -39,6 +39,17 @@ const changedName = (beforeBlock, afterBlock) => {
   return before !== after && after ? after : "";
 };
 
+const updateBlockLabel = (block, name) => {
+  if (!block || !name) return;
+  const hasSectionPrefix = /^section\s*:/iu.test(String(block.label || ""));
+  block.label = hasSectionPrefix ? `Section: ${name}` : name;
+  if (block.sourceLabel) {
+    block.sourceLabel = /^section\s*:/iu.test(String(block.sourceLabel))
+      ? `Section: ${name}`
+      : name;
+  }
+};
+
 export const prepareFormerRosterSave = async (
   client,
   beforePage,
@@ -94,6 +105,8 @@ export const prepareFormerRosterSave = async (
 
     const nextEnglishName = changedName(beforeEnglish, englishBlock);
     const nextHindiName = changedName(beforeHindi, hindiBlock);
+    if (nextEnglishName) updateBlockLabel(englishBlock, nextEnglishName);
+    if (nextHindiName) updateBlockLabel(hindiBlock, nextHindiName);
     if (
       (!nextEnglishName && !nextHindiName) ||
       changedProfileIds.has(profile.id)

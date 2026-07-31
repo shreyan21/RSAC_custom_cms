@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { Extension, Mark, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -140,18 +140,45 @@ const ToolbarButton = ({ label, ...props }) => (
 );
 
 const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value, onChange, ariaLabel }, ref) {
+  const onChangeRef = useRef(onChange);
+  const latestValueRef = useRef(value || "");
+  const lastEmittedHtmlRef = useRef(null);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    latestValueRef.current = value || "";
+  }, [onChange, value]);
+
   const editor = useEditor({
     extensions,
     content: value || "",
     immediatelyRender: false,
     editorProps: { attributes: { class: "section-rich-editor__surface", role: "textbox", "aria-label": ariaLabel, "aria-multiline": "true" } },
-    onUpdate: ({ editor: current }) => onChange(current.isEmpty ? "" : current.getHTML()),
+    onUpdate: ({ editor: current }) => {
+      const html = current.isEmpty ? "" : current.getHTML();
+      lastEmittedHtmlRef.current = html;
+      onChangeRef.current(html);
+    },
+    onBlur: ({ editor: current }) => {
+      const next = latestValueRef.current;
+      const currentHtml = current.isEmpty ? "" : current.getHTML();
+      if (next !== lastEmittedHtmlRef.current && currentHtml !== next) {
+        current.commands.setContent(next, { emitUpdate: false });
+      }
+    },
   });
 
   useEffect(() => {
     if (!editor) return;
     const next = value || "";
-    if (editor.getHTML() !== next) editor.commands.setContent(next, { emitUpdate: false });
+    const current = editor.isEmpty ? "" : editor.getHTML();
+    if (
+      !editor.isFocused
+      && next !== lastEmittedHtmlRef.current
+      && current !== next
+    ) {
+      editor.commands.setContent(next, { emitUpdate: false });
+    }
   }, [editor, value]);
 
   useImperativeHandle(ref, () => ({
@@ -213,9 +240,14 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
   };
 
   const formatText = () => {
+    const position = editor.state.selection.from;
     const formatted = formatRichTextHtml(editor.getHTML());
     editor.commands.setContent(formatted, { emitUpdate: true });
-    editor.commands.focus("start");
+    const maximumPosition = Math.max(1, editor.state.doc.content.size);
+    editor.chain()
+      .focus()
+      .setTextSelection(Math.min(position, maximumPosition))
+      .run();
   };
 
   const updateTextStyle = (name, nextValue) => {

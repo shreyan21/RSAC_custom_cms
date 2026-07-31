@@ -37,6 +37,7 @@
     "cms:align-bilingual-layouts": "node scripts/align-bilingual-rich-text-layouts.mjs --apply",
     "cms:test-divisions": "node scripts/cms-division-sync-test.mjs",
     "cms:test-former-roster": "node scripts/cms-former-roster-sync-test.mjs",
+    "cms:sync-former-photos": "node scripts/sync-former-profile-photos.mjs",
     "cms:test-visibility": "node scripts/cms-visibility-controls-test.mjs",
     "cms:repair-scalars": "node scripts/repair-cms-scalar-placeholders.mjs",
     "cms:normalize-publications": "node scripts/normalize-numbered-publications.mjs",

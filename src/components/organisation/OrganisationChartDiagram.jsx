@@ -40,16 +40,6 @@ const supportCards = [
   { roleKey: "support-3", x: 835, y: 1240, width: 234, height: 88 },
 ];
 
-const fallbackPhotos = {
-  "general-body-president": "/organisation-chart-photos/chief-minister.jpg",
-  "general-body-vice-president-1": "/organisation-chart-photos/minister.jpg",
-  "general-body-vice-president-2":
-    "/organisation-chart-photos/minister-of-state.jpg",
-  "governing-body-chairman":
-    "/organisation-chart-photos/principal-secretary.jpg",
-  "executive-director": "/organisation-chart-photos/director.jpg",
-};
-
 const cardStyle = ({ x, y, width, height }) => ({
   left: `${x}px`,
   top: `${y}px`,
@@ -70,7 +60,7 @@ const designationLines = (item, preferred) => {
 };
 
 const LeadershipCard = ({ item, position }) => {
-  const photo = item?.photo || fallbackPhotos[position.roleKey];
+  const photo = item?.photo || "";
   const designations = designationLines(item, position.designation);
 
   return (
@@ -86,10 +76,7 @@ const LeadershipCard = ({ item, position }) => {
           className="h-[56%] w-[68%] shrink-0 border border-black/50 bg-white object-cover"
           style={{ objectPosition: item?.objectPosition || "center" }}
           onError={(event) => {
-            const fallback = fallbackPhotos[position.roleKey];
-            if (fallback && !event.currentTarget.src.endsWith(fallback)) {
-              event.currentTarget.src = fallback;
-            }
+            event.currentTarget.style.display = "none";
           }}
           loading="lazy"
           decoding="async"

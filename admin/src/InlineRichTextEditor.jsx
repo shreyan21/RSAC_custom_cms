@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   AlignCenter,
   AlignJustify,
@@ -43,17 +43,21 @@ const sizeOptions = [
 export default function InlineRichTextEditor({ value, richText, onChange, ariaLabel }) {
   const editorRef = useRef(null);
   const selectionRef = useRef(null);
+  const composingRef = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const editor = editorRef.current;
     if (!editor || document.activeElement === editor) return;
     const next = editorHtml(value, richText);
-    if (editor.innerHTML !== next) editor.innerHTML = next;
+    if (editor.innerHTML !== next) {
+      editor.innerHTML = next;
+      selectionRef.current = null;
+    }
   }, [richText, value]);
 
   const emitChange = () => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor || composingRef.current) return;
     const plain = editor.innerText.replace(/\u00a0/g, " ").trim();
     onChange({
       value: plain,
@@ -70,10 +74,73 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
   };
 
   const restoreSelection = () => {
-    if (!selectionRef.current) return;
+    const editor = editorRef.current;
+    const range = selectionRef.current;
+    if (
+      !editor
+      || !range
+      || !editor.contains(range.startContainer)
+      || !editor.contains(range.endContainer)
+    ) {
+      selectionRef.current = null;
+      return;
+    }
     const selection = window.getSelection();
     selection.removeAllRanges();
-    selection.addRange(selectionRef.current);
+    selection.addRange(range);
+  };
+
+  const captureSelectionOffsets = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return null;
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return null;
+    const startRange = document.createRange();
+    const endRange = document.createRange();
+    startRange.selectNodeContents(editor);
+    endRange.selectNodeContents(editor);
+    startRange.setEnd(range.startContainer, range.startOffset);
+    endRange.setEnd(range.endContainer, range.endOffset);
+    return {
+      start: startRange.toString().length,
+      end: endRange.toString().length,
+    };
+  };
+
+  const restoreSelectionOffsets = (offsets) => {
+    const editor = editorRef.current;
+    if (!editor || !offsets) return false;
+    const textNodes = [];
+    const visit = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) textNodes.push(node);
+      else node.childNodes.forEach(visit);
+    };
+    visit(editor);
+    if (!textNodes.length) return false;
+
+    const locate = (target) => {
+      let consumed = 0;
+      for (const node of textNodes) {
+        const length = node.textContent.length;
+        if (target <= consumed + length) {
+          return { node, offset: Math.max(0, target - consumed) };
+        }
+        consumed += length;
+      }
+      const node = textNodes[textNodes.length - 1];
+      return { node, offset: node.textContent.length };
+    };
+    const start = locate(offsets.start);
+    const end = locate(offsets.end);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    selectionRef.current = range.cloneRange();
+    return true;
   };
 
   const runCommand = (command, commandValue = null) => {
@@ -108,6 +175,8 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
   const applyRowAlignment = (nextValue) => {
     const editor = editorRef.current;
     if (!editor) return;
+    saveSelection();
+    const offsets = captureSelectionOffsets();
     editor.focus();
 
     const existingWrapper = editor.children.length === 1
@@ -122,12 +191,15 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
     }
 
     wrapper.setAttribute("data-rsac-inline-align", nextValue);
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(wrapper);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    saveSelection();
+    if (!restoreSelectionOffsets(offsets)) {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(wrapper);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      saveSelection();
+    }
     emitChange();
   };
 
@@ -192,11 +264,18 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
         aria-multiline="true"
         suppressContentEditableWarning
         onInput={emitChange}
+        onBlur={emitChange}
+        onCompositionStart={() => {
+          composingRef.current = true;
+        }}
+        onCompositionEnd={() => {
+          composingRef.current = false;
+          emitChange();
+        }}
         onKeyUp={saveSelection}
         onMouseUp={saveSelection}
         onPaste={pastePlainText}
         onKeyDown={keepOneEditableRow}
-        dangerouslySetInnerHTML={{ __html: editorHtml(value, richText) }}
       />
     </div>
   );

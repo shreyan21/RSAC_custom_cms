@@ -7,6 +7,7 @@ import pg from "pg";
 import { repairCmsPageParity } from "./pageParityRepairs.js";
 import { migrateDivisionAndFacilityRichContent } from "./sectionRichContentMigration.js";
 import { repairDivisionPageConsistency } from "./divisionPageSync.js";
+import { migrateFormerRosterProfilePhotos } from "./formerProfilePhotoMigration.js";
 
 const envPath = resolve(".env.local");
 loadEnv({ path: envPath, quiet: true });
@@ -90,6 +91,10 @@ if (richContentMigration.entriesChanged) {
 const divisionPageRepair = await repairDivisionPageConsistency(appDb);
 if (divisionPageRepair.created || divisionPageRepair.updated) {
   console.log(`Synchronized ${divisionPageRepair.created} new and ${divisionPageRepair.updated} existing division pages.`);
+}
+const formerPhotoMigration = await migrateFormerRosterProfilePhotos(appDb);
+if (formerPhotoMigration.length) {
+  console.log(`Linked ${formerPhotoMigration.length} former-scientist portraits to their CMS profiles.`);
 }
 await appDb.end();
 

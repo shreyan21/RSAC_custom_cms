@@ -156,7 +156,7 @@ const settingsGroups = [
       ["hero.stats", "Hero statistics", "rows", [["label", "Label"], ["value", "Value"]]],
       ["hero.domains", "Domain labels", "list"],
       ["hero.capabilityTags", "Capability labels", "rows", [["label", "Label"], ["icon", "Icon", "shared-select", iconColumns]]],
-      ["hero.leaders", "Leader portraits", "rows", [["name", "Name"], ["role", "Role"], ["alt", "Image description"], ["image", "Portrait", "media"], ["objectPosition", "Photo position"]]],
+      ["hero.leaders", "Leader portraits", "rows", [["name", "Name"], ["role", "Role"], ["alt", "Image description"], ["image", "Portrait", "shared-media"], ["objectPosition", "Photo position", "shared-text"]]],
       ["hero.primaryAction.label", "Primary button label", "suggestions", buttonSuggestions],
       ["hero.primaryAction.path", "Primary button path"],
       ["hero.primaryAction.icon", "Primary button icon", "select", iconColumns],
@@ -483,6 +483,53 @@ const settingsGroups = [
   },
 ];
 
+const homepageSettingsCategories = [
+  {
+    id: "homepage",
+    eyebrow: "Homepage",
+    title: "Homepage layout and content",
+    description: "Edit the homepage in the same top-to-bottom order visitors see it. Each heading, introduction and related control is shown on its own line.",
+    groups: [
+      "Homepage hero",
+      "Homepage default text sizes",
+      "Operational domains section",
+      "About section",
+      "Services and applications",
+      "Statistics section",
+      "Location section",
+      "Optional homepage sections",
+    ],
+  },
+  {
+    id: "site-wide",
+    eyebrow: "Shared across the website",
+    title: "Header, navigation and footer",
+    description: "These labels and links can appear on many pages. Changes here are not limited to the homepage.",
+    groups: [
+      "Header, menu and shared controls",
+      "Footer",
+    ],
+    showInterfaceLabels: true,
+  },
+  {
+    id: "pages",
+    eyebrow: "Sitemap and supporting pages",
+    title: "Page text and reusable labels",
+    description: "Edit the Sitemap and the shared wording used by search, gallery, public pages, Flood pages and accessibility tools.",
+    groups: [
+      "Sitemap page",
+      "Photo gallery",
+      "Website search",
+      "Contact, apps, notices and portal page labels",
+      "Fallback page",
+      "Vision, objectives, implementation and activities",
+      floodSettingsGroupLabels.reports,
+      floodSettingsGroupLabels.menu,
+      "Accessibility and organisation chart media",
+    ],
+  },
+];
+
 const homepageSections = [
   ["mission", "Operational domains"],
   ["leadership", "Leadership and updates"],
@@ -555,8 +602,11 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
   const sharedItems = Array.isArray(sharedRows) ? sharedRows : items;
   const update = (index, name, nextValue) => onChange(items.map((item, position) => position === index ? { ...item, [name]: nextValue } : item));
   const updateColumn = (index, name, nextValue, type) => {
-    update(index, name, nextValue);
-    if (type !== "shared-select" || !onSharedRowsChange) return;
+    const isShared = ["shared-select", "shared-media", "shared-text"].includes(type);
+    if (!isShared || !onSharedRowsChange) {
+      update(index, name, nextValue);
+      return;
+    }
     const length = Math.max(items.length, sharedItems.length);
     onSharedRowsChange(Array.from({ length }, (_unused, position) => {
       const item = sharedItems[position] || items[position] || {};
@@ -574,22 +624,26 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
             <button type="button" title={`Remove ${label} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button>
           </header>
           <div className="settings-row-fields">
-            {columns.map(([name, fieldLabel, type = "text", options = []]) => (
+            {columns.map(([name, fieldLabel, type = "text", options = []]) => {
+              const isShared = ["shared-select", "shared-media", "shared-text"].includes(type);
+              const fieldItem = isShared ? sharedItems[index] || item : item;
+              return (
               <label className={type === "checkbox" ? "settings-row-checkbox" : undefined} key={name}>
-                <span>{fieldLabel}</span>
-                {type === "media"
-                  ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={item[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
+                <span>{fieldLabel}{isShared && <small>Shared by both languages</small>}</span>
+                {type === "media" || type === "shared-media"
+                  ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={fieldItem?.[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
                   : type === "list"
                     ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => updateColumn(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean), type)} />
                   : type === "textarea"
                     ? <textarea rows="3" value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />
-                    : type === "checkbox"
-                      ? <input type="checkbox" checked={Boolean(item[name])} onChange={(event) => updateColumn(index, name, event.target.checked, type)} />
-                    : type === "select" || type === "shared-select"
-                      ? <select value={(type === "shared-select" ? sharedItems[index]?.[name] : item[name]) || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)}><option value="">Select</option>{options.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
-                      : <input value={item[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />}
+                  : type === "checkbox"
+                    ? <input type="checkbox" checked={Boolean(item[name])} onChange={(event) => updateColumn(index, name, event.target.checked, type)} />
+                  : type === "select" || type === "shared-select"
+                      ? <select value={fieldItem?.[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)}><option value="">Select</option>{options.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+                      : <input value={fieldItem?.[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />}
               </label>
-            ))}
+              );
+            })}
           </div>
         </section>
       ))}
@@ -719,62 +773,93 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
     (!includedGroups.size || includedGroups.has(group.label)) &&
     !excludedGroups.has(group.label)
   );
+  const renderGroup = (group) => (
+    <fieldset className="settings-group" key={group.label}>
+      <legend>{group.label}</legend>
+      {group.help && <p className="settings-group-help">{group.help}</p>}
+      <div className="settings-grid">
+        {group.fields.map(([path, label, type, columns]) => type === "rows" ? (
+          <SettingsRowsEditor
+            key={path}
+            label={label}
+            rows={getAtPath(value, path)}
+            sharedRows={getAtPath(sharedSettings, path)}
+            columns={columns}
+            onChange={(nextValue) => onChange(setAtPath(value, path, nextValue))}
+            onSharedRowsChange={(nextValue) => updateSharedSettings(setAtPath(sharedSettings, path, nextValue))}
+            onBusy={onBusy}
+            onError={onError}
+          />
+        ) : (() => {
+          const isShared = sharedSettingsPaths.has(path);
+          const source = isShared ? sharedSettings : value;
+          const updateSource = isShared ? updateSharedSettings : onChange;
+          return (
+          <label key={path}>
+            <span>{label}{isShared && <small>Shared by both languages</small>}</span>
+            {type === "select"
+              ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
+              : type === "number"
+              ? <input type="number" min="1" max="100" value={getAtPath(source, path) ?? ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value === "" ? "" : Number(event.target.value)))} />
+              : type === "suggestions"
+              ? <SuggestionInput value={getAtPath(source, path)} options={columns} language={language} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} />
+              : type === "media"
+              ? <FieldInput field={{ name: path, label, type: "media" }} value={getAtPath(source, path)} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} onBusy={onBusy} onError={onError} />
+              : type === "list"
+              ? <textarea rows="5" value={Array.isArray(getAtPath(source, path)) ? getAtPath(source, path).join("\n") : ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
+              : type === "textarea"
+              ? <textarea rows="4" value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />
+              : <input value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />}
+          </label>
+          );
+        })())}
+      </div>
+    </fieldset>
+  );
+
+  const categorizedLabels = new Set(homepageSettingsCategories.flatMap((category) => category.groups));
+  const uncategorizedGroups = visibleGroups.filter((group) => !categorizedLabels.has(group.label));
   return (
     <div className={`settings-editor ${isFocusedEditor ? "settings-editor--focused" : "settings-editor--homepage"}`}>
       <p className="settings-note">{field.settingsIntro || (isFocusedEditor ? "Edit English and Hindi separately. Shared layout values apply to both languages." : "Text edits apply to the selected language. Homepage layout and size controls are shared by English and Hindi. Use Page Headings and Subheadings for the main heading of any inner route.")}</p>
-      {!isFocusedEditor && <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />}
-      {!isFocusedEditor && <fieldset className="settings-group homepage-typography-editor">
-          <legend>Homepage section size overrides</legend>
-          <p className="settings-note">This is the only place for changing one homepage section independently. For example, change Institution at a Glance / statistics here; use Homepage default text sizes below for all sections.</p>
-          <HomepageTypographyEditor
-            value={sharedSettings?.homeSectionTypography}
-            onChange={(nextValue) => updateSharedSettings({ ...(sharedSettings || {}), homeSectionTypography: nextValue })}
-          />
-        </fieldset>}
-      {visibleGroups.map((group) => (
-        <fieldset className="settings-group" key={group.label}>
-          <legend>{group.label}</legend>
-          {group.help && <p className="settings-group-help">{group.help}</p>}
-          <div className="settings-grid">
-            {group.fields.map(([path, label, type, columns]) => type === "rows" ? (
-              <SettingsRowsEditor
-                key={path}
-                label={label}
-                rows={getAtPath(value, path)}
-                sharedRows={getAtPath(sharedSettings, path)}
-                columns={columns}
-                onChange={(nextValue) => onChange(setAtPath(value, path, nextValue))}
-                onSharedRowsChange={(nextValue) => updateSharedSettings(setAtPath(sharedSettings, path, nextValue))}
-                onBusy={onBusy}
-                onError={onError}
-              />
-            ) : (() => {
-              const isShared = sharedSettingsPaths.has(path);
-              const source = isShared ? sharedSettings : value;
-              const updateSource = isShared ? updateSharedSettings : onChange;
-              return (
-              <label key={path}>
-                <span>{label}{isShared && <small>Shared by both languages</small>}</span>
-                {type === "select"
-                  ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
-                  : type === "number"
-                  ? <input type="number" min="1" max="100" value={getAtPath(source, path) ?? ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value === "" ? "" : Number(event.target.value)))} />
-                  : type === "suggestions"
-                  ? <SuggestionInput value={getAtPath(source, path)} options={columns} language={language} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} />
-                  : type === "media"
-                  ? <FieldInput field={{ name: path, label, type: "media" }} value={getAtPath(source, path)} onChange={(nextValue) => updateSource(setAtPath(source, path, nextValue))} onBusy={onBusy} onError={onError} />
-                  : type === "list"
-                  ? <textarea rows="5" value={Array.isArray(getAtPath(source, path)) ? getAtPath(source, path).join("\n") : ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value.split(/\r?\n/).filter(Boolean)))} />
-                  : type === "textarea"
-                  ? <textarea rows="4" value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />
-                  : <input value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />}
-              </label>
-              );
-            })())}
-          </div>
-        </fieldset>
-      ))}
-      {!isFocusedEditor && <InterfaceLabelsEditor value={value?.interfaceLabels} onChange={(nextValue) => onChange(setAtPath(value, "interfaceLabels", nextValue))} />}
+      {!isFocusedEditor ? homepageSettingsCategories.map((category) => {
+        const categoryGroups = category.groups
+          .map((label) => visibleGroups.find((group) => group.label === label))
+          .filter(Boolean);
+        if (!categoryGroups.length && !category.showInterfaceLabels) return null;
+        return (
+          <section className="settings-category" key={category.id}>
+            <header className="settings-category__header">
+              <span>{category.eyebrow}</span>
+              <h3>{category.title}</h3>
+              <p>{category.description}</p>
+            </header>
+            <div className="settings-category__content">
+              {category.id === "homepage" && <HomepageLayoutEditor value={sharedSettings} onChange={updateSharedSettings} />}
+              {category.id === "homepage" && <fieldset className="settings-group homepage-typography-editor">
+                <legend>Homepage section size overrides</legend>
+                <p className="settings-group-help">Change one homepage section independently. For example, change Institution at a Glance here; use Homepage default text sizes for the overall homepage.</p>
+                <HomepageTypographyEditor
+                  value={sharedSettings?.homeSectionTypography}
+                  onChange={(nextValue) => updateSharedSettings({ ...(sharedSettings || {}), homeSectionTypography: nextValue })}
+                />
+              </fieldset>}
+              {categoryGroups.map(renderGroup)}
+              {category.showInterfaceLabels && <InterfaceLabelsEditor value={value?.interfaceLabels} onChange={(nextValue) => onChange(setAtPath(value, "interfaceLabels", nextValue))} />}
+            </div>
+          </section>
+        );
+      }) : visibleGroups.map(renderGroup)}
+      {!isFocusedEditor && uncategorizedGroups.length > 0 && (
+        <section className="settings-category">
+          <header className="settings-category__header">
+            <span>Additional settings</span>
+            <h3>Other editable website text</h3>
+            <p>These fields remain available here so no existing CMS control is lost.</p>
+          </header>
+          <div className="settings-category__content">{uncategorizedGroups.map(renderGroup)}</div>
+        </section>
+      )}
       {!isFocusedEditor && <details className="advanced-settings">
         <summary>Advanced technical settings</summary>
         <p>Use only when instructed by developer. Invalid JSON will not save.</p>

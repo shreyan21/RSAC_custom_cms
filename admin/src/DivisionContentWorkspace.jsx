@@ -214,7 +214,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
     language === "hi" ? hindiAssets : englishAssets
   );
   const itemName = workspaceKind === "facilities" ? "facility" : workspaceKind === "about-us" ? "page" : workspaceKind === "academics" ? "training page" : workspaceKind === "people" ? "people page" : "division";
-  const searchPlaceholder = workspaceKind === "facilities" ? "Search laboratory, library, hostel..." : workspaceKind === "about-us" ? "Search chairman, vision, organisation..." : workspaceKind === "academics" ? "Search training or academics..." : workspaceKind === "people" ? "Search Former Chairmen, Former Directors, Former Scientists..." : "Search Computer Image, Agriculture, Training...";
+  const searchPlaceholder = workspaceKind === "facilities" ? "Search laboratory, library, hostel..." : workspaceKind === "about-us" ? "Search chairman, vision, organisation..." : workspaceKind === "academics" ? "Search training or academics..." : workspaceKind === "people" ? "Search Former Chairmen or Former Directors..." : "Search Computer Image, Agriculture, Training...";
   const visibilityLabel = (status) => status === "archived"
     ? "Archived"
     : status === "draft"

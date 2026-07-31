@@ -3,6 +3,7 @@ import { api, websiteUrl } from "./api";
 
 const previewWindowName = "rsac-cms-live-preview";
 const previewMessageType = "rsac-cms-preview:update";
+const previewReadyMessageType = "rsac-cms-preview:ready";
 const previewDebounceMs = 450;
 
 const previewUrl = (result, language) => {
@@ -14,9 +15,14 @@ const previewUrl = (result, language) => {
 
 export default function useLivePreview({ collection, draft, language, notify }) {
   const sessionRef = useRef({ token: "", path: "", language: "", window: null });
+  const draftRef = useRef(draft);
   const queueRef = useRef(Promise.resolve());
   const timerRef = useRef(0);
   const lastErrorRef = useRef("");
+
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   const syncPreview = useCallback((snapshot, { open = false } = {}) => {
     const run = async () => {
@@ -91,6 +97,27 @@ export default function useLivePreview({ collection, draft, language, notify }) 
 
     return () => window.clearTimeout(timerRef.current);
   }, [draft, language, notify, syncPreview]);
+
+  useEffect(() => {
+    const receivePreviewReady = (event) => {
+      const session = sessionRef.current;
+      if (
+        event.data?.type !== previewReadyMessageType ||
+        event.data?.token !== session.token ||
+        event.source !== session.window
+      ) {
+        return;
+      }
+      syncPreview(draftRef.current).catch((error) => {
+        if (lastErrorRef.current === error.message) return;
+        lastErrorRef.current = error.message;
+        notify(`Live preview paused: ${error.message}`, "error");
+      });
+    };
+
+    window.addEventListener("message", receivePreviewReady);
+    return () => window.removeEventListener("message", receivePreviewReady);
+  }, [notify, syncPreview]);
 
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
