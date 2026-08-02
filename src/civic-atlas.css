@@ -1783,3 +1783,291 @@ html[data-rsac-motion="none"] :is(
   ) {
   transition-duration: 0.001ms !important;
 }
+
+/* ======================================================================
+   FLAGSHIP OBSERVATORY REFINEMENT
+   Final presentation-only layer. It strengthens the existing scientific
+   atlas identity while leaving markup, CMS data, routes, and behaviour intact.
+   ====================================================================== */
+
+:root {
+  --civic-canvas-soft: #edf6f2;
+  --civic-surface-raised: #ffffff;
+  --civic-surface-blue: #eef7fb;
+  --civic-surface-green: #eef8f3;
+  --civic-hairline: rgba(9, 67, 91, 0.17);
+  --civic-focus-ring: #086f9f;
+  --civic-shadow-refined:
+    0 1px 2px rgba(7, 36, 54, 0.06),
+    0 18px 44px -30px rgba(8, 48, 70, 0.42);
+  --civic-shadow-refined-hover:
+    0 2px 5px rgba(7, 36, 54, 0.07),
+    0 26px 58px -32px rgba(8, 48, 70, 0.5);
+}
+
+html:not(.rsac-high-contrast) body {
+  background:
+    linear-gradient(135deg, rgba(9, 111, 159, 0.035), transparent 28rem),
+    linear-gradient(315deg, rgba(11, 107, 67, 0.035), transparent 30rem),
+    var(--civic-canvas-soft);
+}
+
+html:not(.rsac-high-contrast) .page-shell-surface {
+  background:
+    linear-gradient(112deg, rgba(255, 153, 51, 0.075), transparent 17rem),
+    linear-gradient(248deg, rgba(9, 111, 159, 0.075), transparent 23rem),
+    linear-gradient(180deg, #edf7f2 0, #f8fbfa 19rem, #f3f8f6 100%);
+}
+
+html:not(.rsac-high-contrast) .page-shell-surface::before {
+  opacity: 0.76;
+  background:
+    linear-gradient(90deg, rgba(9, 111, 159, 0.034) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(11, 107, 67, 0.03) 1px, transparent 1px),
+    linear-gradient(145deg, transparent 0 49.8%, rgba(255, 153, 51, 0.035) 50%, transparent 50.2%);
+  background-size: 78px 78px, 78px 78px, 100% 31rem;
+  mask-image: linear-gradient(to bottom, #000 0, rgba(0, 0, 0, 0.72) 29rem, transparent 64rem);
+}
+
+.rsac-page-heading {
+  isolation: isolate;
+}
+
+html:not(.rsac-high-contrast) .rsac-page-heading {
+  border-bottom-color: rgba(9, 67, 91, 0.16);
+}
+
+html:not(.rsac-high-contrast) .rsac-page-heading::after {
+  height: 3px;
+  border-radius: 999px;
+  box-shadow: 0 5px 14px -6px rgba(9, 111, 159, 0.65);
+}
+
+html:not(.rsac-high-contrast) .rsac-page-heading__copy h1 {
+  color: #082e43 !important;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 30px rgba(10, 58, 79, 0.08);
+}
+
+html:not(.rsac-high-contrast) :is(
+    .rsac-detail-panel,
+    .rsac-section-menu,
+    .rsac-section-tabs,
+    .rsac-content-frame,
+    .rsac-card-depth,
+    .rsac-effect-card,
+    .official-index-card,
+    .rsac-gallery-frame
+  ) {
+  border-color: var(--civic-hairline) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    var(--civic-shadow-refined) !important;
+}
+
+html:not(.rsac-high-contrast) :is(
+    .rsac-detail-panel,
+    .rsac-content-frame,
+    .rsac-card-depth,
+    .rsac-effect-card
+  ) {
+  background:
+    linear-gradient(118deg, rgba(255, 153, 51, 0.025), transparent 22%),
+    linear-gradient(298deg, rgba(9, 111, 159, 0.04), transparent 26%),
+    linear-gradient(145deg, #ffffff 0%, #fbfdfc 64%, #f5faf7 100%) !important;
+}
+
+html:not(.rsac-high-contrast) :is(.official-index-card__visual, .rsac-gallery-frame__media) {
+  border-color: rgba(9, 67, 91, 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 12px 30px -24px rgba(5, 42, 62, 0.52);
+}
+
+html:not(.rsac-high-contrast) :is(
+    .official-index-card__image,
+    .rsac-gallery-frame img,
+    .rsac-rich-content img,
+    .mobile-app-card__media > img
+  ) {
+  filter: saturate(1.035) contrast(1.025);
+}
+
+.rsac-rich-content :where(ul, ol) > li::marker {
+  color: var(--civic-blue);
+  font-weight: 700;
+}
+
+.rsac-rich-content :where(blockquote) {
+  border-inline-start: 4px solid var(--civic-green);
+  background: color-mix(in srgb, var(--civic-surface-green) 82%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--civic-focus-ring) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.94) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html:not(.rsac-high-contrast) :is(
+      .rsac-detail-panel,
+      .rsac-section-menu,
+      .rsac-section-tabs,
+      .rsac-content-frame,
+      .rsac-card-depth,
+      .rsac-effect-card,
+      .official-index-card,
+      .rsac-gallery-frame
+    ):hover {
+    border-color: rgba(9, 111, 159, 0.26) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.98),
+      var(--civic-shadow-refined-hover) !important;
+  }
+
+  :is(.official-index-card, .rsac-gallery-frame, .mobile-app-card):hover
+    :is(.official-index-card__image, .rsac-gallery-frame img, .mobile-app-card__media > img) {
+    transform: scale(1.018);
+    filter: saturate(1.08) contrast(1.035);
+  }
+}
+
+:is(
+    .official-index-card__image,
+    .rsac-gallery-frame img,
+    .mobile-app-card__media > img
+  ) {
+  transition:
+    transform var(--civic-motion-slow) var(--civic-motion-ease),
+    filter var(--civic-motion-base) ease;
+}
+
+.rsac-high-contrast {
+  --civic-night-canvas: #050d15;
+  --civic-night-surface: #091a28;
+  --civic-night-raised: #10283d;
+  --civic-night-line: rgba(139, 214, 255, 0.28);
+  --civic-focus-ring: #ffd28a;
+}
+
+.rsac-high-contrast body {
+  background:
+    linear-gradient(132deg, rgba(18, 130, 88, 0.13), transparent 35rem),
+    linear-gradient(312deg, rgba(28, 120, 174, 0.15), transparent 38rem),
+    linear-gradient(180deg, #050d15 0%, #091725 52%, #06111b 100%) !important;
+}
+
+.rsac-high-contrast .page-shell-surface {
+  background:
+    linear-gradient(110deg, rgba(21, 135, 95, 0.12), transparent 25rem),
+    linear-gradient(250deg, rgba(28, 122, 178, 0.14), transparent 30rem),
+    linear-gradient(180deg, #07131e 0, #0a1a28 30rem, #07131e 100%) !important;
+}
+
+.rsac-high-contrast .page-shell-surface::before {
+  opacity: 0.6;
+  background:
+    linear-gradient(90deg, rgba(139, 214, 255, 0.052) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(142, 246, 197, 0.044) 1px, transparent 1px),
+    linear-gradient(145deg, transparent 0 49.8%, rgba(255, 210, 138, 0.045) 50%, transparent 50.2%);
+  background-size: 78px 78px, 78px 78px, 100% 31rem;
+}
+
+.rsac-high-contrast :is(
+    .rsac-detail-panel,
+    .rsac-section-menu,
+    .rsac-section-tabs,
+    .rsac-content-frame,
+    .rsac-card-depth,
+    .rsac-effect-card,
+    .official-index-card,
+    .rsac-gallery-frame
+  ) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    0 2px 4px rgba(0, 0, 0, 0.36),
+    0 26px 62px -38px rgba(0, 0, 0, 0.96) !important;
+}
+
+.rsac-high-contrast :is(.official-index-card__visual, .rsac-gallery-frame__media) {
+  border-color: rgba(139, 214, 255, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 16px 34px -26px rgba(0, 0, 0, 0.95);
+}
+
+.rsac-high-contrast .rsac-rich-content :where(ul, ol) > li::marker {
+  color: var(--civic-night-blue);
+}
+
+.rsac-high-contrast .rsac-rich-content :where(blockquote) {
+  border-inline-start-color: var(--civic-night-green);
+  background: rgba(139, 214, 255, 0.055);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.rsac-high-contrast :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  box-shadow: 0 0 0 2px #07131e !important;
+}
+
+@media (max-width: 767px) {
+  html:not(.rsac-high-contrast) .page-shell-surface {
+    background:
+      linear-gradient(245deg, rgba(9, 111, 159, 0.055), transparent 19rem),
+      linear-gradient(180deg, #eff8f4 0, #fafcfb 25rem, #f4f9f6 100%);
+  }
+
+  .page-shell-surface::before {
+    background-size: 62px 62px, 62px 62px, 100% 25rem !important;
+    opacity: 0.44 !important;
+  }
+
+  :is(
+      .rsac-detail-panel,
+      .rsac-section-menu,
+      .rsac-section-tabs,
+      .rsac-content-frame,
+      .rsac-card-depth,
+      .rsac-effect-card,
+      .official-index-card,
+      .rsac-gallery-frame
+    ) {
+    box-shadow: 0 14px 34px -27px rgba(8, 44, 66, 0.46) !important;
+  }
+
+  .rsac-high-contrast :is(
+      .rsac-detail-panel,
+      .rsac-section-menu,
+      .rsac-section-tabs,
+      .rsac-content-frame,
+      .rsac-card-depth,
+      .rsac-effect-card,
+      .official-index-card,
+      .rsac-gallery-frame
+    ) {
+    box-shadow: 0 16px 38px -29px rgba(0, 0, 0, 0.96) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+      .official-index-card__image,
+      .rsac-gallery-frame img,
+      .mobile-app-card__media > img
+    ) {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+html[data-rsac-motion="none"] :is(
+    .official-index-card__image,
+    .rsac-gallery-frame img,
+    .mobile-app-card__media > img
+  ) {
+  transition: none !important;
+  transform: none !important;
+}

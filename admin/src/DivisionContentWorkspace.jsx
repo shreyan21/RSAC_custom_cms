@@ -9,6 +9,7 @@ import { reorderDivisionPageSections } from "./divisionSectionOrder";
 import { fieldHelpText } from "./fieldHelpText";
 import { pageCardIconOptions } from "../../shared/cmsCollections";
 import useLivePreview from "./useLivePreview";
+import { mediaPreviewUrl } from "./api";
 import {
   createLocalizedDivisionBlock,
   findLocalizedDivisionBlockIndex,
@@ -482,7 +483,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
               : "";
             return (
               <article className="profile-section-content-editor" key={entry.id}>
-                <header><div className="profile-section-content-editor__photo">{reference.photo ? <img src={reference.photo} alt="" /> : <UserRound />}</div><div><strong>{displayName}</strong><span>{localized.designation || reference.designation || "Scientist profile"}</span><small>Photo and master details come from the shared people collection.</small></div></header>
+                <header><div className="profile-section-content-editor__photo">{reference.photo ? <img src={mediaPreviewUrl(reference.photo)} alt="" /> : <UserRound />}</div><div><strong>{displayName}</strong><span>{localized.designation || reference.designation || "Scientist profile"}</span><small>Photo and master details come from the shared people collection.</small></div></header>
                 {englishReference && <details className="profile-section-reference"><summary>View English reference</summary><div dangerouslySetInnerHTML={{ __html: englishReference }} /></details>}
                 <label className="profile-section-content-label">Additional content shown only in this {itemName} ({language === "hi" ? "Hindi" : "English"})</label>
                 <SectionRichTextEditor value={additionalContent} onChange={(html) => updateProfileSectionContent(entry, html)} ariaLabel={`${displayName} additional ${language === "hi" ? "Hindi" : "English"} content`} />

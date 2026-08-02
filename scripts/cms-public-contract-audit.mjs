@@ -13,6 +13,9 @@ const publicInfo = (bootstrap, slug) => (bootstrap.publicInfoPages || []).filter
 const hasBlockLabel = (page, pattern) => (page.blocks || []).some((block) =>
   pattern.test(`${block.sourceLabel || ""} ${block.label || ""} ${block.value || ""}`)
 );
+const visibleTargetJson = (value) => JSON.stringify(value, (key, item) =>
+  ["baseTitle", "baseName", "baseDeployment"].includes(key) ? undefined : item
+);
 
 const contracts = {
   pages: { route: "dynamic page routes", resolve: pages },
@@ -92,6 +95,12 @@ const setMarker = (data, field, marker) => {
   if (field.type === "blocks") return [...(Array.isArray(current) ? current : []), { id: `audit-${marker}`, type: "rich_text", html: `<p>${marker}</p>` }];
   return marker;
 };
+const emptyValue = (field) => {
+  if (["blocks", "list"].includes(field.type)) return [];
+  if (field.type === "json") return {};
+  if (field.type === "boolean") return false;
+  return "";
+};
 
 const client = new pg.Client({ connectionString: process.env.CMS_DATABASE_URL });
 await client.connect();
@@ -116,8 +125,8 @@ for (const definition of collections) {
     continue;
   }
 
-  const localizedField = (definition.fields || []).find((field) => field.localized !== false);
-  if (!localizedField) {
+  const localizedFields = (definition.fields || []).filter((field) => field.localized !== false);
+  if (!localizedFields.length) {
     if (!JSON.stringify(enTarget).length || !JSON.stringify(hiTarget).length) problems.push(`${definition.id} shared settings have no public target.`);
     results.push(`${definition.id.padEnd(24)} shared            ${contract.route}`);
     continue;
@@ -131,8 +140,8 @@ for (const definition of collections) {
         : true
   ));
   const markerBase = `CMS_CONTRACT_${definition.id.toUpperCase()}`;
-  const sourceRows = structuredClone(rows);
-  let source = selected && sourceRows.find((row) => String(row.id) === String(selected.id));
+  const baseRows = structuredClone(rows);
+  let source = selected && baseRows.find((row) => String(row.id) === String(selected.id));
   if (!source) {
     const sample = syntheticData(definition, markerBase);
     source = {
@@ -145,31 +154,47 @@ for (const definition of collections) {
       version: 1,
       updated_at: new Date(0),
     };
-    sourceRows.push(source);
+    baseRows.push(source);
   }
+  const sourceId = source.id;
 
-  for (const language of ["en", "hi"]) {
-    const marker = `${markerBase}_${language.toUpperCase()}`;
-    const data = language === "hi" ? source.data_hi : source.data_en;
-    data[localizedField.name] = setMarker(data, localizedField, marker);
-    const target = contract.resolve(assembleBootstrap(sourceRows, language));
-    if (!JSON.stringify(target).includes(marker)) {
-      problems.push(`${definition.id}.${localizedField.name} ${language} edit does not reach ${contract.route}.`);
+  for (const localizedField of localizedFields) {
+    for (const language of ["en", "hi"]) {
+      const sourceRows = structuredClone(baseRows);
+      const languageSource = sourceRows.find((row) => String(row.id) === String(sourceId));
+      const marker = `${markerBase}_${localizedField.name.toUpperCase()}_${language.toUpperCase()}`;
+      const data = language === "hi" ? languageSource.data_hi : languageSource.data_en;
+      const otherData = language === "hi" ? languageSource.data_en : languageSource.data_hi;
+      data[localizedField.name] = setMarker(data, localizedField, marker);
+      otherData[localizedField.name] = emptyValue(localizedField);
+      const target = contract.resolve(assembleBootstrap(sourceRows, language));
+      if (!visibleTargetJson(target).includes(marker)) {
+        problems.push(`${definition.id}.${localizedField.name} ${language} edit does not reach ${contract.route}.`);
+      }
+      const otherLanguage = language === "hi" ? "en" : "hi";
+      const otherTarget = contract.resolve(assembleBootstrap(sourceRows, otherLanguage));
+      if (visibleTargetJson(otherTarget).includes(marker)) {
+        problems.push(`${definition.id}.${localizedField.name} ${language} edit leaks into ${otherLanguage}.`);
+      }
     }
   }
-  results.push(`${definition.id.padEnd(24)} bilingual         ${contract.route}`);
+  results.push(`${definition.id.padEnd(24)} bilingual:${String(localizedFields.length).padEnd(2)}      ${contract.route}`);
 }
 
-const facilityRows = rows.filter((row) => row.collection === "facilities");
-if (facilityRows.length) {
+const facilityPageRows = rows.filter((row) =>
+  row.collection === "pages" && row.data_en?.sectionKey === "facilities"
+);
+if (facilityPageRows.length) {
   const reorderedRows = structuredClone(rows);
-  const facility = reorderedRows.find((row) => row.collection === "facilities");
-  facility.sort_order = -1;
+  const sourceFacilityPage = facilityPageRows.at(-1);
+  const facilityPage = reorderedRows.find((row) => String(row.id) === String(sourceFacilityPage.id));
+  const minimumSortOrder = Math.min(...facilityPageRows.map((row) => Number(row.sort_order)));
+  facilityPage.sort_order = minimumSortOrder - 1;
   const firstFacility = assembleBootstrap(reorderedRows, "en").rsacOfficialSections
     .find((section) => section.key === "facilities")?.pages?.[0];
-  const expectedTitle = String(facility.data_en?.title || "").toLowerCase();
-  if (!firstFacility || !String(firstFacility.title || "").toLowerCase().includes(expectedTitle)) {
-    problems.push("Facility Ordering Data sort edit does not reorder public facility cards.");
+  const expectedSlug = sourceFacilityPage.data_en?.slug || sourceFacilityPage.entry_key;
+  if (!firstFacility || firstFacility.slug !== expectedSlug) {
+    problems.push("Facility page display-order edit does not reorder public facility cards.");
   }
 }
 
