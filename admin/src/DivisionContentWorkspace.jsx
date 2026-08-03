@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, Eye, EyeOff, Languages, Plus, Save, Search, Trash2, UserRound } from "lucide-react";
 import FieldInput from "./FieldInput";
+import { usesCompositeFieldContainer } from "./fieldContainer";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import { ImportedContentFields } from "./BlockEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
@@ -458,7 +459,8 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
         <div className="editor-fields">
           {pageFields.map((field) => {
             const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
-            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+            const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
+            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>;
           })}
         </div>
       </section>

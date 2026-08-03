@@ -314,6 +314,13 @@ const comparable = (value) => String(value || "").toLowerCase()
   .replace(/[^\p{Letter}\p{Number}]+/gu, "");
 
 const matchingOrderingRecord = (page, records) => {
+  const linkedDivisionKey = String(page.divisionKey || "").trim();
+  if (linkedDivisionKey) {
+    const linkedRecord = records.find((record) =>
+      String(record.key || record.entryKey || record.divisionKey || "").trim() === linkedDivisionKey
+    );
+    if (linkedRecord) return linkedRecord;
+  }
   const pageTitle = comparable(page.title);
   const pageSlug = comparable(String(page.slug || "").replace(/amp/g, ""));
   return records.find((record) => {
@@ -452,8 +459,12 @@ export const assembleBootstrap = (rows, language = "en") => {
   });
   const siteSettings = structuredClone(first("site_settings")?.settings || {});
   const homepageFeatures = list("homepage_features").map((item) => ({
-    ...item,
+    id: item.id,
+    key: item.key,
+    title: item.title,
+    path: item.path,
     buttonPath: item.buttonPath || item.path,
+    iconKey: item.iconKey,
     icon: item.icon || item.iconKey,
   }));
   siteSettings.homeSections = { ...(siteSettings.homeSections || {}), featureTabs: homepageFeatures };

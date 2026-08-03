@@ -84,8 +84,8 @@ function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "im
     }
   };
   return (
-    <label>
-      {label}
+    <div className="composite-control block-media-control">
+      <span>{label}</span>
       <div className="block-media-field">
         <div className="block-media-field__selection">
           <span>{value ? selectedFileName(value) : "No file selected"}</span>
@@ -103,7 +103,7 @@ function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "im
         </details>
         {showPreview && value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -283,7 +283,7 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
                 <>
                   {block.type !== "divider" && <label>Section heading<input value={block.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>}
                   {["hero", "callout"].includes(block.type) && <label>Text<textarea rows="3" value={block.text || ""} onChange={(event) => update(index, { text: event.target.value })} /></label>}
-                  {block.type === "rich_text" && <label>Formatted paragraph<SectionRichTextEditor value={block.html} onChange={(html) => update(index, { html })} ariaLabel={`${sourceLabel} formatted paragraph`} /></label>}
+                  {block.type === "rich_text" && <div className="composite-control block-rich-text-control"><span>Formatted paragraph</span><SectionRichTextEditor value={block.html} onChange={(html) => update(index, { html })} ariaLabel={`${sourceLabel} formatted paragraph`} /></div>}
                   {["hero", "image"].includes(block.type) && <><BlockMediaField label="Image" value={block.image} onChange={(image) => update(index, { image })} onBusy={onBusy} onError={onError} /><label>Image alt text<input value={block.alt || ""} onChange={(event) => update(index, { alt: event.target.value })} /></label>{block.type === "image" && <label>Image caption<input value={block.caption || ""} onChange={(event) => update(index, { caption: event.target.value })} /></label>}</>}
                   <StructuredItems block={block} onChange={(patch) => update(index, patch)} onBusy={onBusy} onError={onError} />
                 </>

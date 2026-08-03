@@ -4705,6 +4705,10 @@ html:not(.rsac-high-contrast) .rsac-effect-card:focus-within {
 .rsac-rich-content [data-rsac-inline-align="center"] { text-align: center; }
 .rsac-rich-content [data-rsac-inline-align="end"] { text-align: right; }
 .rsac-rich-content [data-rsac-inline-align="justify"] { text-align: justify; }
+html:not(.rsac-high-contrast) .rsac-rich-content [data-rsac-color] {
+  color: var(--rsac-text-color) !important;
+}
+.rsac-high-contrast .rsac-rich-content span[data-rsac-color] { color: CanvasText !important; }
 
 /* ============================================================
    SURVEY-STATION PULSE (2026-07-04)

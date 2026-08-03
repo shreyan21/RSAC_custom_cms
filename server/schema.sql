@@ -9,10 +9,14 @@ CREATE TABLE IF NOT EXISTS cms_users (
   display_name text NOT NULL,
   password_hash text NOT NULL,
   role text NOT NULL DEFAULT 'editor' CHECK (role IN ('admin', 'editor')),
+  permissions jsonb NOT NULL DEFAULT '{"homepage":true,"about":true,"divisions":true,"facilities":true,"academics":true,"people":true,"geoportals":true,"flood":true,"gallery":true,"mobile_apps":true,"public_information":true,"tenders":true,"faq":true,"notices":true,"navigation":true,"standalone_pages":true,"feedback":true,"audit":true}'::jsonb,
   active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE cms_users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL
+  DEFAULT '{"homepage":true,"about":true,"divisions":true,"facilities":true,"academics":true,"people":true,"geoportals":true,"flood":true,"gallery":true,"mobile_apps":true,"public_information":true,"tenders":true,"faq":true,"notices":true,"navigation":true,"standalone_pages":true,"feedback":true,"audit":true}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS cms_entries (
   id uuid PRIMARY KEY DEFAULT cms_random_uuid(),

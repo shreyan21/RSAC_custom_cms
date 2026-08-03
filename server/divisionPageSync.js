@@ -23,6 +23,11 @@ export const isDivisionPage = (row) =>
 
 export const divisionMatchesPage = (division, page) => {
   if (!division || !page || !isDivisionPage(page)) return false;
+  const divisionKey = compact(
+    division?.entry_key || division?.entryKey || division?.key || rowData(division).divisionKey
+  );
+  const linkedDivisionKey = compact(rowData(page).divisionKey);
+  if (divisionKey && linkedDivisionKey && divisionKey === linkedDivisionKey) return true;
   const divisionValues = identityValues(division);
   const pageValues = identityValues(page);
   return divisionValues.some((divisionValue) =>
@@ -102,7 +107,10 @@ export const buildDivisionPageData = (divisionRow) => {
   const title = compact(english.title) || "Division";
   return {
     entryKey: slug,
-    dataEn: pageLanguageData(english, title, slug, false),
+    dataEn: {
+      ...pageLanguageData(english, title, slug, false),
+      divisionKey: divisionRow?.entry_key || divisionRow?.entryKey || slug,
+    },
     dataHi: pageLanguageData(hindi, title, slug, true),
   };
 };
@@ -151,15 +159,23 @@ export const syncDivisionPage = async (
   if (page) {
     const nextStatus = divisionRow.status;
     const nextSortOrder = sortOrderOf(divisionRow);
-    if (page.status === nextStatus && sortOrderOf(page) === nextSortOrder) {
+    const divisionKey = divisionRow.entry_key || divisionRow.entryKey;
+    const nextDataEn = page.data_en?.divisionKey === divisionKey
+      ? page.data_en
+      : { ...(page.data_en || {}), divisionKey };
+    if (
+      page.status === nextStatus &&
+      sortOrderOf(page) === nextSortOrder &&
+      nextDataEn === page.data_en
+    ) {
       return { row: page, before: page, created: false, changed: false };
     }
     const updated = (await client.query(
       `UPDATE cms_entries
-          SET status=$1, sort_order=$2, version=version+1, updated_by=$3
-        WHERE id=$4
+          SET status=$1, sort_order=$2, data_en=$3, version=version+1, updated_by=$4
+        WHERE id=$5
         RETURNING *`,
-      [nextStatus, nextSortOrder, actorId, page.id]
+      [nextStatus, nextSortOrder, nextDataEn, actorId, page.id]
     )).rows[0];
     return { row: updated, before: page, created: false, changed: true };
   }

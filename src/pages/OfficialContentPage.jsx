@@ -6950,9 +6950,9 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
   return (
     <PageShell
       className={`rsac-official-detail-page${isDivision ? " rsac-division-detail-page" : ""}`}
-      eyebrow={isDivision ? undefined : section.eyebrow}
+      eyebrow={page.eyebrow || (isDivision ? undefined : section.eyebrow)}
       title={localizeOfficialText(t(page.title), language)}
-      intro={isDivision ? undefined : localizeOfficialText(page.summary || page.preview, language)}
+      intro={localizeOfficialText(page.summary || page.preview, language)}
       largeEyebrow={false}
       density="compact"
       headingSize={page.headingSize}

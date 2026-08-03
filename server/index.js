@@ -10,6 +10,14 @@ import { mkdirSync } from "node:fs";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { collections, getCollection } from "../shared/cmsCollections.js";
+import {
+  cmsPermissionKeys,
+  createCmsPermissions,
+  hasCmsPermission,
+  normalizeCmsPermissions,
+  permissionForCmsEntry,
+  permissionOptionsForCollection,
+} from "../shared/cmsPermissions.js";
 import { config } from "./config.js";
 import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
@@ -31,7 +39,9 @@ const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: tru
 // The folder is intentionally gitignored and may not exist on a fresh checkout.
 ensureUploadDirectory();
 
+const defaultPermissionsJson = JSON.stringify(createCmsPermissions(true)).replaceAll("'", "''");
 await pool.query(`
+  ALTER TABLE cms_users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL DEFAULT '${defaultPermissionsJson}'::jsonb;
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_status text NOT NULL DEFAULT 'pending';
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_attempts integer NOT NULL DEFAULT 0;
@@ -454,6 +464,20 @@ app.get("/api/visits", async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+const presentAuthenticatedUser = (row) => ({
+  id: row.id,
+  username: row.username,
+  displayName: row.display_name,
+  role: row.role,
+  permissions: normalizeCmsPermissions(row.permissions, row.role),
+});
+
+const assertStrongPassword = (password) => {
+  if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
+    throw Object.assign(new Error("Password must be at least 12 characters with upper-case, lower-case and a number"), { status: 400 });
+  }
+};
+
 app.post("/api/auth/login", loginLimiter, async (req, res, next) => {
   try {
     const username = String(req.body?.username || "").trim().toLowerCase();
@@ -466,12 +490,38 @@ app.post("/api/auth/login", loginLimiter, async (req, res, next) => {
     await pool.query("DELETE FROM cms_sessions WHERE expires_at <= now()");
     const session = await createSession(user.id);
     res.cookie(sessionCookie, session.token, { ...sessionCookieOptions, expires: session.expiresAt });
-    res.json({ user: { id: user.id, username: user.username, displayName: user.display_name, role: user.role }, csrfToken: session.csrfToken });
+    res.json({ user: presentAuthenticatedUser(user), csrfToken: session.csrfToken });
   } catch (error) { next(error); }
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
-  res.json({ user: { id: req.cmsUser.id, username: req.cmsUser.username, displayName: req.cmsUser.display_name, role: req.cmsUser.role }, csrfToken: req.cmsUser.csrf_token });
+  res.json({ user: presentAuthenticatedUser(req.cmsUser), csrfToken: req.cmsUser.csrf_token });
+});
+
+app.post("/api/auth/change-password", writeLimiter, requireAuth, requireCsrf, async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
+    assertStrongPassword(newPassword);
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: "Choose a new password that is different from the current password" });
+    }
+    const { rows } = await pool.query("SELECT password_hash FROM cms_users WHERE id=$1", [req.cmsUser.id]);
+    if (!rows[0] || !(await bcrypt.compare(currentPassword, rows[0].password_hash))) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await withTransaction(async (client) => {
+      await client.query("UPDATE cms_users SET password_hash=$1 WHERE id=$2", [passwordHash, req.cmsUser.id]);
+      await client.query("DELETE FROM cms_sessions WHERE user_id=$1 AND id<>$2", [req.cmsUser.id, req.cmsUser.session_id]);
+      await client.query(
+        `INSERT INTO cms_audit_log (user_id,action,collection,entry_id,entry_key,after_data,ip_address)
+         VALUES ($1,'change_own_password','users',$1,$2,$3,$4)`,
+        [req.cmsUser.id, req.cmsUser.username, { changed: true }, req.ip]
+      );
+    });
+    res.json({ ok: true });
+  } catch (error) { next(error); }
 });
 
 app.post("/api/auth/logout", requireAuth, requireCsrf, async (req, res, next) => {
@@ -483,12 +533,85 @@ app.post("/api/auth/logout", requireAuth, requireCsrf, async (req, res, next) =>
 });
 
 app.use("/api/admin", requireAuth);
+
+const permissionError = (message = "Your account does not have permission for this CMS area") =>
+  Object.assign(new Error(message), { status: 403 });
+
+const canAccessAny = (user, keys) => keys.some((key) => hasCmsPermission(user, key));
+const canAccessCollection = (user, collection) => (
+  user?.role === "admin" || canAccessAny(user, permissionOptionsForCollection(collection))
+);
+const canAccessEntry = (user, collection, entry) => {
+  if (user?.role === "admin") return true;
+  if (collection === "site_settings") return canAccessCollection(user, collection);
+  const permission = permissionForCmsEntry(collection, entry);
+  return Boolean(permission && hasCmsPermission(user, permission));
+};
+const assertCollectionAccess = (req, collection) => {
+  if (!canAccessCollection(req.cmsUser, collection)) throw permissionError();
+};
+const assertEntryAccess = (req, collection, entry) => {
+  if (!canAccessEntry(req.cmsUser, collection, entry)) throw permissionError();
+};
+
+const peopleSettingPrefixes = [
+  "cards",
+  "pageContent.ourFormers",
+  "pageContent.leadership",
+  "pageContent.scientists",
+  "pageContent.technicalStaff",
+  "pageContent.administration",
+  "pageContent.manpower",
+  "pageContent.organisationChart",
+  "organisationChart",
+];
+const floodSettingPrefixes = ["pageContent.floodReports", "floodSection"];
+const pathMatchesPrefix = (path, prefix) => path === prefix || path.startsWith(`${prefix}.`);
+const permissionForSettingPath = (path) => {
+  if (peopleSettingPrefixes.some((prefix) => pathMatchesPrefix(path, prefix))) return "people";
+  if (floodSettingPrefixes.some((prefix) => pathMatchesPrefix(path, prefix))) return "flood";
+  return "homepage";
+};
+const changedSettingPaths = (before, after, prefix = "") => {
+  if (Object.is(before, after)) return [];
+  const beforeObject = before && typeof before === "object" && !Array.isArray(before);
+  const afterObject = after && typeof after === "object" && !Array.isArray(after);
+  if (!beforeObject || !afterObject) return [prefix];
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys].flatMap((key) => changedSettingPaths(
+    before[key],
+    after[key],
+    prefix ? `${prefix}.${key}` : key
+  ));
+};
+const assertSiteSettingsChanges = (req, before, dataEn, dataHi) => {
+  if (req.cmsUser.role === "admin") return;
+  const paths = new Set([
+    ...changedSettingPaths(before.data_en?.settings || {}, dataEn?.settings || {}),
+    ...changedSettingPaths(before.data_hi?.settings || {}, dataHi?.settings || {}),
+  ]);
+  for (const path of paths) {
+    const permission = permissionForSettingPath(path);
+    if (!hasCmsPermission(req.cmsUser, permission)) {
+      throw permissionError(`Your account cannot edit the ${permission.replaceAll("_", " ")} settings`);
+    }
+  }
+};
+const contentPermissionKeys = cmsPermissionKeys.filter((key) => !["feedback", "audit"].includes(key));
+const requireAnyContentPermission = (req, res, next) => {
+  if (req.cmsUser.role !== "admin" && !canAccessAny(req.cmsUser, contentPermissionKeys)) {
+    return res.status(403).json({ error: "Your account does not have permission to manage website media" });
+  }
+  next();
+};
+
 app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next) => {
   try {
     const collection = String(req.body?.collection || "");
     const entry = req.body?.entry || {};
     const { definition, dataEn, dataHi, sortOrder } = validateEntryPayload(collection, entry);
     const entryKey = entryKeyFor(entry, dataEn);
+    assertEntryAccess(req, definition.id, { ...entry, entry_key: entryKey, data_en: dataEn });
     const now = new Date();
     deleteExpiredPreviews();
     const requestedToken = String(req.body?.token || "").trim();
@@ -521,13 +644,12 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
     });
   } catch (error) { next(error); }
 });
-app.get("/api/admin/schema", (_req, res) => res.json({ collections }));
+app.get("/api/admin/schema", (req, res) => res.json({
+  collections: collections.filter((definition) => canAccessCollection(req.cmsUser, definition.id)),
+}));
 
 const cleanUser = (row) => ({
-  id: row.id,
-  username: row.username,
-  displayName: row.display_name,
-  role: row.role,
+  ...presentAuthenticatedUser(row),
   active: row.active,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -540,15 +662,16 @@ const validateUserInput = (body, { passwordRequired = false } = {}) => {
   const password = String(body?.password || "");
   if (!/^[a-z0-9._-]{3,50}$/.test(username)) throw Object.assign(new Error("Username must be 3-50 letters, numbers, dots, underscores or hyphens"), { status: 400 });
   if (!displayName) throw Object.assign(new Error("Display name is required"), { status: 400 });
-  if ((passwordRequired || password) && (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password))) {
-    throw Object.assign(new Error("Password must be at least 12 characters with upper-case, lower-case and a number"), { status: 400 });
-  }
-  return { username, displayName, role, password };
+  if (passwordRequired || password) assertStrongPassword(password);
+  const permissions = body?.permissions && typeof body.permissions === "object" && !Array.isArray(body.permissions)
+    ? normalizeCmsPermissions(body.permissions, role)
+    : null;
+  return { username, displayName, role, password, permissions };
 };
 
 app.get("/api/admin/users", requireAdmin, async (_req, res, next) => {
   try {
-    const { rows } = await pool.query("SELECT id,username,display_name,role,active,created_at,updated_at FROM cms_users ORDER BY active DESC, role, display_name");
+    const { rows } = await pool.query("SELECT id,username,display_name,role,permissions,active,created_at,updated_at FROM cms_users ORDER BY active DESC, role, display_name");
     res.json({ data: rows.map(cleanUser) });
   } catch (error) { next(error); }
 });
@@ -558,9 +681,9 @@ app.post("/api/admin/users", writeLimiter, requireAdmin, requireCsrf, async (req
     const input = validateUserInput(req.body, { passwordRequired: true });
     const passwordHash = await bcrypt.hash(input.password, 12);
     const { rows } = await pool.query(
-      `INSERT INTO cms_users (username,display_name,password_hash,role)
-       VALUES ($1,$2,$3,$4) RETURNING id,username,display_name,role,active,created_at,updated_at`,
-      [input.username, input.displayName, passwordHash, input.role]
+      `INSERT INTO cms_users (username,display_name,password_hash,role,permissions)
+       VALUES ($1,$2,$3,$4,$5) RETURNING id,username,display_name,role,permissions,active,created_at,updated_at`,
+      [input.username, input.displayName, passwordHash, input.role, input.permissions || createCmsPermissions(false)]
     );
     await pool.query(
       `INSERT INTO cms_audit_log (user_id,action,collection,entry_id,entry_key,after_data,ip_address)
@@ -586,10 +709,11 @@ app.put("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (
         if (admins <= 1) throw Object.assign(new Error("At least one active administrator is required"), { status: 400 });
       }
       const passwordHash = input.password ? await bcrypt.hash(input.password, 12) : before.password_hash;
+      const permissions = input.permissions || normalizeCmsPermissions(before.permissions, input.role);
       const updated = (await client.query(
-        `UPDATE cms_users SET username=$1,display_name=$2,role=$3,active=$4,password_hash=$5
-         WHERE id=$6 RETURNING id,username,display_name,role,active,created_at,updated_at`,
-        [input.username, input.displayName, input.role, active, passwordHash, req.params.id]
+        `UPDATE cms_users SET username=$1,display_name=$2,role=$3,active=$4,password_hash=$5,permissions=$6
+         WHERE id=$7 RETURNING id,username,display_name,role,permissions,active,created_at,updated_at`,
+        [input.username, input.displayName, input.role, active, passwordHash, permissions, req.params.id]
       )).rows[0];
       if (input.password || !active) await client.query("DELETE FROM cms_sessions WHERE user_id=$1", [req.params.id]);
       await client.query(
@@ -603,7 +727,7 @@ app.put("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (
   } catch (error) { next(error); }
 });
 
-app.get("/api/admin/collections", async (_req, res, next) => {
+app.get("/api/admin/collections", async (req, res, next) => {
   try {
     const [{ rows }, divisionOptions] = await Promise.all([
       pool.query(
@@ -616,7 +740,9 @@ app.get("/api/admin/collections", async (_req, res, next) => {
       liveDivisionOptions(pool),
     ]);
     const counts = new Map(rows.map((row) => [row.collection, row]));
-    const definitions = collections.map((item) => ({
+    const definitions = collections
+      .filter((item) => canAccessCollection(req.cmsUser, item.id))
+      .map((item) => ({
       ...item,
       fields: item.id === "division_section_items"
         ? item.fields.map((field) =>
@@ -632,12 +758,13 @@ app.get("/api/admin/collections", async (_req, res, next) => {
 app.get("/api/admin/content/:collection", async (req, res, next) => {
   try {
     if (!getCollection(req.params.collection)) return res.status(404).json({ error: "Unknown collection" });
+    assertCollectionAccess(req, req.params.collection);
     const { rows } = await pool.query(
       "SELECT * FROM cms_entries WHERE collection=$1 ORDER BY status='archived', sort_order, updated_at DESC",
       [req.params.collection]
     );
     res.set("Cache-Control", "no-store");
-    res.json({ data: rows.map(publicEntry) });
+    res.json({ data: rows.filter((row) => canAccessEntry(req.cmsUser, req.params.collection, row)).map(publicEntry) });
   } catch (error) { next(error); }
 });
 
@@ -650,6 +777,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
     const { definition, dataEn, dataHi, status, sortOrder } = validateEntryPayload(req.params.collection, req.body || {});
     const automaticEntryKey = !String(req.body?.entryKey || "").trim();
     let baseEntryKey = entryKeyFor(req.body, dataEn);
+    assertEntryAccess(req, definition.id, { ...req.body, entry_key: baseEntryKey, data_en: dataEn });
     if (definition.autoNewestFirst && automaticEntryKey) baseEntryKey = `${baseEntryKey}-${randomUUID().slice(0, 8)}`;
     const row = await withTransaction(async (client) => {
       if (definition.singleton) {
@@ -693,11 +821,16 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
     const row = await withTransaction(async (client) => {
       const before = await client.query("SELECT * FROM cms_entries WHERE id=$1 AND collection=$2 FOR UPDATE", [req.params.id, definition.id]);
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
+      assertEntryAccess(req, definition.id, before.rows[0]);
+      assertEntryAccess(req, definition.id, { ...before.rows[0], entry_key: entryKey, data_en: dataEn });
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
       if (definition.id === "page_display_settings") await assertUniquePageDisplayPath(client, dataEn, status, req.params.id);
       let nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
       let nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
+      if (definition.id === "site_settings") {
+        assertSiteSettingsChanges(req, before.rows[0], nextDataEn, nextDataHi);
+      }
       let formerRosterProfileChanges = [];
       if (definition.id === "pages") {
         const preparedRoster = await prepareFormerRosterSave(
@@ -756,6 +889,7 @@ app.delete("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, asyn
     const row = await withTransaction(async (client) => {
       const before = await client.query("SELECT * FROM cms_entries WHERE id=$1 AND collection=$2 FOR UPDATE", [req.params.id, req.params.collection]);
       if (!before.rows[0]) throw Object.assign(new Error("Content item not found"), { status: 404 });
+      assertEntryAccess(req, req.params.collection, before.rows[0]);
       const archived = await client.query("UPDATE cms_entries SET status='archived', version=version+1, updated_by=$1 WHERE id=$2 RETURNING *", [req.cmsUser.id, req.params.id]);
       await audit(client, req, "archive", archived.rows[0], before.rows[0], archived.rows[0]);
       if (req.params.collection === "divisions") {
@@ -808,7 +942,7 @@ const upload = multer({
   },
 });
 
-app.post("/api/admin/media", writeLimiter, requireCsrf, upload.single("file"), async (req, res, next) => {
+app.post("/api/admin/media", writeLimiter, requireCsrf, requireAnyContentPermission, upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: "File is required" });
     const publicUrl = `${config.publicUrl}/uploads/${req.file.filename}`;
@@ -821,15 +955,19 @@ app.post("/api/admin/media", writeLimiter, requireCsrf, upload.single("file"), a
   } catch (error) { next(error); }
 });
 
-app.get("/api/admin/media", async (_req, res, next) => {
+app.get("/api/admin/media", async (req, res, next) => {
   try {
+    if (req.cmsUser.role !== "admin" && !canAccessAny(req.cmsUser, contentPermissionKeys)) {
+      throw permissionError("Your account does not have permission to view website media");
+    }
     const { rows } = await pool.query("SELECT * FROM cms_media ORDER BY created_at DESC LIMIT 500");
     res.json({ data: rows });
   } catch (error) { next(error); }
 });
 
-app.get("/api/admin/audit", async (_req, res, next) => {
+app.get("/api/admin/audit", async (req, res, next) => {
   try {
+    if (!hasCmsPermission(req.cmsUser, "audit")) throw permissionError();
     const { rows } = await pool.query(
       `SELECT a.id, a.action, a.collection, a.entry_key, a.created_at, u.username, u.display_name
        FROM cms_audit_log a LEFT JOIN cms_users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 250`
@@ -838,8 +976,9 @@ app.get("/api/admin/audit", async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get("/api/admin/feedback", async (_req, res, next) => {
+app.get("/api/admin/feedback", async (req, res, next) => {
   try {
+    if (!hasCmsPermission(req.cmsUser, "feedback")) throw permissionError();
     const { rows } = await pool.query("SELECT * FROM cms_feedback ORDER BY created_at DESC LIMIT 500");
     res.json({ data: rows });
   } catch (error) { next(error); }
@@ -847,6 +986,7 @@ app.get("/api/admin/feedback", async (_req, res, next) => {
 
 app.post("/api/admin/feedback/:id/send", writeLimiter, requireCsrf, async (req, res, next) => {
   try {
+    if (!hasCmsPermission(req.cmsUser, "feedback")) throw permissionError();
     if (!feedbackMailConfigured()) {
       return res.status(503).json({ error: "Feedback email is not configured on this server" });
     }

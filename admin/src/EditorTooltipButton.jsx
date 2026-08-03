@@ -1,11 +1,12 @@
 import { useId } from "react";
 
 export default function EditorTooltipButton({
-  active = false,
+  active,
   className = "",
   description,
   disabled = false,
   label,
+  onMouseDown,
   onClick,
   children,
 }) {
@@ -20,6 +21,12 @@ export default function EditorTooltipButton({
         disabled={disabled}
         aria-label={accessibleLabel}
         aria-describedby={tooltipId}
+        aria-pressed={active === undefined ? undefined : Boolean(active)}
+        onMouseDown={(event) => {
+          // Keep the editor selection intact while a formatting control is used.
+          event.preventDefault();
+          onMouseDown?.(event);
+        }}
         onClick={onClick}
       >
         {children}

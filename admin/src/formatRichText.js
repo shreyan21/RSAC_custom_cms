@@ -30,7 +30,7 @@ export const formatRichTextHtml = (html) => {
   root.querySelectorAll("ul,ol").forEach((list) => {
     if (![...list.children].some((child) => child.tagName === "LI")) list.remove();
   });
-  root.querySelectorAll("strong,em,u,span").forEach((element) => {
+  root.querySelectorAll("strong,em,u,span,mark").forEach((element) => {
     if (!hasVisibleContent(element)) element.remove();
   });
 

@@ -36,6 +36,7 @@
     "cms:test-section-items": "node scripts/cms-section-item-test.mjs",
     "cms:align-bilingual-layouts": "node scripts/align-bilingual-rich-text-layouts.mjs --apply",
     "cms:test-divisions": "node scripts/cms-division-sync-test.mjs",
+    "cms:test-page-write-through": "node scripts/cms-division-facility-write-through-audit.mjs",
     "cms:test-former-roster": "node scripts/cms-former-roster-sync-test.mjs",
     "cms:sync-former-photos": "node scripts/sync-former-profile-photos.mjs",
     "cms:test-visibility": "node scripts/cms-visibility-controls-test.mjs",

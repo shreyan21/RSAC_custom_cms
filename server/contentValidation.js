@@ -1,11 +1,12 @@
 import sanitizeHtml from "sanitize-html";
 import { getCollection } from "../shared/cmsCollections.js";
+import { normalizeTextColor, textColorStyle } from "../shared/richTextColor.js";
 
 const richTextOptions = {
   allowedTags: [
     "p", "br", "hr", "strong", "em", "u", "s", "strike", "h2", "h3", "h4", "h5",
     "ul", "ol", "li", "blockquote", "a", "img", "figure", "figcaption",
-    "table", "thead", "tbody", "tr", "th", "td", "caption", "span", "div",
+    "table", "thead", "tbody", "tr", "th", "td", "caption", "span", "mark", "div",
   ],
   allowedAttributes: {
     a: ["href", "target", "rel", "title"],
@@ -19,14 +20,45 @@ const richTextOptions = {
     th: ["colspan", "rowspan", "colwidth", "scope", "data-rsac-align"],
     td: ["colspan", "rowspan", "colwidth", "data-rsac-align"],
     li: ["data-rsac-added-item"],
-    span: ["data-rsac-tone", "data-rsac-font", "data-rsac-size", "data-rsac-inline-align"],
+    span: ["data-rsac-tone", "data-rsac-font", "data-rsac-size", "data-rsac-inline-align", "data-rsac-color", "style"],
+    mark: ["data-rsac-highlight"],
     "*": ["lang"],
+  },
+  allowedStyles: {
+    span: {
+      "--rsac-text-color": [/^#[0-9a-f]{6}$/iu],
+      color: [/^#[0-9a-f]{6}$/iu],
+    },
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],
   allowedSchemesByTag: { img: ["http", "https", "data"] },
   transformTags: {
     a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }, true),
     img: sanitizeHtml.simpleTransform("img", { loading: "lazy" }, true),
+    span: (tagName, attributes) => {
+      const color = normalizeTextColor(attributes["data-rsac-color"]);
+      const attribs = {};
+      for (const name of ["data-rsac-tone", "data-rsac-font", "data-rsac-size", "data-rsac-inline-align"]) {
+        if (attributes[name]) attribs[name] = attributes[name];
+      }
+      if (color) {
+        attribs["data-rsac-color"] = color;
+        attribs.style = textColorStyle(color);
+      }
+      return { tagName, attribs };
+    },
+    mark: (_tagName, attributes) => {
+      const color = normalizeTextColor(attributes["data-rsac-highlight"]);
+      return color
+        ? {
+            tagName: "span",
+            attribs: {
+              "data-rsac-color": color,
+              style: textColorStyle(color),
+            },
+          }
+        : { tagName: "span", attribs: {} };
+    },
     strike: "s",
   },
 };

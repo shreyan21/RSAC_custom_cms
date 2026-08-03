@@ -5,7 +5,10 @@ import SectionRichTextEditor from "./SectionRichTextEditor";
 import { api, mediaPreviewUrl } from "./api";
 import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
-import { floodSettingsGroupLabels } from "./settingsGroupLabels";
+import {
+  floodSettingsGroupLabels,
+  homepageTabPageSettingsGroupLabel,
+} from "./settingsGroupLabels";
 
 const iconColumns = cmsIconOptions.map(({ value, label }) => [value, label]);
 const buttonSuggestions = cmsButtonLabelSuggestions;
@@ -409,7 +412,8 @@ const settingsGroups = [
     ],
   },
   {
-    label: "Vision, objectives, implementation and activities",
+    label: homepageTabPageSettingsGroupLabel,
+    help: "This is the complete text shown after a visitor opens Objective, Implementation, Approach or Sphere of Activities from the homepage. Tab names, icons and order are edited separately in Homepage Tab Names, Icons and Order.",
     fields: [
       ["pageContent.visionMission.back", "Back button label"],
       ["pageContent.visionMission.cards", "Vision and mission cards", "rows", [["label", "Small label"], ["title", "Card heading"], ["text", "Card text", "textarea"]]],
@@ -627,8 +631,9 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
             {columns.map(([name, fieldLabel, type = "text", options = []]) => {
               const isShared = ["shared-select", "shared-media", "shared-text"].includes(type);
               const fieldItem = isShared ? sharedItems[index] || item : item;
+              const FieldContainer = type === "media" || type === "shared-media" ? "div" : "label";
               return (
-              <label className={type === "checkbox" ? "settings-row-checkbox" : undefined} key={name}>
+              <FieldContainer className={`settings-row-field${type === "checkbox" ? " settings-row-checkbox" : ""}`} key={name}>
                 <span>{fieldLabel}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "media" || type === "shared-media"
                   ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={fieldItem?.[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
@@ -641,7 +646,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
                   : type === "select" || type === "shared-select"
                       ? <select value={fieldItem?.[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)}><option value="">Select</option>{options.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
                       : <input value={fieldItem?.[name] || ""} onChange={(event) => updateColumn(index, name, event.target.value, type)} />}
-              </label>
+              </FieldContainer>
               );
             })}
           </div>
@@ -794,8 +799,9 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
           const isShared = sharedSettingsPaths.has(path);
           const source = isShared ? sharedSettings : value;
           const updateSource = isShared ? updateSharedSettings : onChange;
+          const FieldContainer = type === "media" ? "div" : "label";
           return (
-          <label key={path}>
+          <FieldContainer className={type === "media" ? "settings-field" : undefined} key={path}>
             <span>{label}{isShared && <small>Shared by both languages</small>}</span>
             {type === "select"
               ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
@@ -810,7 +816,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
               : type === "textarea"
               ? <textarea rows="4" value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />
               : <input value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))} />}
-          </label>
+          </FieldContainer>
           );
         })())}
       </div>
@@ -878,7 +884,7 @@ function ObjectListEditor({ field, value, onChange }) {
   const rows = Array.isArray(value) ? value : [];
   const fields = objectListFields[field.name];
   const update = (index, name, nextValue) => onChange(rows.map((row, position) => position === index ? { ...row, [name]: nextValue } : row));
-  return <div className="object-list-editor">{rows.map((row, index) => <section key={index}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => <label key={name}>{label}{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : name === "path" ? <DestinationPicker value={row[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</label>)}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
+  return <div className="object-list-editor">{rows.map((row, index) => <section key={index}><header><strong>{index + 1}. {row.label || row.name || "New row"}</strong><button type="button" title="Remove row" onClick={() => onChange(rows.filter((_row, position) => position !== index))}><Trash2 /></button></header><div>{fields.map(([name, label]) => { const FieldContainer = name === "path" ? "div" : "label"; return <FieldContainer className={name === "path" ? "composite-control" : undefined} key={name}><span>{label}</span>{name === "description" || name === "information" ? <textarea rows="2" value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} /> : name === "path" ? <DestinationPicker value={row[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} /> : <input value={row[name] || ""} onChange={(event) => update(index, name, event.target.value)} />}</FieldContainer>; })}</div></section>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...rows])}><Plus /> Add row at top</button></div>;
 }
 
 function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
@@ -909,14 +915,14 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
           </header>
           <div className="section-fields">
             <label>Section heading<input value={section.heading || ""} onChange={(event) => update(index, { heading: event.target.value })} /></label>
-            <label>
-              Section text
+            <div className="composite-control section-text-control">
+              <span>Section text</span>
               <SectionRichTextEditor
                 ariaLabel={`${section.heading || `Section ${index + 1}`} text`}
                 value={section.body || ""}
                 onChange={(body) => update(index, { body })}
               />
-            </label>
+            </div>
             <label>Address<input value={section.address || ""} onChange={(event) => update(index, { address: event.target.value })} /></label>
             <details className="optional-external-link">
               <summary>Optional external webpage button</summary>

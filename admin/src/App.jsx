@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import {
   Archive, ArrowLeft, BookOpen, Building2, Check, ChevronRight, ContactRound,
   Eye, FileText, GraduationCap, History, Images, Landmark, Languages, LayoutDashboard,
-  LibraryBig, LoaderCircle, LogOut, MapPinned, Menu, MessageSquare, Microscope,
+  KeyRound, LibraryBig, LoaderCircle, LogOut, MapPinned, Menu, MessageSquare, Microscope,
   Pencil, Plus, RefreshCw, Satellite, Save, Scale, Search, ShieldCheck,
   Smartphone, UserCog, Users, UsersRound, Waves, Wrench, X,
 } from "lucide-react";
@@ -10,9 +10,21 @@ import upEmblem from "../../src/assets/images/up-emblem.webp";
 import rsacLogo from "../../src/assets/images/rsac-logo.webp";
 import { api, setCsrfToken } from "./api";
 import FieldInput from "./FieldInput";
+import { usesCompositeFieldContainer } from "./fieldContainer";
 import { fieldHelpText } from "./fieldHelpText";
 import { cmsGroups } from "./cmsGroups";
-import { floodSettingsGroupLabels } from "./settingsGroupLabels";
+import {
+  cmsPermissionAreas,
+  createCmsPermissions,
+  hasCmsPermission,
+  pagePermissionKeys,
+  permissionForCmsView,
+  publicInfoPermissionKeys,
+} from "../../shared/cmsPermissions";
+import {
+  floodSettingsGroupLabels,
+  homepageTabPageSettingsGroupLabel,
+} from "./settingsGroupLabels";
 import {
   hasMatchingSection,
   projectSection,
@@ -339,6 +351,23 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
   };
 
   const canonicalDefinitions = definitions.map((definition) => {
+    if (definition.id === "site_settings") {
+      return {
+        ...definition,
+        fields: definition.fields.map((field) =>
+          field.name === "settings"
+            ? {
+                ...field,
+                excludeSettingsGroups: [
+                  ...(field.excludeSettingsGroups || []),
+                  homepageTabPageSettingsGroupLabel,
+                  ...Object.values(floodSettingsGroupLabels),
+                ],
+              }
+            : field
+        ),
+      };
+    }
     if (definition.id === "projects") {
       return divisionWorkspace(definition, {
         label: "Division Projects",
@@ -385,9 +414,29 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
         ),
       }
     : null;
+  const homepageTabPages = siteSettingsDefinition
+    ? {
+        ...siteSettingsDefinition,
+        id: "homepage_tab_pages",
+        storageId: "site_settings",
+        label: "Objective, Approach and Activity Page Content",
+        description: "Edit every heading, introduction, list and activity group shown after opening the Objective, Implementation, Approach or Sphere of Activities homepage tab.",
+        allowCreate: false,
+        fields: siteSettingsDefinition.fields.map((field) =>
+          field.name === "settings"
+            ? {
+                ...field,
+                settingsGroupFilter: [homepageTabPageSettingsGroupLabel],
+                settingsIntro: "These fields are the live English and Hindi page content. The separate Homepage Tab Names, Icons and Order card controls only the five compact tabs on the homepage.",
+              }
+            : field
+        ),
+      }
+    : null;
 
   return [
     ...canonicalDefinitions,
+    ...(homepageTabPages ? [homepageTabPages] : []),
     ...publicInfoViews,
     ...(floodPageSettings ? [floodPageSettings] : []),
   ];
@@ -490,9 +539,10 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
             const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined;
             const sharedSettingsValue = (definition.storageId || definition.id) === "site_settings" && field.name === "settings" ? draft.dataEn?.settings : undefined;
             const setSharedSettingsValue = sharedSettingsValue === undefined ? undefined : (value) => setDraft((current) => ({ ...current, dataEn: { ...current.dataEn, settings: value } }));
-            return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>;
+            const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
+            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>;
           })}
-          {definition.fields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{definition.fields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; return <label className={`field-row field-${field.type}`} key={field.name}><span>{field.label}{field.required && " *"}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></label>; })}</details>}
+          {definition.fields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{definition.fields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label"; return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>; })}</details>}
         </section>
       </div>
     </div>
@@ -505,7 +555,8 @@ function GuideView() {
     ["Add a division section", "Open Division Page Sections, choose the division, then select Add a new section. Enter the English heading and content, switch to Hindi for its translation, preview, then Save."],
     ["Add division research or projects", "Open the required division section. Add a paragraph or list item in its rich-text box, complete English and Hindi separately, then Save."],
     ["Change text", "Open the matching collection, search the item, edit English, then हिन्दी, and Save."],
-    ["Rename a homepage tab", "Open Homepage Navigation Tabs under Homepage, select the tab, change Visible tab name in English or Hindi, and Save. Its destination page path stays unchanged."],
+    ["Rename a homepage tab", "Open Homepage Tab Names, Icons and Order under Homepage, select the tab, change Visible tab name in English or Hindi, and Save. Its destination page path stays unchanged."],
+    ["Edit a homepage tab page", "Open Objective, Approach and Activity Page Content under Homepage. This edits the complete English and Hindi content shown after opening Objective, Implementation, Approach or Sphere of Activities."],
     ["Change card order", "Open the item and set Display order: 0 first, 1 second, 2 third. Open website tabs update automatically after Save."],
     ["Hide content", "Change Status to Draft. Archive only when the item should leave normal editing lists."],
     ["Edit a person or fix a repeated card", "Open People and Our Formers, then choose the exact public group such as Current Scientists, Leadership, or Former Scientists. Search the name, keep the correct record and archive the extra."],
@@ -521,7 +572,7 @@ function GuideView() {
   ];
   const collectionGuide = [
     ["Homepage layout, text and section sizes", "Homepage, Sitemap and Global Text controls section visibility/order, per-section sizes, Hero, About, Services, Statistics, Location, Gallery and Footer text."],
-    ["Homepage cards", "Use Homepage Feature Tabs, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows."],
+    ["Homepage cards", "Use Homepage Tab Names, Icons and Order, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows."],
     ["Facilities", "Use Facilities only. It contains every facility detail page, section editor and shared photograph."],
     ["Create a division", "Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections."],
     ["Division sections", "Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Page Sections shows every section with separate English and Hindi rich editors."],
@@ -549,8 +600,20 @@ function GuideView() {
   );
 }
 
+const permissionGroups = [...new Set(cmsPermissionAreas.map((area) => area.group))].map((group) => ({
+  group,
+  areas: cmsPermissionAreas.filter((area) => area.group === group),
+}));
+
 function UsersView({ currentUser, notify }) {
-  const blank = { username: "", displayName: "", role: "editor", active: true, password: "" };
+  const newUserForm = () => ({
+    username: "",
+    displayName: "",
+    role: "editor",
+    active: true,
+    password: "",
+    permissions: createCmsPermissions(false),
+  });
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(true);
@@ -567,12 +630,96 @@ function UsersView({ currentUser, notify }) {
       notify(form.id ? "User updated." : "User created.", "success"); setForm(null); await load();
     } catch (error) { notify(error.message, "error"); }
   };
+  const updateRole = (role) => setForm((current) => ({
+    ...current,
+    role,
+    permissions: role === "admin" ? createCmsPermissions(true) : current.permissions,
+  }));
+  const updatePermission = (key, checked) => setForm((current) => ({
+    ...current,
+    permissions: { ...current.permissions, [key]: checked },
+  }));
+  const setAllPermissions = (enabled) => setForm((current) => ({
+    ...current,
+    permissions: createCmsPermissions(enabled),
+  }));
   return (
     <section className="users-view">
-      <div className="section-intro"><div><h2>CMS users</h2><p>Create editor accounts, assign roles, reset passwords, or deactivate access.</p></div><button className="primary" onClick={() => setForm(blank)}><Plus /> Add user</button></div>
-      {form && <div className="user-form"><div><h3>{form.id ? "Edit user" : "Create user"}</h3><button onClick={() => setForm(null)}><X /></button></div><div className="user-form-grid"><label>Display name<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} /></label><label>Username<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></label><label>Role<select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}><option value="editor">Editor</option><option value="admin">Administrator</option></select></label><label>{form.id ? "New password (optional)" : "Temporary password"}<input type="password" autoComplete="new-password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label><label className="inline-check"><input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active account</label></div><p>Passwords need 12+ characters, upper-case, lower-case and a number.</p><div className="editor-actions"><button className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" onClick={save}><Save /> Save user</button></div></div>}
-      <div className="content-table-wrap"><table className="content-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Last updated</th><th /></tr></thead><tbody>{users.map((item) => <tr key={item.id}><td><strong>{item.displayName}</strong>{item.id === currentUser.id && <small>Current account</small>}</td><td>{item.username}</td><td><span className="status published">{item.role}</span></td><td>{item.active ? <span className="language-ready"><Check /> Active</span> : <span className="language-missing">Inactive</span>}</td><td>{new Date(item.updatedAt).toLocaleString()}</td><td><button className="table-action" onClick={() => setForm({ ...item, password: "" })}>Edit</button></td></tr>)}</tbody></table></div>
+      <div className="section-intro"><div><h2>CMS users and permissions</h2><p>Create an account, set its first password, and choose exactly which website areas it can change.</p></div><button className="primary" onClick={() => setForm(newUserForm())}><Plus /> Add user</button></div>
+      {form && (
+        <div className="user-form">
+          <div className="user-form__heading"><div><span>Account details</span><h3>{form.id ? "Edit user" : "Create user"}</h3></div><button type="button" aria-label="Close user form" onClick={() => setForm(null)}><X /></button></div>
+          <div className="user-form-grid">
+            <label><span>Display name</span><small>The person's name shown in audit history.</small><input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+            <label><span>Username</span><small>Used when signing in. Letters, numbers, dots, underscores or hyphens.</small><input autoCapitalize="none" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
+            <label><span>Account role</span><small>Administrators manage users and always have full access.</small><select value={form.role} onChange={(event) => updateRole(event.target.value)}><option value="editor">Editor</option><option value="admin">Administrator</option></select></label>
+            <label><span>{form.id ? "Reset password (optional)" : "First temporary password"}</span><small>{form.id ? "Leave blank to keep the current password." : "Give this password securely to the new user. They can change it after signing in."}</small><input type="password" autoComplete="new-password" value={form.password || ""} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
+          </div>
+          <label className="account-status-control"><input type="checkbox" checked={form.active !== false} onChange={(event) => setForm({ ...form, active: event.target.checked })} /><span><strong>Active account</strong><small>Turn this off to prevent sign-in without deleting the account history.</small></span></label>
+          <section className="permission-editor" aria-labelledby="permission-editor-title">
+            <header><div><span>Access permissions</span><h3 id="permission-editor-title">What can this user edit?</h3><p>Check Yes only for the areas this person is responsible for. Unchecked areas are hidden and blocked by the server.</p></div>{form.role === "editor" && <div className="permission-bulk-actions"><button type="button" className="secondary" onClick={() => setAllPermissions(true)}>Select all</button><button type="button" className="secondary" onClick={() => setAllPermissions(false)}>Clear all</button></div>}</header>
+            {form.role === "admin" && <div className="permission-admin-note"><ShieldCheck /><span><strong>Administrator: full access</strong> All permissions are always enabled for administrator accounts.</span></div>}
+            {permissionGroups.map(({ group, areas }) => (
+              <fieldset key={group} disabled={form.role === "admin"}>
+                <legend>{group}</legend>
+                <div className="permission-grid">
+                  {areas.map((area) => {
+                    const checked = form.role === "admin" || form.permissions?.[area.key] === true;
+                    return (
+                      <label className={checked ? "permission-card selected" : "permission-card"} key={area.key}>
+                        <input type="checkbox" checked={checked} onChange={(event) => updatePermission(area.key, event.target.checked)} />
+                        <span><strong>{area.label}</strong><small>{area.description}</small></span>
+                        <b>{checked ? "Yes" : "No"}</b>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+          </section>
+          <p className="password-requirements">Passwords need at least 12 characters, including an upper-case letter, a lower-case letter and a number.</p>
+          <div className="editor-actions"><button className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" onClick={save}><Save /> Save user</button></div>
+        </div>
+      )}
+      <div className="content-table-wrap"><table className="content-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Access</th><th>Status</th><th>Last updated</th><th /></tr></thead><tbody>{users.map((item) => { const permissionCount = item.role === "admin" ? cmsPermissionAreas.length : cmsPermissionAreas.filter((area) => item.permissions?.[area.key]).length; return <tr key={item.id}><td><strong>{item.displayName}</strong>{item.id === currentUser.id && <small>Current account</small>}</td><td>{item.username}</td><td><span className="status published">{item.role}</span></td><td><strong>{item.role === "admin" ? "All areas" : `${permissionCount} of ${cmsPermissionAreas.length}`}</strong></td><td>{item.active ? <span className="language-ready"><Check /> Active</span> : <span className="language-missing">Inactive</span>}</td><td>{new Date(item.updatedAt).toLocaleString()}</td><td><button className="table-action" onClick={() => setForm({ ...item, password: "", permissions: { ...item.permissions } })}>Edit</button></td></tr>; })}</tbody></table></div>
       {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading users</div>}
+    </section>
+  );
+}
+
+function PasswordView({ notify }) {
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [busy, setBusy] = useState(false);
+  const submit = async (event) => {
+    event.preventDefault();
+    if (form.newPassword !== form.confirmPassword) {
+      notify("The new password and confirmation do not match.", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }),
+      });
+      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      notify("Your password has been changed.", "success");
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="password-view">
+      <div className="section-intro"><div><h2>Change my password</h2><p>Update your own sign-in password. Other signed-in sessions for your account will be closed.</p></div></div>
+      <form className="password-panel" onSubmit={submit}>
+        <div className="password-panel__icon"><KeyRound /></div>
+        <label><span>Current password</span><input required type="password" autoComplete="current-password" value={form.currentPassword} onChange={(event) => setForm({ ...form, currentPassword: event.target.value })} /></label>
+        <label><span>New password</span><small>Use at least 12 characters with upper-case, lower-case and a number.</small><input required type="password" autoComplete="new-password" value={form.newPassword} onChange={(event) => setForm({ ...form, newPassword: event.target.value })} /></label>
+        <label><span>Confirm new password</span><input required type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} /></label>
+        <button className="primary" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Change password</button>
+      </form>
     </section>
   );
 }
@@ -667,14 +814,18 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [audit, setAudit] = useState([]);
   const notify = useCallback((message, type = "info") => setNotice(message ? { message, type } : null), []);
-  const loadCollections = useCallback(async () => {
+  const loadCollections = useCallback(async (activeUser) => {
+    if (!activeUser) return;
+    const needsPages = pagePermissionKeys.some((key) => hasCmsPermission(activeUser, key));
+    const needsPublicInfo = publicInfoPermissionKeys.some((key) => hasCmsPermission(activeUser, key));
+    const needsProfiles = hasCmsPermission(activeUser, "people");
     const [collectionResult, pageResult, publicInfoResult, profileResult] = await Promise.all([
       api("/api/admin/collections"),
-      api("/api/admin/content/pages"),
-      api("/api/admin/content/public_info"),
-      api("/api/admin/content/profiles"),
+      needsPages ? api("/api/admin/content/pages") : Promise.resolve({ data: [] }),
+      needsPublicInfo ? api("/api/admin/content/public_info") : Promise.resolve({ data: [] }),
+      needsProfiles ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] }),
     ]);
-    setCollections(buildPeopleViews(
+    const prepared = buildPeopleViews(
       buildCanonicalViews(
         buildPageViews(collectionResult.data, pageResult.data),
         pageResult.data,
@@ -682,21 +833,25 @@ export default function App() {
       ),
       pageResult.data,
       profileResult.data
-    ));
+    );
+    setCollections(prepared.filter((definition) => {
+      const permission = permissionForCmsView(definition.id);
+      return permission ? hasCmsPermission(activeUser, permission) : activeUser.role === "admin";
+    }));
   }, []);
 
-  useEffect(() => { api("/api/auth/me").then((result) => { setCsrfToken(result.csrfToken); setUser(result.user); return loadCollections(); }).catch(() => {}).finally(() => setBooting(false)); }, [loadCollections]);
+  useEffect(() => { api("/api/auth/me").then((result) => { setCsrfToken(result.csrfToken); setUser(result.user); return loadCollections(result.user); }).catch(() => {}).finally(() => setBooting(false)); }, [loadCollections]);
   const openView = (next) => { setView(next); setSelected(null); setEditing(null); setMenuOpen(false); };
-  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setFloodYear(""); setListPage(1); setMenuOpen(false); try { const [result, peopleResult] = await Promise.all([api(`/api/admin/content/${definition.storageId || definition.id}`), definition.workspace ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] })]); const fieldFiltered = definition.filterField ? result.data.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result.data; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); setProfileEntries(peopleResult.data.filter((entry) => entry.status !== "archived")); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
+  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setFloodYear(""); setListPage(1); setMenuOpen(false); try { const canReadProfiles = definition.workspace && hasCmsPermission(user, "people"); const [result, peopleResult] = await Promise.all([api(`/api/admin/content/${definition.storageId || definition.id}`), canReadProfiles ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] })]); const fieldFiltered = definition.filterField ? result.data.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result.data; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); setProfileEntries(peopleResult.data.filter((entry) => entry.status !== "archived")); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
   const addNew = (definition) => { setSelected(definition); setView("collection"); setEditing("new"); setMenuOpen(false); };
-  const refreshCollection = async () => { if (selected) await openCollection(selected); await loadCollections(); };
+  const refreshCollection = async () => { if (selected) await openCollection(selected); await loadCollections(user); };
   const archive = async (entry) => { if (!window.confirm(`Archive "${titleOf(entry)}"? It will disappear from the public website.`)) return; try { await api(`/api/admin/content/${selected.storageId || selected.id}/${entry.id}`, { method: "DELETE" }); notify("Item archived.", "success"); await refreshCollection(); } catch (error) { notify(error.message, "error"); } };
   const logout = async () => { try { await api("/api/auth/logout", { method: "POST" }); } catch { /* expired */ } setUser(null); setCsrfToken(""); };
   const showAudit = async () => { setBusy(true); openView("audit"); try { setAudit((await api("/api/admin/audit")).data); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
   const saveDivisionPage = async (draft) => {
     const result = await api(`/api/admin/content/pages/${draft.id}`, { method: "PUT", body: JSON.stringify(draft) });
     setEntries((current) => current.map((entry) => entry.id === result.data.id ? result.data : entry));
-    await loadCollections();
+    await loadCollections(user);
     return result.data;
   };
   const isFloodReportCollection =
@@ -736,7 +891,7 @@ export default function App() {
   const visibleGroups = useMemo(() => cmsGroups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
 
   if (booting) return <div className="full-loader"><LoaderCircle className="spin" /><span>Opening secure CMS...</span></div>;
-  if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(); }} />;
+  if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(nextUser); }} />;
   if (editing) return <><EntryEditor definition={selected} entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshCollection(); }} notify={notify} />{notice && <div className={`toast ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}</>;
 
   const divisionWorkspaceDefinition = collections.find((item) => item.id === "division_pages");
@@ -756,17 +911,17 @@ export default function App() {
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
         <div className="brand"><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
-        <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{divisionWorkspaceDefinition && navButton("content_workspace", <FileText />, "Division page sections", () => openCollection(divisionWorkspaceDefinition))}{navButton("guide", <BookOpen />, "Editor guide")}{navButton("feedback", <MessageSquare />, "Website feedback")}{navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}</nav>
+        <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{divisionWorkspaceDefinition && navButton("content_workspace", <FileText />, "Division page sections", () => openCollection(divisionWorkspaceDefinition))}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>
       {menuOpen && <button className="sidebar-scrim" type="button" aria-label="Close CMS navigation" onClick={() => setMenuOpen(false)} />}
       <main className="main-content">
-        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
+        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : view === "password" ? "My password" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.storageId === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
-        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose the same website area a visitor sees. Uploads and lists do not require technical addresses or code.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: about, former staff, facilities, gallery..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><CollectionCardIcon collection={collection} /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}</section>}
+        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose the same website area a visitor sees. Uploads and lists do not require technical addresses or code.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: about, former staff, facilities, gallery..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><CollectionCardIcon collection={collection} /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}{!visibleGroups.length && <div className="empty-panel">No editable website areas are assigned to this account. Ask an administrator to update your permissions.</div>}</section>}
         {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} profiles={profileEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "people_scientists"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
         {view === "collection" && selected && (
           <section className={`collection-view ${isFloodReportCollection ? "collection-view--flood" : ""}`}>
@@ -925,6 +1080,7 @@ export default function App() {
         {view === "guide" && <GuideView />}
         {view === "feedback" && <FeedbackView notify={notify} />}
         {view === "users" && user.role === "admin" && <UsersView currentUser={user} notify={notify} />}
+        {view === "password" && <PasswordView notify={notify} />}
         {view === "audit" && <section className="audit-view"><div className="section-intro"><div><h2>Recent editor activity</h2><p>Who changed which website area and when.</p></div></div><div className="content-table-wrap"><table className="content-table"><thead><tr><th>Time</th><th>Editor</th><th>Action</th><th>Collection</th><th>Item key</th></tr></thead><tbody>{audit.map((item) => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString()}</td><td>{item.display_name || item.username || "System"}</td><td><span className="status published">{item.action}</span></td><td>{item.collection || "-"}</td><td>{item.entry_key || "-"}</td></tr>)}</tbody></table></div></section>}
       </main>
     </div>

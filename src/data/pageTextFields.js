@@ -1,5 +1,6 @@
 import { decodeHtmlEntities } from "../utils/htmlEntities.js";
 import { canonicalDivisionSection } from "./divisionSectionLabels.js";
+import { normalizeTextColor } from "../../shared/richTextColor.js";
 
 const TOKEN_PATTERN = /<!--[\s\S]*?-->|<![^>]*>|<[^>]+>|[^<]+/g;
 const VOID_ELEMENTS = new Set([
@@ -46,12 +47,13 @@ export const sanitizeInlineRichText = (html, plainText = "") => {
   if (!html || typeof DOMParser === "undefined") return fallback;
 
   const parsed = new DOMParser().parseFromString(String(html), "text/html");
-  const allowed = new Set(["STRONG", "B", "EM", "I", "U", "S", "STRIKE", "A", "SPAN", "BR"]);
+  const allowed = new Set(["STRONG", "B", "EM", "I", "U", "S", "STRIKE", "A", "SPAN", "MARK", "BR"]);
   const unsafe = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED"]);
   const safeFonts = new Set(["inter", "jakarta", "system-sans", "system-serif"]);
   const safeSizes = new Set(["small", "normal", "large", "xlarge"]);
   const safeAlignments = new Set(["start", "center", "end", "justify"]);
-  Array.from(parsed.body.querySelectorAll("*")).reverse().forEach((element) => {
+  Array.from(parsed.body.querySelectorAll("*")).reverse().forEach((sourceElement) => {
+    let element = sourceElement;
     if (unsafe.has(element.tagName)) {
       element.remove();
       return;
@@ -70,15 +72,31 @@ export const sanitizeInlineRichText = (html, plainText = "") => {
     const alignment = element.tagName === "SPAN" && safeAlignments.has(element.dataset.rsacInlineAlign)
       ? element.dataset.rsacInlineAlign
       : "";
+    const textColor = element.tagName === "SPAN"
+      ? normalizeTextColor(element.dataset.rsacColor)
+      : element.tagName === "MARK"
+        ? normalizeTextColor(element.dataset.rsacHighlight)
+        : "";
     const href = element.tagName === "A" ? String(element.getAttribute("href") || "").trim() : "";
     const safeHref = href.startsWith("/") || href.startsWith("#") || /^(?:https?:|mailto:|tel:)/iu.test(href)
       ? href
       : "";
+    if (element.tagName === "MARK") {
+      const replacement = parsed.createElement("span");
+      replacement.replaceChildren(...Array.from(element.childNodes));
+      element.replaceWith(replacement);
+      element = replacement;
+    }
     Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
     if (light) element.setAttribute("data-rsac-tone", "light");
     if (font) element.setAttribute("data-rsac-font", font);
     if (size) element.setAttribute("data-rsac-size", size);
     if (alignment) element.setAttribute("data-rsac-inline-align", alignment);
+    if (textColor) {
+      element.setAttribute("data-rsac-color", textColor);
+      element.style.setProperty("--rsac-text-color", textColor);
+      element.style.color = textColor;
+    }
     if (safeHref) {
       element.setAttribute("href", safeHref);
       element.setAttribute("rel", "noopener noreferrer");

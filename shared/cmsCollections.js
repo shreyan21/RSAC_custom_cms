@@ -184,6 +184,7 @@ export const collections = [
       text("title", "Page title", { required: true }),
       plain("slug", "URL slug", { required: true, advanced: true }),
       plain("sectionKey", "Section key", { required: true, advanced: true }),
+      plain("divisionKey", "Linked division record", { hidden: true }),
       text("eyebrow", "Eyebrow"),
       textarea("summary", "Summary"),
       { name: "html", label: "Legacy imported page content", type: "richtext", localized: true, advanced: true },
@@ -432,7 +433,7 @@ export const collections = [
     fields: [text("title", "Logo title", { required: true }), text("altText", "Alt text", { required: true }), { name: "image", label: "Logo image", type: "media", localized: false }, plain("linkUrl", "Link URL", { type: "url" }), { name: "placement", label: "Placement", type: "select", localized: false, options: ["primary", "supporting", "footer"] }],
   },
   ...[
-    ["homepage_features", "Homepage Navigation Tabs", "Rename and order the five tabs shown below the homepage announcements, including Objective, Implementation, Approach, Sphere of Activities and Mobile Apps."],
+    ["homepage_features", "Homepage Tab Names, Icons and Order", "Edit only the five compact tabs shown below homepage announcements. The full Objective, Implementation, Approach and Sphere page text has its own adjacent editor."],
     ["services", "Services / Programme Cards", "Homepage services and programme cards."],
     ["applications", "Application Cards", "Homepage application cards."],
     ["quick_links", "Quick Links", "Homepage quick links."],
@@ -449,10 +450,10 @@ export const collections = [
           : undefined,
       }),
       textarea("description", id === "homepage_features" ? "Supporting description" : "Description", {
-        advanced: id === "homepage_features",
+        hidden: id === "homepage_features",
       }),
       textarea("details", id === "homepage_features" ? "Supporting detail text" : "Details", {
-        advanced: id === "homepage_features",
+        hidden: id === "homepage_features",
       }),
       plain("path", id === "homepage_features" ? "Destination page path" : "Path", {
         advanced: id === "homepage_features",

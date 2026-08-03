@@ -125,7 +125,9 @@ for (const definition of collections) {
     continue;
   }
 
-  const localizedFields = (definition.fields || []).filter((field) => field.localized !== false);
+  const localizedFields = (definition.fields || []).filter(
+    (field) => !field.hidden && field.localized !== false
+  );
   if (!localizedFields.length) {
     if (!JSON.stringify(enTarget).length || !JSON.stringify(hiTarget).length) problems.push(`${definition.id} shared settings have no public target.`);
     results.push(`${definition.id.padEnd(24)} shared            ${contract.route}`);

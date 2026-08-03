@@ -33,7 +33,7 @@ export const requireAuth = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: "Authentication required" });
     const { rows } = await pool.query(
       `SELECT s.id AS session_id, s.csrf_token, s.expires_at,
-              u.id, u.username, u.display_name, u.role
+              u.id, u.username, u.display_name, u.role, u.permissions
        FROM cms_sessions s
        JOIN cms_users u ON u.id = s.user_id
        WHERE s.token_hash = $1 AND s.expires_at > now() AND u.active = true`,
