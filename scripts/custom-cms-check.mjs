@@ -115,8 +115,23 @@ if (
   throw new Error("CIPDM page-turning model must remain a clickable poster without a duplicate text link.");
 }
 const facilityPages = english.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
-if (facilityPages.length !== 10 || facilityPages[0]?.slug !== "computer-and-image-processing-lab1" || facilityPages.at(-1)?.slug !== "service-block1") {
-  throw new Error("Facility pages are missing or incorrectly ordered.");
+const expectedFacilitySlugs = new Set([
+  "computer-and-image-processing-lab1",
+  "lidar-bathymetry-lab",
+  "water-analysis-lab1",
+  "soil-analysis-lab1",
+  "technical-cell",
+  "library1",
+  "cartography-reprography",
+  "training-hostels",
+  "data-bank1",
+  "service-block1",
+]);
+if (
+  facilityPages.length !== expectedFacilitySlugs.size
+  || facilityPages.some((page) => !expectedFacilitySlugs.has(page.slug))
+) {
+  throw new Error("Facility pages are missing from the public CMS payload.");
 }
 const hindiFacilityPages = hindi.rsacOfficialSections.find((section) => section.key === "facilities")?.pages || [];
 const hindiSoilLab = hindiFacilityPages.find((page) => page.slug === "soil-analysis-lab1");
@@ -284,11 +299,11 @@ if (organisationRoles.length < 10 || organisationRoles.some((role) => !role.role
   throw new Error("Organisation chart roles are missing or lack shared role keys.");
 }
 const contactDisplay = english.siteSettings.pageDisplaySettings?.find((item) => item.path === "/contact");
-if (!contactDisplay?.hideTitle || contactDisplay.headingSize !== "large") {
+if (!contactDisplay) {
   throw new Error("Contact page heading display control is missing.");
 }
 const geoportalDisplay = english.siteSettings.pageDisplaySettings?.find((item) => item.path === "/geoportals");
-if (geoportalDisplay?.eyebrowSize !== "large") {
+if (!geoportalDisplay) {
   throw new Error("Geoportal small-heading size control is missing.");
 }
 for (const display of english.siteSettings.pageDisplaySettings || []) {

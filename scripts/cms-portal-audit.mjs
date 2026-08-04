@@ -24,6 +24,7 @@ const virtualDashboardCollections = new Set([
   "people_former_scientists", "people_technical_staff", "people_administration",
   "rti_page", "appellate_authority_page", "memorandum_page",
   "general_service_rules_page", "feedback_page", "flood_page_settings",
+  "homepage_tab_pages",
 ]);
 const intentionallyHiddenCollections = new Set([
   "division_section_items",

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { config as loadEnv } from "dotenv";
+import { JSDOM } from "jsdom";
 import pg from "pg";
+import { addLatestSectionItem } from "../admin/src/sectionItemHtml.js";
 import { assembleBootstrap } from "../server/contentAssembler.js";
 import { validateEntryPayload } from "../server/contentValidation.js";
 import { repairDivisionPageConsistency } from "../server/divisionPageSync.js";
+import { appendNewPageAssets } from "../src/data/pageAssetFields.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) {
@@ -33,6 +36,58 @@ const sharedPageSamples = {
 
 const marker = (...parts) => `CMS_WRITE_${parts.join("_").replace(/[^a-z0-9]+/giu, "_").toUpperCase()}`;
 const clone = (value) => structuredClone(value || {});
+const dom = new JSDOM("<!doctype html><html><body></body></html>");
+globalThis.DOMParser = dom.window.DOMParser;
+
+const parseHtml = (html) => {
+  const container = dom.window.document.createElement("div");
+  container.innerHTML = String(html || "");
+  return container;
+};
+
+const tableRows = (table) => Array.from(table?.querySelectorAll("tr") || [])
+  .filter((row) => !row.closest("thead") && !row.querySelector("th"));
+
+const addAuditedNewestItem = (html, value) => {
+  const container = parseHtml(addLatestSectionItem(html, true, dom.window.document));
+  const rootList = Array.from(container.querySelectorAll("ol, ul"))
+    .find((list) => !list.closest("table") && !list.parentElement?.closest("ol, ul"));
+  let paragraph;
+  if (rootList) {
+    const item = Array.from(rootList.children).find((child) => child.tagName === "LI");
+    paragraph = item?.querySelector(":scope > p") || dom.window.document.createElement("p");
+    if (item && !paragraph.parentElement) item.append(paragraph);
+  } else {
+    const firstRow = tableRows(container.querySelector("table"))[0];
+    const cell = firstRow?.cells?.[Math.min(1, Math.max(0, (firstRow?.cells?.length || 1) - 1))];
+    paragraph = cell?.querySelector("p") || dom.window.document.createElement("p");
+    if (cell && !paragraph.parentElement) cell.append(paragraph);
+  }
+  assert.ok(paragraph, "Could not create a newest item in the section HTML.");
+  paragraph.dataset.rsacAlign = "center";
+  paragraph.innerHTML = `<strong><em><u><span data-rsac-color="#b91c1c" style="--rsac-text-color: #b91c1c; color: #b91c1c">${value}</span></u></em></strong>`;
+  return container.innerHTML;
+};
+
+const firstManagedItemText = (html) => {
+  const container = parseHtml(html);
+  const rootList = Array.from(container.querySelectorAll("ol, ul"))
+    .find((list) => !list.closest("table") && !list.parentElement?.closest("ol, ul"));
+  if (rootList) {
+    return String(Array.from(rootList.children).find((child) => child.tagName === "LI")?.textContent || "").trim();
+  }
+  return String(tableRows(container.querySelector("table"))[0]?.textContent || "").trim();
+};
+
+const auditAssets = (slug, blockId, language) => {
+  const prefix = marker(slug, blockId, "asset").toLowerCase();
+  const localized = marker(slug, blockId, "asset_label", language);
+  return [
+    { key: `${prefix}-image`, kind: "image", value: "/official-media/cms-write-through-audit.jpg", sourceValue: "/official-media/cms-write-through-audit.jpg", alt: localized, caption: localized, isNew: true, hidden: false },
+    { key: `${prefix}-video`, kind: "video", value: "/official-media/cms-write-through-audit.mp4", sourceValue: "/official-media/cms-write-through-audit.mp4", title: localized, text: localized, isNew: true, hidden: false },
+    { key: `${prefix}-document`, kind: "link", value: "/cms-media/cms-write-through-audit.pdf", sourceValue: "/cms-media/cms-write-through-audit.pdf", title: localized, text: localized, isNew: true, hidden: false },
+  ];
+};
 const publicRows = async (client) => (
   await client.query(
     `SELECT id, collection, entry_key, sort_order, data_en, data_hi, version, updated_at,
@@ -55,6 +110,9 @@ let localizedFieldCount = 0;
 let sharedFieldCount = 0;
 let sectionCount = 0;
 let divisionCardCount = 0;
+let newestItemCount = 0;
+let mediaRenderCount = 0;
+let richStyleCount = 0;
 
 try {
   await client.query("BEGIN");
@@ -99,20 +157,27 @@ try {
       const headingHi = marker(slug, blockId, "heading", "hi");
       const bodyEn = marker(slug, blockId, "body", "en");
       const bodyHi = marker(slug, blockId, "body", "hi");
+      const assetsEn = auditAssets(slug, blockId, "en");
+      const assetsHi = auditAssets(slug, blockId, "hi");
       dataEn.blocks[index] = {
         ...englishBlock,
         hidden: false,
         value: headingEn,
-        contentHtml: `<p>${bodyEn}</p>`,
+        contentHtml: addAuditedNewestItem(englishBlock.contentHtml, bodyEn),
+        assets: [...(englishBlock.assets || []), ...assetsEn],
       };
       dataHi.blocks[hindiIndex] = {
         ...hindiBlocks[hindiIndex],
         hidden: false,
         value: headingHi,
-        contentHtml: `<p>${bodyHi}</p>`,
+        contentHtml: addAuditedNewestItem(hindiBlocks[hindiIndex]?.contentHtml, bodyHi),
+        assets: [...(hindiBlocks[hindiIndex]?.assets || []), ...assetsHi],
       };
-      blockExpectations.push({ blockId, headingEn, headingHi, bodyEn, bodyHi });
+      blockExpectations.push({ blockId, headingEn, headingHi, bodyEn, bodyHi, assetsEn, assetsHi });
       sectionCount += 2;
+      newestItemCount += 2;
+      mediaRenderCount += 6;
+      richStyleCount += 2;
     });
 
     const validated = validateEntryPayload("pages", {
@@ -198,6 +263,23 @@ try {
       assert.match(String(englishBlock?.contentHtml || ""), new RegExp(blockExpected.bodyEn), `${expected.slug} English section body did not reach the website.`);
       assert.equal(hindiBlock?.value, blockExpected.headingHi, `${expected.slug} Hindi section heading did not reach the website.`);
       assert.match(String(hindiBlock?.contentHtml || ""), new RegExp(blockExpected.bodyHi), `${expected.slug} Hindi section body did not reach the website.`);
+      assert.match(String(englishBlock?.contentHtml || ""), /<strong><em><u><span[^>]+data-rsac-color="#b91c1c"/u, `${expected.slug} English rich-text styles were stripped.`);
+      assert.match(String(hindiBlock?.contentHtml || ""), /<strong><em><u><span[^>]+data-rsac-color="#b91c1c"/u, `${expected.slug} Hindi rich-text styles were stripped.`);
+      assert.match(String(englishBlock?.contentHtml || ""), /data-rsac-align="center"/u, `${expected.slug} English text alignment was stripped.`);
+      assert.match(String(hindiBlock?.contentHtml || ""), /data-rsac-align="center"/u, `${expected.slug} Hindi text alignment was stripped.`);
+      assert.ok(firstManagedItemText(englishBlock?.contentHtml).includes(blockExpected.bodyEn), `${expected.slug} English newest item was not first.`);
+      assert.ok(firstManagedItemText(hindiBlock?.contentHtml).includes(blockExpected.bodyHi), `${expected.slug} Hindi newest item was not first.`);
+
+      for (const [localizedBlock, expectedAssets, language] of [[englishBlock, blockExpected.assetsEn, "English"], [hindiBlock, blockExpected.assetsHi, "Hindi"]]) {
+        expectedAssets.forEach((asset) => {
+          assert.ok(localizedBlock?.assets?.some((candidate) => candidate.key === asset.key), `${expected.slug} ${language} ${asset.kind} did not reach the website payload.`);
+        });
+        const rendered = appendNewPageAssets(localizedBlock?.contentHtml || "", localizedBlock?.assets || []);
+        const renderedContainer = parseHtml(rendered);
+        assert.ok(renderedContainer.querySelector('figure[data-rsac-added-asset="true"] img'), `${expected.slug} ${language} added photo did not render.`);
+        assert.ok(renderedContainer.querySelector('figure.rsac-video-figure[data-rsac-added-asset="true"] video'), `${expected.slug} ${language} added video did not render.`);
+        assert.ok(renderedContainer.querySelector('p[data-rsac-added-asset="true"] a[href$=".pdf"]'), `${expected.slug} ${language} added document did not render.`);
+      }
     });
   }
 
@@ -217,6 +299,7 @@ try {
   console.log(
     `Division/facility write-through passed for ${pageCount} pages, ${localizedFieldCount} localized page fields, ` +
     `${sharedFieldCount} shared layout/media fields, ${sectionCount} localized section heading/body fields, ` +
+    `${newestItemCount} newest-first item checks, ${richStyleCount} rich-style checks, ${mediaRenderCount} media checks, ` +
     `and ${divisionCardCount} bilingual division cards. All temporary database changes were rolled back.`
   );
 } finally {

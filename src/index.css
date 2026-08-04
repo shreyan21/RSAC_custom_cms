@@ -3795,6 +3795,26 @@ html:not(.rsac-high-contrast) footer .geo-glass {
   height: 100%;
 }
 
+/* A single CMS-added image should keep the same compact card proportions as
+   images inside a media grid instead of stretching across the full section. */
+.rsac-rich-content figure[data-rsac-added-asset="true"]:not(.rsac-video-figure) {
+  display: inline-block;
+  margin: 0.5rem 0.75rem 0.75rem 0;
+  max-width: 100%;
+  vertical-align: top;
+  width: min(100%, 22rem);
+}
+
+.rsac-rich-content figure[data-rsac-added-asset="true"]:not(.rsac-video-figure) > .rsac-media-link {
+  width: 100%;
+}
+
+.rsac-rich-content .rsac-media-grid > figure[data-rsac-added-asset="true"] {
+  display: block;
+  margin: 0;
+  width: 100%;
+}
+
 .rsac-rich-content a.rsac-media-link[href],
 .rsac-rich-content .rsac-media-link {
   contain: layout paint;
