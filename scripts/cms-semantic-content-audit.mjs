@@ -37,7 +37,11 @@ try {
           String(child?.key || "").startsWith("profile-content:")
         );
         if (Object.hasOwn(block || {}, "children") && !profileOverrides) activeLegacyRows += 1;
-        if (/scientific manpower/iu.test(String(block?.sourceLabel || "")) && html.trim()) peopleBodies += 1;
+        const isDivisionPeopleSection = data?.sectionKey === "divisions" &&
+          /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(
+            `${block?.sourceLabel || ""} ${block?.value || ""}`
+          );
+        if (isDivisionPeopleSection && html.trim()) peopleBodies += 1;
       }
     }
   }

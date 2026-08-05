@@ -85,6 +85,51 @@ try {
     throw new Error(`Republished division ${targetSlug} did not return to the website.`);
   }
 
+  const collisionKey = `cms-division-collision-${Date.now()}`;
+  const collisionDivision = (await client.query(
+    `INSERT INTO cms_entries
+      (collection, entry_key, status, sort_order, data_en, data_hi)
+     VALUES ('divisions',$1,'published',$2,$3,$4)
+     RETURNING *`,
+    [
+      collisionKey,
+      Number(publishedDivision.sort_order) + 1,
+      {
+        title: page.data_en?.title || division.data_en?.title || "Division collision test",
+        slug: targetSlug,
+        lead: "Temporary transaction-only collision test.",
+        highlights: [],
+      },
+      {
+        title: "अस्थायी विभाग परीक्षण",
+        lead: "अस्थायी परीक्षण सामग्री।",
+        highlights: [],
+      },
+    ]
+  )).rows[0];
+  if (divisionMatchesPage(collisionDivision, publishedPage)) {
+    throw new Error("A new division with a colliding slug matched an existing linked page.");
+  }
+  const collisionResult = await syncDivisionPage(client, collisionDivision);
+  if (!collisionResult.created || !collisionResult.row) {
+    throw new Error("A new division with a colliding slug did not create its own page.");
+  }
+  if (collisionResult.row.entry_key === targetSlug) {
+    throw new Error("A colliding division page reused an occupied page key.");
+  }
+  if (collisionResult.row.data_en?.slug !== collisionResult.row.entry_key) {
+    throw new Error("A collision-safe page key was not copied to the public route slug.");
+  }
+  if (collisionResult.row.data_en?.divisionKey !== collisionKey) {
+    throw new Error("A newly created division page was not linked to its own card.");
+  }
+  if (!hasDivisionPage(
+    assembleBootstrap(await publishedRows(), "en"),
+    collisionResult.row.entry_key
+  )) {
+    throw new Error("A collision-safe division page is missing from the website bootstrap.");
+  }
+
   const facilityDatabaseOrder = (await client.query(
     `SELECT data_en->>'slug' AS slug
        FROM cms_entries
@@ -117,7 +162,7 @@ try {
   }
 
   console.log(
-    `Division sync passed with ${targetSlug}; ${facilityWebsiteOrder.length} facilities follow CMS display order; derived CMS cards find ${projectCount} project pages and ${publicationCount} publication/report pages.`
+    `Division sync passed with ${targetSlug}; collision-safe creation used ${collisionResult.row.entry_key}; ${facilityWebsiteOrder.length} facilities follow CMS display order; derived CMS cards find ${projectCount} project pages and ${publicationCount} publication/report pages.`
   );
 } finally {
   await client.query("ROLLBACK").catch(() => {});

@@ -60,7 +60,7 @@ const validatedPage = validateEntryPayload("pages", {
   dataHi: {
     slug: "canonical-smoke",
     sectionKey: "facilities",
-    title: "",
+    title: "Canonical smoke Hindi",
     blocks: [{ id: "intro", value: "", contentHtml: "" }],
   },
 });

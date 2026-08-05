@@ -57,6 +57,7 @@ import {
   applyPageAssetFields,
   flattenPageAssetFields,
 } from "../data/pageAssetFields";
+import { resolveCanonicalSectionPresentation } from "../data/canonicalSectionPresentation";
 import {
   applyPageTextFields,
   extractPageTextFields,
@@ -5416,21 +5417,17 @@ const CanonicalRichSections = ({ page }) => {
   const blocks = mergeSharedAssetStructure(
     page.blocks,
     page.structureAssetBlocks || page.sharedAssetBlocks
-  ).filter((block) => {
-    if (!block || block.hidden || !Object.hasOwn(block, "contentHtml")) return false;
-    const hasBody = Boolean(String(block.contentHtml || "").trim());
-    const hasMedia = flexibleItems(block.assets).some((asset) => !asset?.hidden && (asset?.value || asset?.sourceValue));
-    const isEditorCreated = String(block.id || "").startsWith("cms-section-");
-    const hasHeading = Boolean(String(block.value || "").trim());
-    return hasBody || hasMedia || (isEditorCreated && hasHeading);
-  });
+  ).map((block, index) => ({
+    block,
+    presentation: resolveCanonicalSectionPresentation(block, index),
+  })).filter(({ presentation }) => Boolean(presentation));
 
   if (!blocks.length) return null;
 
   return (
     <div className="space-y-7" data-cms-content-source="section-rich-content">
-      {blocks.map((block, index) => {
-        const heading = String(block.value || "").trim();
+      {blocks.map(({ block, presentation }, index) => {
+        const heading = presentation.heading;
         const html = appendNewPageAssets(
           String(block.contentHtml || ""),
           flexibleItems(block.assets).map((asset) => ({ ...asset, isNew: true }))
@@ -6171,7 +6168,7 @@ const resolveDivisionSectionOrder = (labels, sections) =>
     })
     .filter(Boolean);
 
-const buildCanonicalDivisionSections = (page, scientistProfiles) => {
+const buildCanonicalDivisionSections = (page, scientistProfiles, language = "en") => {
   const blocks = mergeSharedAssetStructure(
     page.blocks,
     page.structureAssetBlocks || page.sharedAssetBlocks
@@ -6182,12 +6179,14 @@ const buildCanonicalDivisionSections = (page, scientistProfiles) => {
   const usedKeys = new Map();
 
   return blocks.flatMap((block, index) => {
-    if (!block || block.hidden || !Object.hasOwn(block, "contentHtml")) return [];
-    const label = String(block.value || "").trim();
-    if (!label) return [];
-
-    const identity = `${block.sourceLabel || ""} ${block.label || ""} ${label}`;
+    const identity = `${block?.sourceLabel || ""} ${block?.label || ""} ${block?.value || ""}`;
     const peopleSection = /scientific manpower|वैज्ञानिक जनशक्ति/iu.test(identity);
+    const presentation = resolveCanonicalSectionPresentation(block, index, language, {
+      tabbed: true,
+      allowHeadingOnly: peopleSection,
+    });
+    if (!presentation) return [];
+    const { editorCreated, label } = presentation;
     const category = canonicalizeDivisionCategory(block.sourceLabel || block.label || label);
     const baseKey = category?.key || normalizeCategoryText(block.sourceLabel || label)
       .replace(/[^a-z0-9\p{Script=Devanagari}]+/giu, "-")
@@ -6196,15 +6195,14 @@ const buildCanonicalDivisionSections = (page, scientistProfiles) => {
     usedKeys.set(baseKey, occurrence);
     const key = occurrence === 1 ? baseKey : `${baseKey}-${occurrence}`;
 
-    if (peopleSection) {
-      return profiles.length ? [{ key, label, type: "profiles", profiles, contentBlock: block }] : [];
-    }
-
     const html = appendNewPageAssets(
       String(block.contentHtml || ""),
       flexibleItems(block.assets).map((asset) => ({ ...asset, isNew: true }))
     );
-    if (!String(html || "").trim()) return [];
+    if (peopleSection && profiles.length) {
+      return [{ key, label, type: "profiles", profiles, contentBlock: block }];
+    }
+    if (!String(html || "").trim() && !editorCreated) return [];
     return [{ key, label, type: "html", html }];
   });
 };
@@ -6216,7 +6214,7 @@ const DivisionCategorizedContent = ({
   const { t, language } = useLanguage();
   const sections = useMemo(() => {
     if (page.canonicalSectionContent) {
-      return buildCanonicalDivisionSections(page, scientistProfiles);
+      return buildCanonicalDivisionSections(page, scientistProfiles, language);
     }
     const preparedPage = {
       ...page,

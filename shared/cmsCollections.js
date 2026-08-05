@@ -180,6 +180,7 @@ export const collections = [
     id: "pages",
     label: "Custom Standalone Pages",
     description: "Independent pages that do not belong to another named website area.",
+    requireHindiWhenPublished: true,
     fields: [
       text("title", "Page title", { required: true }),
       plain("slug", "URL slug", { required: true, advanced: true }),
@@ -218,6 +219,7 @@ export const collections = [
     id: "divisions",
     label: "Divisions",
     description: "Division cards and summaries.",
+    requireHindiWhenPublished: true,
     fields: [text("title", "Division name", { required: true }), plain("slug", "Website page name", { required: true, advanced: true }), textarea("lead", "Lead"), { name: "highlights", label: "Highlights", type: "list", localized: true }, plain("sourceUrl", "Original source reference", { type: "url", advanced: true })],
   },
   {

@@ -179,12 +179,20 @@ const isCmsCreatedSection = (block) => String(block?.id || "").startsWith("cms-s
 
 export default function DivisionContentWorkspace({ pages, profiles = [], workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, notify }) {
   const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraftState] = useState(null);
+  const draftRef = useRef(null);
   const [sectionIndex, setSectionIndex] = useState(null);
   const [language, setLanguage] = useState("en");
   const [busy, setBusy] = useState(false);
   const richEditorRef = useRef(null);
   const { openPreview } = useLivePreview({ collection: "pages", draft, language, notify });
+
+  const setDraft = (updater) => {
+    const next = typeof updater === "function" ? updater(draftRef.current) : updater;
+    draftRef.current = next;
+    setDraftState(next);
+    return next;
+  };
 
   const filteredPages = useMemo(() => pages
     .filter((page) => `${titleOf(page)} ${page.entryKey}`.toLowerCase().includes(search.toLowerCase()))
@@ -383,7 +391,8 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   const save = async () => {
     setBusy(true);
     try {
-      const saved = await onSave(draft);
+      richEditorRef.current?.flush?.();
+      const saved = await onSave(draftRef.current);
       setDraft(structuredClone(saved));
       notify(
         saved.status === "published"
@@ -403,7 +412,8 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   const preview = async () => {
     setBusy(true);
     try {
-      await openPreview();
+      richEditorRef.current?.flush?.();
+      await openPreview(draftRef.current);
     } catch (error) {
       notify(error.message, "error");
     } finally {
@@ -467,7 +477,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
     );
   }
 
-  if (isPeopleSection(englishBlock)) {
+  if (isPeopleSection(englishBlock) && pageProfiles.length) {
     return (
       <section className="division-workspace division-workspace-editor">
         <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3</span><h2>{label}</h2><p>Shared people details stay consistent everywhere. Optional changes below affect only this {itemName}.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "Hindi" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>

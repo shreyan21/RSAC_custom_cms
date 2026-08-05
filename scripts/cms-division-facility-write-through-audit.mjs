@@ -69,6 +69,9 @@ const addAuditedNewestItem = (html, value) => {
   return container.innerHTML;
 };
 
+const appendAuditedQuote = (html, value) =>
+  `${String(html || "")}<blockquote><p>${value}</p></blockquote>`;
+
 const firstManagedItemText = (html) => {
   const container = parseHtml(html);
   const rootList = Array.from(container.querySelectorAll("ol, ul"))
@@ -113,6 +116,7 @@ let divisionCardCount = 0;
 let newestItemCount = 0;
 let mediaRenderCount = 0;
 let richStyleCount = 0;
+let quoteCount = 0;
 
 try {
   await client.query("BEGIN");
@@ -157,27 +161,46 @@ try {
       const headingHi = marker(slug, blockId, "heading", "hi");
       const bodyEn = marker(slug, blockId, "body", "en");
       const bodyHi = marker(slug, blockId, "body", "hi");
+      const quoteEn = marker(slug, blockId, "quote", "en");
+      const quoteHi = marker(slug, blockId, "quote", "hi");
       const assetsEn = auditAssets(slug, blockId, "en");
       const assetsHi = auditAssets(slug, blockId, "hi");
       dataEn.blocks[index] = {
         ...englishBlock,
         hidden: false,
         value: headingEn,
-        contentHtml: addAuditedNewestItem(englishBlock.contentHtml, bodyEn),
+        contentHtml: appendAuditedQuote(
+          addAuditedNewestItem(englishBlock.contentHtml, bodyEn),
+          quoteEn
+        ),
         assets: [...(englishBlock.assets || []), ...assetsEn],
       };
       dataHi.blocks[hindiIndex] = {
         ...hindiBlocks[hindiIndex],
         hidden: false,
         value: headingHi,
-        contentHtml: addAuditedNewestItem(hindiBlocks[hindiIndex]?.contentHtml, bodyHi),
+        contentHtml: appendAuditedQuote(
+          addAuditedNewestItem(hindiBlocks[hindiIndex]?.contentHtml, bodyHi),
+          quoteHi
+        ),
         assets: [...(hindiBlocks[hindiIndex]?.assets || []), ...assetsHi],
       };
-      blockExpectations.push({ blockId, headingEn, headingHi, bodyEn, bodyHi, assetsEn, assetsHi });
+      blockExpectations.push({
+        blockId,
+        headingEn,
+        headingHi,
+        bodyEn,
+        bodyHi,
+        quoteEn,
+        quoteHi,
+        assetsEn,
+        assetsHi,
+      });
       sectionCount += 2;
       newestItemCount += 2;
       mediaRenderCount += 6;
       richStyleCount += 2;
+      quoteCount += 2;
     });
 
     const validated = validateEntryPayload("pages", {
@@ -267,6 +290,16 @@ try {
       assert.match(String(hindiBlock?.contentHtml || ""), /<strong><em><u><span[^>]+data-rsac-color="#b91c1c"/u, `${expected.slug} Hindi rich-text styles were stripped.`);
       assert.match(String(englishBlock?.contentHtml || ""), /data-rsac-align="center"/u, `${expected.slug} English text alignment was stripped.`);
       assert.match(String(hindiBlock?.contentHtml || ""), /data-rsac-align="center"/u, `${expected.slug} Hindi text alignment was stripped.`);
+      assert.ok(
+        Array.from(parseHtml(englishBlock?.contentHtml).querySelectorAll("blockquote"))
+          .some((quote) => quote.textContent.trim() === blockExpected.quoteEn),
+        `${expected.slug} English quote was stripped or changed.`
+      );
+      assert.ok(
+        Array.from(parseHtml(hindiBlock?.contentHtml).querySelectorAll("blockquote"))
+          .some((quote) => quote.textContent.trim() === blockExpected.quoteHi),
+        `${expected.slug} Hindi quote was stripped or changed.`
+      );
       assert.ok(firstManagedItemText(englishBlock?.contentHtml).includes(blockExpected.bodyEn), `${expected.slug} English newest item was not first.`);
       assert.ok(firstManagedItemText(hindiBlock?.contentHtml).includes(blockExpected.bodyHi), `${expected.slug} Hindi newest item was not first.`);
 
@@ -299,7 +332,8 @@ try {
   console.log(
     `Division/facility write-through passed for ${pageCount} pages, ${localizedFieldCount} localized page fields, ` +
     `${sharedFieldCount} shared layout/media fields, ${sectionCount} localized section heading/body fields, ` +
-    `${newestItemCount} newest-first item checks, ${richStyleCount} rich-style checks, ${mediaRenderCount} media checks, ` +
+    `${newestItemCount} newest-first item checks, ${richStyleCount} rich-style checks, ${quoteCount} quote checks, ` +
+    `${mediaRenderCount} media checks, ` +
     `and ${divisionCardCount} bilingual division cards. All temporary database changes were rolled back.`
   );
 } finally {

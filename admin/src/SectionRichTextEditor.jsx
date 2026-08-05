@@ -6,6 +6,7 @@ import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Eraser, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered, Minus, Palette, Quote, Redo2, RemoveFormatting, Sparkles, Strikethrough, Table2, Underline, Undo2, Unlink } from "lucide-react";
 import EditorTooltipButton from "./EditorTooltipButton";
 import { formatRichTextHtml } from "./formatRichText";
+import { toggleEditorQuote } from "./richTextQuote";
 import { DEFAULT_TEXT_COLOR, normalizeTextColor, textColorStyle } from "../../shared/richTextColor.js";
 
 const fontOptions = [
@@ -135,7 +136,7 @@ const toolDescriptions = {
   "Insert 3 by 3 table": "Adds a three-column table with a header row.",
   Italic: "Slants the selected text for gentle emphasis.",
   "Numbered list": "Turns the selected lines into a numbered list.",
-  Quote: "Formats the selected text as a quotation.",
+  Quote: "Formats the current paragraph or selected list item as a quotation.",
   Redo: "Restores the most recently undone change.",
   "Remove link": "Removes the link but keeps its visible text.",
   Underline: "Adds a line below the selected text.",
@@ -215,6 +216,14 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
   }, [editor, value]);
 
   useImperativeHandle(ref, () => ({
+    flush() {
+      if (!editor) return "";
+      const html = editor.isEmpty ? "" : editor.getHTML();
+      if (pendingHtmlRef.current !== null || html !== latestValueRef.current) {
+        emitEditorHtml(html);
+      }
+      return html;
+    },
     focusListItem(index) {
       if (!editor) return;
       const rootList = Array.from(editor.view.dom.querySelectorAll("ol, ul"))
@@ -330,7 +339,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
           <ToolbarButton label="Remove text colour" active={Boolean(state.textColor)} onClick={() => updateTextStyle("color", "")}><Eraser /></ToolbarButton>
         </div>
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Heading 2" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 /></ToolbarButton><ToolbarButton label="Heading 3" active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><Heading3 /></ToolbarButton><ToolbarButton label="Heading 4" active={state.h4} onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}><Heading4 /></ToolbarButton></div>
-        <div className="section-rich-editor__toolgroup"><ToolbarButton label="Bullet list" active={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()}><List /></ToolbarButton><ToolbarButton label="Numbered list" active={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered /></ToolbarButton><ToolbarButton label="Quote" active={state.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote /></ToolbarButton></div>
+        <div className="section-rich-editor__toolgroup"><ToolbarButton label="Bullet list" active={state.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()}><List /></ToolbarButton><ToolbarButton label="Numbered list" active={state.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered /></ToolbarButton><ToolbarButton label="Quote" active={state.blockquote} onClick={() => toggleEditorQuote(editor)}><Quote /></ToolbarButton></div>
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Align left" active={state.alignment === "start"} onClick={() => editor.chain().focus().setRsacTextAlign("start").run()}><AlignLeft /></ToolbarButton><ToolbarButton label="Align centre" active={state.alignment === "center"} onClick={() => editor.chain().focus().setRsacTextAlign("center").run()}><AlignCenter /></ToolbarButton><ToolbarButton label="Align right" active={state.alignment === "end"} onClick={() => editor.chain().focus().setRsacTextAlign("end").run()}><AlignRight /></ToolbarButton><ToolbarButton label="Justify" active={state.alignment === "justify"} onClick={() => editor.chain().focus().setRsacTextAlign("justify").run()}><AlignJustify /></ToolbarButton></div>
         <div className="section-rich-editor__toolgroup"><ToolbarButton label="Add or edit link" active={state.link} onClick={setLink}><Link2 /></ToolbarButton><ToolbarButton label="Remove link" onClick={() => runOnSelectedText(() => editor.chain().focus().unsetLink().run())}><Unlink /></ToolbarButton><ToolbarButton label="Insert 3 by 3 table" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></ToolbarButton></div>
         {state.table && <div className="section-rich-editor__table-tools" aria-label="Table tools"><ToolbarButton label="Add row above" onClick={() => editor.chain().focus().addRowBefore().run()}>Row above</ToolbarButton><ToolbarButton label="Add row below" onClick={() => editor.chain().focus().addRowAfter().run()}>Row below</ToolbarButton><ToolbarButton label="Add column" onClick={() => editor.chain().focus().addColumnAfter().run()}>Add column</ToolbarButton><ToolbarButton label="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>Delete row</ToolbarButton><ToolbarButton label="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>Delete column</ToolbarButton><ToolbarButton label="Delete table" onClick={() => editor.chain().focus().deleteTable().run()}>Delete table</ToolbarButton></div>}

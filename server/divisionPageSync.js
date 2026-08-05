@@ -27,7 +27,7 @@ export const divisionMatchesPage = (division, page) => {
     division?.entry_key || division?.entryKey || division?.key || rowData(division).divisionKey
   );
   const linkedDivisionKey = compact(rowData(page).divisionKey);
-  if (divisionKey && linkedDivisionKey && divisionKey === linkedDivisionKey) return true;
+  if (divisionKey && linkedDivisionKey) return divisionKey === linkedDivisionKey;
   const divisionValues = identityValues(division);
   const pageValues = identityValues(page);
   return divisionValues.some((divisionValue) =>
@@ -195,6 +195,7 @@ export const syncDivisionPage = async (
     entryKey = `${generated.entryKey}-${suffix}`;
     suffix += 1;
   }
+  generated.dataEn.slug = entryKey;
 
   const created = (await client.query(
     `INSERT INTO cms_entries

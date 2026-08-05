@@ -61,7 +61,7 @@ export default function useLivePreview({ collection, draft, language, notify }) 
     return queued;
   }, [collection, language]);
 
-  const openPreview = useCallback(async () => {
+  const openPreview = useCallback(async (snapshot = draftRef.current) => {
     const previewWindow = window.open("", previewWindowName);
     if (!previewWindow) {
       throw new Error("Preview popup was blocked. Allow popups for this CMS and try again.");
@@ -78,9 +78,9 @@ export default function useLivePreview({ collection, draft, language, notify }) 
       // An existing named preview tab is cross-origin and will be reused below.
     }
 
-    await syncPreview(draft, { open: true });
+    await syncPreview(snapshot || draftRef.current, { open: true });
     notify("Preview ready. Unsaved edits now update this same tab automatically.", "success");
-  }, [draft, notify, syncPreview]);
+  }, [notify, syncPreview]);
 
   useEffect(() => {
     const session = sessionRef.current;
