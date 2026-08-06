@@ -39,6 +39,7 @@
     "cms:test-section-rendering": "node scripts/cms-canonical-section-presentation-test.mjs",
     "cms:test-editor-quote": "node scripts/cms-rich-editor-quote-command-test.mjs",
     "cms:test-page-write-through": "node scripts/cms-division-facility-write-through-audit.mjs",
+    "cms:test-site-write-through": "node scripts/cms-non-division-write-through-audit.mjs",
     "cms:test-former-roster": "node scripts/cms-former-roster-sync-test.mjs",
     "cms:sync-former-photos": "node scripts/sync-former-profile-photos.mjs",
     "cms:test-visibility": "node scripts/cms-visibility-controls-test.mjs",
