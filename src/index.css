@@ -722,12 +722,12 @@ html.rsac-large-cursor * {
   }
 
   to {
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .page-shell-enter {
-  animation: page-shell-enter 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-shell-enter 0.2s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* Subtle, consistent scrollbar across the site (WebKit + Firefox) */

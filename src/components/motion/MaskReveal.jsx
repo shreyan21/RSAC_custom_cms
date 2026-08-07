@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 /**
@@ -19,6 +20,7 @@ const MaskReveal = ({
   ...props
 }) => {
   const shouldReduceMotion = useReducedMotion();
+  const [hasRevealed, setHasRevealed] = useState(false);
   const Tag = as;
 
   if (shouldReduceMotion) {
@@ -30,11 +32,17 @@ const MaskReveal = ({
   }
 
   return (
-    <Tag className={`${className} overflow-hidden pb-[0.14em]`} {...props}>
+    <Tag
+      className={`${className} pb-[0.22em] pt-[0.06em] ${
+        hasRevealed ? "overflow-visible" : "overflow-hidden"
+      }`}
+      {...props}
+    >
       <motion.span
         style={{ display: "block" }}
         initial={{ y: "110%" }}
         animate={{ y: 0 }}
+        onAnimationComplete={() => setHasRevealed(true)}
         transition={{ duration, delay, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}

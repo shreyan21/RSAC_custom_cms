@@ -184,7 +184,7 @@ const PageShell = ({
 
             {resolvedTitle && (
               <h1
-                className={`rsac-display max-w-5xl font-extrabold leading-tight tracking-normal text-[#082032] ${
+                className={`rsac-display max-w-5xl pb-[0.1em] font-extrabold leading-tight tracking-normal text-[#082032] ${
                   isCompact
                     ? headingClasses[headingSize] || headingClasses.normal
                     : headingSize === "compact"
