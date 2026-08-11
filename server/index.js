@@ -6,8 +6,8 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import multer from "multer";
-import { mkdirSync } from "node:fs";
-import { extname } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { extname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { collections, getCollection } from "../shared/cmsCollections.js";
 import {
@@ -18,6 +18,7 @@ import {
   permissionForCmsEntry,
   permissionOptionsForCollection,
 } from "../shared/cmsPermissions.js";
+import { assertStrongPassword } from "../shared/passwordPolicy.js";
 import { config } from "./config.js";
 import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
@@ -42,6 +43,7 @@ ensureUploadDirectory();
 const defaultPermissionsJson = JSON.stringify(createCmsPermissions(true)).replaceAll("'", "''");
 await pool.query(`
   ALTER TABLE cms_users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL DEFAULT '${defaultPermissionsJson}'::jsonb;
+  CREATE UNIQUE INDEX IF NOT EXISTS cms_users_single_administrator_idx ON cms_users ((role)) WHERE role = 'admin';
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_status text NOT NULL DEFAULT 'pending';
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_attempts integer NOT NULL DEFAULT 0;
@@ -64,9 +66,14 @@ app.use(cors({
 app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: "3mb" }));
 app.use(cookieParser());
+app.use(["/api/auth", "/api/admin"], (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use("/uploads", express.static(config.uploadDir, { immutable: true, maxAge: "1y" }));
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
+const credentialLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false });
 const writeLimiter = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false });
 const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false });
 const previewLifetimeMs = 15 * 60 * 1000;
@@ -472,16 +479,13 @@ const presentAuthenticatedUser = (row) => ({
   permissions: normalizeCmsPermissions(row.permissions, row.role),
 });
 
-const assertStrongPassword = (password) => {
-  if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
-    throw Object.assign(new Error("Password must be at least 12 characters with upper-case, lower-case and a number"), { status: 400 });
-  }
-};
-
 app.post("/api/auth/login", loginLimiter, async (req, res, next) => {
   try {
     const username = String(req.body?.username || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
+    if (username.length > 50 || password.length > 256) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
     const { rows } = await pool.query("SELECT * FROM cms_users WHERE username=$1 AND active=true", [username]);
     const user = rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
@@ -498,7 +502,7 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
   res.json({ user: presentAuthenticatedUser(req.cmsUser), csrfToken: req.cmsUser.csrf_token });
 });
 
-app.post("/api/auth/change-password", writeLimiter, requireAuth, requireCsrf, async (req, res, next) => {
+app.post("/api/auth/change-password", credentialLimiter, requireAuth, requireCsrf, async (req, res, next) => {
   try {
     const currentPassword = String(req.body?.currentPassword || "");
     const newPassword = String(req.body?.newPassword || "");
@@ -658,10 +662,13 @@ const cleanUser = (row) => ({
 const validateUserInput = (body, { passwordRequired = false } = {}) => {
   const username = String(body?.username || "").trim().toLowerCase();
   const displayName = String(body?.displayName || "").trim().slice(0, 120);
-  const role = body?.role === "admin" ? "admin" : "editor";
+  const role = String(body?.role || "").trim().toLowerCase();
   const password = String(body?.password || "");
+  if (!displayName) throw Object.assign(new Error("Full name is required"), { status: 400 });
+  if (!username) throw Object.assign(new Error("Username is required"), { status: 400 });
   if (!/^[a-z0-9._-]{3,50}$/.test(username)) throw Object.assign(new Error("Username must be 3-50 letters, numbers, dots, underscores or hyphens"), { status: 400 });
-  if (!displayName) throw Object.assign(new Error("Display name is required"), { status: 400 });
+  if (!["admin", "editor"].includes(role)) throw Object.assign(new Error("Choose an account role"), { status: 400 });
+  if (passwordRequired && !password) throw Object.assign(new Error("Password is required"), { status: 400 });
   if (passwordRequired || password) assertStrongPassword(password);
   const permissions = body?.permissions && typeof body.permissions === "object" && !Array.isArray(body.permissions)
     ? normalizeCmsPermissions(body.permissions, role)
@@ -680,17 +687,36 @@ app.post("/api/admin/users", writeLimiter, requireAdmin, requireCsrf, async (req
   try {
     const input = validateUserInput(req.body, { passwordRequired: true });
     const passwordHash = await bcrypt.hash(input.password, 12);
-    const { rows } = await pool.query(
-      `INSERT INTO cms_users (username,display_name,password_hash,role,permissions)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id,username,display_name,role,permissions,active,created_at,updated_at`,
-      [input.username, input.displayName, passwordHash, input.role, input.permissions || createCmsPermissions(false)]
-    );
-    await pool.query(
-      `INSERT INTO cms_audit_log (user_id,action,collection,entry_id,entry_key,after_data,ip_address)
-       VALUES ($1,'create_user','users',$2,$3,$4,$5)`,
-      [req.cmsUser.id, rows[0].id, rows[0].username, cleanUser(rows[0]), req.ip]
-    );
-    res.status(201).json({ data: cleanUser(rows[0]) });
+    const created = await withTransaction(async (client) => {
+      await client.query("LOCK TABLE cms_users IN SHARE ROW EXCLUSIVE MODE");
+      const duplicateUsername = (await client.query(
+        "SELECT 1 FROM cms_users WHERE lower(username)=$1 LIMIT 1",
+        [input.username]
+      )).rowCount > 0;
+      if (duplicateUsername) {
+        throw Object.assign(new Error(`Username '${input.username}' is already in use. Choose another username.`), { status: 409 });
+      }
+      if (input.role === "admin") {
+        const administratorExists = (await client.query(
+          "SELECT 1 FROM cms_users WHERE role='admin' LIMIT 1"
+        )).rowCount > 0;
+        if (administratorExists) {
+          throw Object.assign(new Error("Only one administrator account is allowed. Create this user as an Editor."), { status: 400 });
+        }
+      }
+      const row = (await client.query(
+        `INSERT INTO cms_users (username,display_name,password_hash,role,permissions)
+         VALUES ($1,$2,$3,$4,$5) RETURNING id,username,display_name,role,permissions,active,created_at,updated_at`,
+        [input.username, input.displayName, passwordHash, input.role, input.permissions || createCmsPermissions(false)]
+      )).rows[0];
+      await client.query(
+        `INSERT INTO cms_audit_log (user_id,action,collection,entry_id,entry_key,after_data,ip_address)
+         VALUES ($1,'create_user','users',$2,$3,$4,$5)`,
+        [req.cmsUser.id, row.id, row.username, cleanUser(row), req.ip]
+      );
+      return row;
+    });
+    res.status(201).json({ data: cleanUser(created) });
   } catch (error) { next(error); }
 });
 
@@ -702,8 +728,25 @@ app.put("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (
       return res.status(400).json({ error: "You cannot deactivate or demote your own administrator account" });
     }
     const row = await withTransaction(async (client) => {
+      await client.query("LOCK TABLE cms_users IN SHARE ROW EXCLUSIVE MODE");
       const before = (await client.query("SELECT * FROM cms_users WHERE id=$1 FOR UPDATE", [req.params.id])).rows[0];
       if (!before) throw Object.assign(new Error("User not found"), { status: 404 });
+      const duplicateUsername = (await client.query(
+        "SELECT 1 FROM cms_users WHERE lower(username)=$1 AND id<>$2 LIMIT 1",
+        [input.username, req.params.id]
+      )).rowCount > 0;
+      if (duplicateUsername) {
+        throw Object.assign(new Error(`Username '${input.username}' is already in use. Choose another username.`), { status: 409 });
+      }
+      if (input.role === "admin") {
+        const anotherAdministratorExists = (await client.query(
+          "SELECT 1 FROM cms_users WHERE role='admin' AND id<>$1 LIMIT 1",
+          [req.params.id]
+        )).rowCount > 0;
+        if (anotherAdministratorExists) {
+          throw Object.assign(new Error("Only one administrator account is allowed. Keep this user as an Editor."), { status: 400 });
+        }
+      }
       if (before.role === "admin" && before.active && (!active || input.role !== "admin")) {
         const admins = Number((await client.query("SELECT count(*) AS count FROM cms_users WHERE role='admin' AND active=true")).rows[0].count);
         if (admins <= 1) throw Object.assign(new Error("At least one active administrator is required"), { status: 400 });
@@ -724,6 +767,46 @@ app.put("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (
       return updated;
     });
     res.json({ data: cleanUser(row) });
+  } catch (error) { next(error); }
+});
+
+app.delete("/api/admin/users/:id", writeLimiter, requireAdmin, requireCsrf, async (req, res, next) => {
+  try {
+    if (req.params.id === req.cmsUser.id) {
+      return res.status(400).json({ error: "You cannot delete the administrator account you are currently using" });
+    }
+    const deleted = await withTransaction(async (client) => {
+      const target = (await client.query(
+        "SELECT * FROM cms_users WHERE id=$1 FOR UPDATE",
+        [req.params.id]
+      )).rows[0];
+      if (!target) throw Object.assign(new Error("User not found"), { status: 404 });
+
+      if (target.role === "admin" && target.active) {
+        const activeAdmins = Number((await client.query(
+          "SELECT count(*) AS count FROM cms_users WHERE role='admin' AND active=true"
+        )).rows[0].count);
+        if (activeAdmins <= 1) {
+          throw Object.assign(new Error("At least one active administrator is required"), { status: 400 });
+        }
+      }
+
+      await client.query(
+        `INSERT INTO cms_audit_log (user_id,action,collection,entry_id,entry_key,before_data,after_data,ip_address)
+         VALUES ($1,'delete_user','users',$2,$3,$4,$5,$6)`,
+        [
+          req.cmsUser.id,
+          target.id,
+          target.username,
+          cleanUser(target),
+          { deleted: true },
+          req.ip,
+        ]
+      );
+      await client.query("DELETE FROM cms_users WHERE id=$1", [target.id]);
+      return cleanUser(target);
+    });
+    res.json({ ok: true, data: deleted });
   } catch (error) { next(error); }
 });
 
@@ -1000,11 +1083,47 @@ app.post("/api/admin/feedback/:id/send", writeLimiter, requireCsrf, async (req, 
   } catch (error) { next(error); }
 });
 
+if (config.serveBuiltApps) {
+  const websiteDist = resolve(process.cwd(), "dist");
+  const adminDist = resolve(process.cwd(), "dist-admin");
+  const websiteIndex = resolve(websiteDist, "index.html");
+  const adminIndex = resolve(adminDist, "index.html");
+
+  if (!existsSync(websiteIndex) || !existsSync(adminIndex)) {
+    throw new Error("Production website files are missing. Run npm run build:all before npm start.");
+  }
+
+  const immutableAssets = { immutable: true, maxAge: "1y", fallthrough: true };
+  const publicFiles = { index: false, maxAge: "1h", fallthrough: true };
+  const sendIndex = (file) => (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.sendFile(file);
+  };
+
+  app.use("/cms/assets", express.static(resolve(adminDist, "assets"), immutableAssets));
+  app.use("/cms", express.static(adminDist, publicFiles));
+  app.get(/^\/cms(?:\/.*)?$/, (req, res, next) => {
+    if (extname(req.path)) return next();
+    return sendIndex(adminIndex)(req, res);
+  });
+
+  app.use("/assets", express.static(resolve(websiteDist, "assets"), immutableAssets));
+  app.use(express.static(websiteDist, publicFiles));
+  app.get(/^\/(?!api(?:\/|$)|uploads(?:\/|$)|cms(?:\/|$)).*$/, (req, res, next) => {
+    if (extname(req.path)) return next();
+    return sendIndex(websiteIndex)(req, res);
+  });
+}
+
 app.use((error, _req, res, _next) => {
   void _next;
   const isUploadError = error instanceof multer.MulterError;
   const isDuplicateEntryKey = error.code === "23505" &&
     error.constraint === "cms_entries_collection_entry_key_key";
+  const isDuplicateUsername = error.code === "23505" &&
+    error.constraint === "cms_users_username_key";
+  const isDuplicateAdministrator = error.code === "23505" &&
+    error.constraint === "cms_users_single_administrator_idx";
   const status = isUploadError
     ? error.code === "LIMIT_FILE_SIZE" ? 413 : 400
     : Number(error.status) || (error.code === "23505" ? 409 : 500);
@@ -1012,13 +1131,18 @@ app.use((error, _req, res, _next) => {
     ? `File is too large. Maximum size is ${Math.round(config.maxUploadBytes / 1024 / 1024)} MB.`
     : isDuplicateEntryKey
       ? "Another CMS item already uses this internal key. Leave Internal key blank to generate a unique one."
+      : isDuplicateUsername
+        ? "This username is already in use. Choose another username."
+        : isDuplicateAdministrator
+          ? "Only one administrator account is allowed. Create this user as an Editor."
       : error.message;
   if (status >= 500) console.error(error);
   res.status(status).json({ error: status >= 500 ? "Server error" : message });
 });
 
-const server = app.listen(config.port, "127.0.0.1", () => {
-  console.log(`RSAC Custom CMS API: http://localhost:${config.port}`);
+const server = app.listen(config.port, config.host, () => {
+  const mode = config.serveBuiltApps ? "website, CMS and API" : "API";
+  console.log(`RSAC ${mode}: http://${config.host}:${config.port}`);
 });
 
 const shutdown = async () => {

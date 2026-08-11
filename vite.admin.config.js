@@ -19,10 +19,19 @@ const reactRefreshPreamble = {
   },
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: "admin",
+  base: command === "build" ? "/cms/" : "/",
   cacheDir: "../node_modules/.vite-admin",
   plugins: [reactRefreshPreamble, react()],
-  server: { host: "127.0.0.1", port: 5174, strictPort: true },
+  server: {
+    host: "127.0.0.1",
+    port: 5174,
+    strictPort: true,
+    proxy: {
+      "/api": "http://127.0.0.1:3000",
+      "/uploads": "http://127.0.0.1:3000",
+    },
+  },
   build: { outDir: "../dist-admin", emptyOutDir: true },
-});
+}));

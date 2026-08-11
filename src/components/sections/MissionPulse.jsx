@@ -20,6 +20,12 @@ const panelPlacements = {
   inline: "lg:hidden relative z-30 mx-auto mt-5 w-full max-w-md",
 };
 
+const splitTitlePhrases = (value) =>
+  String(value || "")
+    .match(/[^.!?।]+[.!?।]?/gu)
+    ?.map((phrase) => phrase.trim())
+    .filter(Boolean) || [];
+
 const getOrbitCardStyle = (index, total) => {
   const count = Math.max(total, 1);
   const angle = (-90 + (360 / count) * index) * (Math.PI / 180);
@@ -155,6 +161,8 @@ const MissionPulse = () => {
     missionPulse.secondaryAction?.label && missionPulse.secondaryAction?.path;
   const PrimaryActionIcon = cmsIconMap[missionPulse.primaryAction?.icon] || Satellite;
   const SecondaryActionIcon = cmsIconMap[missionPulse.secondaryAction?.icon] || Map;
+  const titlePhrases = splitTitlePhrases(missionPulse.title);
+  const progressiveTitle = titlePhrases.length === 3;
   const hasIntro =
     missionPulse.eyebrow ||
     missionPulse.title ||
@@ -218,9 +226,17 @@ const MissionPulse = () => {
               <MaskReveal
                 as="h2"
                 id="mission-pulse-title"
-                className="rsac-display mt-6 text-[2.2rem] font-[800] leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-[3.2rem] xl:text-[3.7rem]"
+                className={`rsac-display mt-6 text-[2.2rem] font-[800] leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-[3.2rem] xl:text-[3.7rem] ${
+                  progressiveTitle ? "mission-pulse-title--progressive" : ""
+                }`}
               >
-                {missionPulse.title}
+                {progressiveTitle
+                  ? titlePhrases.map((phrase, index) => (
+                      <span className="mission-pulse-title__phrase" key={`${phrase}-${index}`}>
+                        {phrase}
+                      </span>
+                    ))
+                  : missionPulse.title}
               </MaskReveal>
             )}
 

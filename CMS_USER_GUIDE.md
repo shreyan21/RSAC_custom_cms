@@ -4,7 +4,7 @@ This guide is for website editors. No coding is required.
 
 ## Sign In
 
-1. Start the project with `npm.cmd run dev:all`.
+1. Start the project with `npm run dev:all`.
 2. Open `http://localhost:5174`.
 3. Username: `admin`.
 4. Password: open `.env.local` and use the value beside `CMS_ADMIN_PASSWORD`.
@@ -265,18 +265,18 @@ Open **Design Settings**. Choose bundled English body, English heading, and Hind
 
 An administrator can set a new `CMS_ADMIN_PASSWORD` in ignored `.env.local`, then run:
 
-```powershell
-npm.cmd run cms:reset-admin
+```cmd
+npm run cms:reset-admin
 ```
 
-Restart `npm.cmd run dev:all` after reset.
+Restart `npm run dev:all` after reset.
 
 ## Preserve CMS Content Before Transfer
 
 After approved changes, run:
 
-```powershell
-npm.cmd run cms:export-seed
+```cmd
+npm run cms:export-seed
 ```
 
 This updates `server/seed-data.generated.json` without exporting passwords or sessions. PostgreSQL backups remain private and must never be committed to GitHub.

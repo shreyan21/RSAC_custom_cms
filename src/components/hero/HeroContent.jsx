@@ -87,6 +87,10 @@ const HeroContent = () => {
         </motion.dl>
       )}
 
+      <div className="hero-mobile-leaders mt-6 flex justify-start lg:hidden">
+        <HeroLeaderPortraits />
+      </div>
+
       <motion.div
         {...riseIn}
         transition={{ delay: 0.36, duration: 0.9 }}
@@ -112,10 +116,6 @@ const HeroContent = () => {
           {hero.secondaryAction.label}
         </Link>
       </motion.div>
-
-      <div className="hero-mobile-leaders mt-7 flex justify-start md:hidden">
-        <HeroLeaderPortraits />
-      </div>
     </div>
   );
 };

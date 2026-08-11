@@ -5,14 +5,15 @@ import { useLanguage } from "../../hooks/useLanguage";
 import HeroLeaderPortraits from "./HeroLeaderPortraits";
 
 const reduceMotionQuery = "(prefers-reduced-motion: reduce)";
-const constrainedConnectionTypes = new Set(["slow-2g", "2g", "3g"]);
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia(reduceMotionQuery).matches;
 
 const shouldLoadHeroVideo = () => {
   if (typeof window === "undefined") return false;
-  const connection = navigator.connection;
-  return !connection?.saveData && !constrainedConnectionTypes.has(connection?.effectiveType);
+  // Browser effective-connection estimates can report 3g even for a fast local
+  // or cached asset. Only an explicit Save Data preference should suppress the
+  // hero video; reduced-motion is handled separately.
+  return navigator.connection?.saveData !== true;
 };
 
 // Very large desktop screens stretch the 1280px master beyond its native size,
@@ -397,7 +398,7 @@ const HeroBackground = () => {
             muted
             loop={heroVideos.length <= 1}
             playsInline
-            preload="metadata"
+            preload="auto"
             poster={heroPoster}
             disablePictureInPicture
             tabIndex={-1}
@@ -459,7 +460,7 @@ const HeroBackground = () => {
 
       {/* WATERMARK COVER WITH LEADERSHIP PORTRAITS */}
       <div
-        className="hero-watermark-cover pointer-events-none absolute z-30 hidden flex-col items-end md:flex"
+        className="hero-watermark-cover pointer-events-none absolute z-30 hidden flex-col items-end lg:flex"
         aria-label={t("Prime Minister and Chief Minister portraits")}
       >
         <HeroLeaderPortraits />

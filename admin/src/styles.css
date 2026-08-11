@@ -318,9 +318,14 @@ textarea { resize: vertical; }
 .user-form__heading > div > span, .permission-editor header > div > span { color: var(--cms-accent); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .user-form h3 { margin: 0; }
 .user-form > div:first-child button { border: 0; background: transparent; }
+.required-fields-note { margin: 14px 0 0; border-left: 3px solid var(--cms-accent); background: #f3f8fb; padding: 10px 12px; color: #496475; font-size: 12px; line-height: 1.55; }
+.required-fields-note strong { color: #18384d; }
+.required-mark { position: relative; top: -.2em; margin-left: 2px; color: #c62828; font-size: .78em; font-weight: 900; line-height: 0; }
 .user-form-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .user-form-grid label > span, .password-panel label > span { color: #29475a; font-weight: 800; }
 .user-form-grid label > small, .password-panel label > small { min-height: 32px; color: #708391; font-size: 11px; font-weight: 500; line-height: 1.45; }
+.user-form-grid label > .user-field-error { min-height: 0; margin-top: -2px; color: #a52f27; font-weight: 750; }
+.user-form-grid input[aria-invalid="true"] { border-color: #c95045; box-shadow: 0 0 0 3px rgba(201,80,69,.1); }
 .account-status-control { margin-top: 16px; grid-template-columns: 18px minmax(0,1fr); align-items: start; border: 1px solid #d5e0e6; border-radius: 7px; background: #f7fafb; padding: 13px; }
 .account-status-control input { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--cms-accent); }
 .account-status-control span { display: grid; gap: 3px; }
@@ -354,6 +359,11 @@ textarea { resize: vertical; }
 .password-panel label > small { min-height: 0; }
 .password-panel .primary { justify-self: start; }
 .table-action { min-height: 34px; border: 1px solid #c8d5dc; border-radius: 5px; background: white; color: #175b7a; font-weight: 750; padding: 0 11px; }
+.user-table-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: max-content; }
+.table-action--danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-color: #e4b8b3; color: #a22f26; }
+.table-action--danger:hover:not(:disabled) { border-color: #c95045; background: #fff4f2; color: #84251e; }
+.table-action--danger:disabled { cursor: wait; opacity: .62; }
+.table-action--danger svg { width: 15px; height: 15px; }
 .feedback-list { display: grid; gap: 12px; }
 .feedback-list article, .empty-panel { border: 1px solid #d3dfe5; border-radius: 7px; background: white; padding: 17px; }
 .feedback-list header { display: flex; justify-content: space-between; gap: 12px; }

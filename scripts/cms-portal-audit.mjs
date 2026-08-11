@@ -31,6 +31,8 @@ const intentionallyHiddenCollections = new Set([
   "downloads",
   "facilities",
   "profiles",
+  "projects",
+  "publications",
   "public_info",
 ]);
 const problems = [];

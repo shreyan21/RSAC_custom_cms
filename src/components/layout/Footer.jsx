@@ -235,9 +235,9 @@ const Footer = () => {
                 <UsersRound className="h-3.5 w-3.5 text-orange-300" aria-hidden="true" />
                 {footer.visitorCountLabel}:{" "}
                 <span className="font-bold tabular-nums text-white/85">
-                  {visitorCount === null
-                    ? footer.visitorCountUnavailable
-                    : visitorCount.toLocaleString(isHindi ? "hi-IN" : "en-IN")}
+                  {Number.isFinite(visitorCount)
+                    ? visitorCount.toLocaleString(isHindi ? "hi-IN" : "en-IN")
+                    : footer.visitorCountUnavailable}
                 </span>
               </p>
               <p className="inline-flex items-center gap-2 text-xs text-white/50">

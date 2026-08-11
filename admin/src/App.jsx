@@ -4,7 +4,7 @@ import {
   Eye, FileText, GraduationCap, History, Images, Landmark, Languages, LayoutDashboard,
   KeyRound, LibraryBig, LoaderCircle, LogOut, MapPinned, Menu, MessageSquare, Microscope,
   Pencil, Plus, RefreshCw, Satellite, Save, Scale, Search, ShieldCheck,
-  Smartphone, UserCog, Users, UsersRound, Waves, Wrench, X,
+  Smartphone, Trash2, UserCog, Users, UsersRound, Waves, Wrench, X,
 } from "lucide-react";
 import upEmblem from "../../src/assets/images/up-emblem.webp";
 import rsacLogo from "../../src/assets/images/rsac-logo.webp";
@@ -21,15 +21,11 @@ import {
   permissionForCmsView,
   publicInfoPermissionKeys,
 } from "../../shared/cmsPermissions";
+import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../../shared/passwordPolicy";
 import {
   floodSettingsGroupLabels,
   homepageTabPageSettingsGroupLabel,
 } from "./settingsGroupLabels";
-import {
-  hasMatchingSection,
-  projectSection,
-  publicationSection,
-} from "./divisionSectionCounts";
 import useLivePreview from "./useLivePreview";
 
 const DivisionContentWorkspace = lazy(() => import("./DivisionContentWorkspace"));
@@ -302,32 +298,9 @@ const buildPeopleViews = (definitions, pageEntries, profileEntries) => {
   ];
 };
 
-const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
-  const pagesDefinition = definitions.find((item) => item.id === "pages");
+const buildCanonicalViews = (definitions, publicInfoEntries) => {
   const publicInfoDefinition = definitions.find((item) => item.id === "public_info");
   const siteSettingsDefinition = definitions.find((item) => item.id === "site_settings");
-
-  const divisionWorkspace = (definition, options) => {
-    const entries = pageEntries.filter((entry) =>
-      entry.dataEn?.sectionKey === "divisions" && hasMatchingSection(entry, options.sectionFilter)
-    );
-    return {
-      ...definition,
-      ...pagesDefinition,
-      id: definition.id,
-      storageId: "pages",
-      label: options.label,
-      description: options.description,
-      workspace: true,
-      workspaceKind: "divisions",
-      filterField: "sectionKey",
-      filterValue: "divisions",
-      entryFilter: (entry) => hasMatchingSection(entry, options.sectionFilter),
-      sectionFilter: options.sectionFilter,
-      allowCreate: false,
-      counts: countsFor(entries),
-    };
-  };
 
   const publicPageView = (definition, slug, label, contentName) => {
     const entries = publicInfoEntries.filter((entry) => entry.dataEn?.slug === slug);
@@ -350,7 +323,9 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
     };
   };
 
-  const canonicalDefinitions = definitions.map((definition) => {
+  const canonicalDefinitions = definitions
+    .filter((definition) => !["projects", "publications"].includes(definition.id))
+    .map((definition) => {
     if (definition.id === "site_settings") {
       return {
         ...definition,
@@ -368,20 +343,6 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
         ),
       };
     }
-    if (definition.id === "projects") {
-      return divisionWorkspace(definition, {
-        label: "Division Projects",
-        description: "Edit the ongoing and completed project sections already shown on division pages.",
-        sectionFilter: projectSection,
-      });
-    }
-    if (definition.id === "publications") {
-      return divisionWorkspace(definition, {
-        label: "Publications, Research Papers and Reports",
-        description: "Edit the publication, research-paper and technical-report sections already shown on division pages.",
-        sectionFilter: publicationSection,
-      });
-    }
     if (definition.id === "tenders") {
       return publicPageView(definition, "tenders", "Tenders", "tenders");
     }
@@ -389,7 +350,7 @@ const buildCanonicalViews = (definitions, pageEntries, publicInfoEntries) => {
       return publicPageView(definition, "faq", "Frequently Asked Questions", "FAQ");
     }
     return definition;
-  });
+    });
 
   const publicInfoViews = publicInfoPageViewDefinitions.map(
     ([id, slug, label, contentName]) =>
@@ -575,7 +536,7 @@ function GuideView() {
     ["Homepage cards", "Use Homepage Tab Names, Icons and Order, Services, Applications, Operational Domains, Statistics, Quick Links and Geoportals for individual rows."],
     ["Facilities", "Use Facilities only. It contains every facility detail page, section editor and shared photograph."],
     ["Create a division", "Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections."],
-    ["Division sections", "Use Division Projects or Publications, Research Papers and Reports for a focused view. Division Page Sections shows every section with separate English and Hindi rich editors."],
+    ["Division sections", "Use Division Page Sections as the single place for Projects, Publications, Research Papers, Technical Reports, Software, Hardware, Photos and every other division section."],
     ["Full pages", "Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. A body page appears in only one of these editors."],
     ["Gallery heading", "Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading."],
     ["Heading visibility", "Page Headings and Subheadings controls small heading, main title, introduction and heading size by route."],
@@ -617,24 +578,105 @@ function UsersView({ currentUser, notify }) {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
+  const normalizedUsername = String(form?.username || "").trim().toLowerCase();
+  const duplicateUsername = users.find((item) =>
+    item.id !== form?.id && item.username.toLowerCase() === normalizedUsername
+  );
   const load = useCallback(async () => { setBusy(true); try { setUsers((await api("/api/admin/users")).data); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } }, [notify]);
   useEffect(() => {
     const timer = window.setTimeout(load, 0);
     return () => window.clearTimeout(timer);
   }, [load]);
   const save = async () => {
+    const displayName = String(form?.displayName || "").trim();
+    const password = String(form?.password || "");
+    if (!displayName) {
+      notify("Full name is required.", "error");
+      return;
+    }
+    if (!normalizedUsername) {
+      notify("Username is required.", "error");
+      return;
+    }
+    if (!/^[a-z0-9._-]{3,50}$/.test(normalizedUsername)) {
+      notify("Username must be 3-50 letters, numbers, dots, underscores or hyphens.", "error");
+      return;
+    }
+    if (duplicateUsername) {
+      notify(`Username '${normalizedUsername}' is already used by ${duplicateUsername.displayName}. Choose another username.`, "error");
+      return;
+    }
+    if (!form?.role) {
+      notify("Account role is required.", "error");
+      return;
+    }
+    if (!form.id && !password) {
+      notify("Password is required.", "error");
+      return;
+    }
+    if (password && !isStrongPassword(password)) {
+      notify(PASSWORD_POLICY_MESSAGE, "error");
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
     try {
       const method = form.id ? "PUT" : "POST";
       const path = form.id ? `/api/admin/users/${form.id}` : "/api/admin/users";
-      await api(path, { method, body: JSON.stringify(form) });
+      await api(path, {
+        method,
+        body: JSON.stringify({ ...form, username: normalizedUsername, displayName }),
+      });
       notify(form.id ? "User updated." : "User created.", "success"); setForm(null); await load();
-    } catch (error) { notify(error.message, "error"); }
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setSaving(false);
+    }
   };
-  const updateRole = (role) => setForm((current) => ({
-    ...current,
-    role,
-    permissions: role === "admin" ? createCmsPermissions(true) : current.permissions,
-  }));
+  const removeUser = async (item) => {
+    if (item.id === currentUser.id) {
+      notify("You cannot delete the administrator account you are currently using.", "error");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Delete the CMS account for ${item.displayName} (${item.username})?\n\nThis permanently removes the login. Published website content and audit history are preserved.`
+    );
+    if (!confirmed) return;
+    setDeletingId(item.id);
+    try {
+      await api(`/api/admin/users/${item.id}`, { method: "DELETE" });
+      setForm((current) => current?.id === item.id ? null : current);
+      notify(`User ${item.displayName} deleted.`, "success");
+      await load();
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setDeletingId("");
+    }
+  };
+  const updateRole = (role) => {
+    if (form?.id === currentUser.id && form.role === "admin" && role !== "admin") {
+      notify("You cannot change your own administrator account to Editor.", "error");
+      return;
+    }
+    if (role === "admin") {
+      const existingAdministrator = users.find((item) =>
+        item.role === "admin" && item.id !== form?.id
+      );
+      if (existingAdministrator) {
+        notify(`Only one administrator is allowed. ${existingAdministrator.displayName} is already the administrator. Keep this user as an Editor.`, "error");
+        return;
+      }
+    }
+    setForm((current) => ({
+      ...current,
+      role,
+      permissions: role === "admin" ? createCmsPermissions(true) : current.permissions,
+    }));
+  };
   const updatePermission = (key, checked) => setForm((current) => ({
     ...current,
     permissions: { ...current.permissions, [key]: checked },
@@ -645,15 +687,16 @@ function UsersView({ currentUser, notify }) {
   }));
   return (
     <section className="users-view">
-      <div className="section-intro"><div><h2>CMS users and permissions</h2><p>Create an account, set its first password, and choose exactly which website areas it can change.</p></div><button className="primary" onClick={() => setForm(newUserForm())}><Plus /> Add user</button></div>
+      <div className="section-intro"><div><h2>CMS users and permissions</h2><p>Create an account, set its first password, and choose exactly which website areas it can change. Deactivate an account temporarily, or permanently delete it when it is no longer required.</p></div><button className="primary" onClick={() => setForm(newUserForm())}><Plus /> Add user</button></div>
       {form && (
         <div className="user-form">
           <div className="user-form__heading"><div><span>Account details</span><h3>{form.id ? "Edit user" : "Create user"}</h3></div><button type="button" aria-label="Close user form" onClick={() => setForm(null)}><X /></button></div>
+          {!form.id && <p className="required-fields-note"><strong>An administrator creates every new CMS user.</strong> Complete all fields marked <sup className="required-mark" aria-hidden="true">*</sup> before saving. No technical setup is needed by the new user.</p>}
           <div className="user-form-grid">
-            <label><span>Display name</span><small>The person's name shown in audit history.</small><input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
-            <label><span>Username</span><small>Used when signing in. Letters, numbers, dots, underscores or hyphens.</small><input autoCapitalize="none" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
-            <label><span>Account role</span><small>Administrators manage users and always have full access.</small><select value={form.role} onChange={(event) => updateRole(event.target.value)}><option value="editor">Editor</option><option value="admin">Administrator</option></select></label>
-            <label><span>{form.id ? "Reset password (optional)" : "First temporary password"}</span><small>{form.id ? "Leave blank to keep the current password." : "Give this password securely to the new user. They can change it after signing in."}</small><input type="password" autoComplete="new-password" value={form.password || ""} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
+            <label><span>Full name<sup className="required-mark" aria-hidden="true">*</sup></span><small>The person's name shown in audit history.</small><input required value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} /></label>
+            <label><span>Username<sup className="required-mark" aria-hidden="true">*</sup></span><small>Used when signing in. It must be unique. Use letters, numbers, dots, underscores or hyphens.</small><input required minLength={3} maxLength={50} autoCapitalize="none" aria-invalid={Boolean(duplicateUsername)} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />{duplicateUsername && <small className="user-field-error" role="alert">Already used by {duplicateUsername.displayName}. Choose another username.</small>}</label>
+            <label><span>Account role<sup className="required-mark" aria-hidden="true">*</sup></span><small>Only one administrator is allowed. Other accounts must use Editor permissions.</small><select required value={form.role} onChange={(event) => updateRole(event.target.value)}><option value="editor">Editor</option><option value="admin">Administrator (one account only)</option></select></label>
+            <label><span>{form.id ? "Reset password (optional)" : <>First temporary password<sup className="required-mark" aria-hidden="true">*</sup></>}</span><small>{form.id ? "Leave blank to keep the current password." : "Give this password securely to the new user. They can change it after signing in."}</small><input required={!form.id} minLength={form.id ? undefined : 12} type="password" autoComplete="new-password" value={form.password || ""} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
           </div>
           <label className="account-status-control"><input type="checkbox" checked={form.active !== false} onChange={(event) => setForm({ ...form, active: event.target.checked })} /><span><strong>Active account</strong><small>Turn this off to prevent sign-in without deleting the account history.</small></span></label>
           <section className="permission-editor" aria-labelledby="permission-editor-title">
@@ -677,11 +720,45 @@ function UsersView({ currentUser, notify }) {
               </fieldset>
             ))}
           </section>
-          <p className="password-requirements">Passwords need at least 12 characters, including an upper-case letter, a lower-case letter and a number.</p>
-          <div className="editor-actions"><button className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" onClick={save}><Save /> Save user</button></div>
+          <p className="password-requirements">{PASSWORD_POLICY_MESSAGE}</p>
+          <div className="editor-actions"><button className="secondary" onClick={() => setForm(null)}>Cancel</button><button className="primary" disabled={saving || Boolean(duplicateUsername)} onClick={save}><Save /> {saving ? "Saving..." : "Save user"}</button></div>
         </div>
       )}
-      <div className="content-table-wrap"><table className="content-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Access</th><th>Status</th><th>Last updated</th><th /></tr></thead><tbody>{users.map((item) => { const permissionCount = item.role === "admin" ? cmsPermissionAreas.length : cmsPermissionAreas.filter((area) => item.permissions?.[area.key]).length; return <tr key={item.id}><td><strong>{item.displayName}</strong>{item.id === currentUser.id && <small>Current account</small>}</td><td>{item.username}</td><td><span className="status published">{item.role}</span></td><td><strong>{item.role === "admin" ? "All areas" : `${permissionCount} of ${cmsPermissionAreas.length}`}</strong></td><td>{item.active ? <span className="language-ready"><Check /> Active</span> : <span className="language-missing">Inactive</span>}</td><td>{new Date(item.updatedAt).toLocaleString()}</td><td><button className="table-action" onClick={() => setForm({ ...item, password: "", permissions: { ...item.permissions } })}>Edit</button></td></tr>; })}</tbody></table></div>
+      <div className="content-table-wrap">
+        <table className="content-table">
+          <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Access</th><th>Status</th><th>Last updated</th><th>Actions</th></tr></thead>
+          <tbody>{users.map((item) => {
+            const permissionCount = item.role === "admin"
+              ? cmsPermissionAreas.length
+              : cmsPermissionAreas.filter((area) => item.permissions?.[area.key]).length;
+            return (
+              <tr key={item.id}>
+                <td><strong>{item.displayName}</strong>{item.id === currentUser.id && <small>Current account</small>}</td>
+                <td>{item.username}</td>
+                <td><span className="status published">{item.role}</span></td>
+                <td><strong>{item.role === "admin" ? "All areas" : `${permissionCount} of ${cmsPermissionAreas.length}`}</strong></td>
+                <td>{item.active ? <span className="language-ready"><Check /> Active</span> : <span className="language-missing">Inactive</span>}</td>
+                <td>{new Date(item.updatedAt).toLocaleString()}</td>
+                <td>
+                  <div className="user-table-actions">
+                    <button className="table-action" onClick={() => setForm({ ...item, password: "", permissions: { ...item.permissions } })}>Edit</button>
+                    {item.id !== currentUser.id && (
+                      <button
+                        className="table-action table-action--danger"
+                        disabled={deletingId === item.id}
+                        onClick={() => removeUser(item)}
+                        title={`Permanently delete ${item.displayName}`}
+                      >
+                        <Trash2 /> {deletingId === item.id ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+      </div>
       {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading users</div>}
     </section>
   );
@@ -716,7 +793,7 @@ function PasswordView({ notify }) {
       <form className="password-panel" onSubmit={submit}>
         <div className="password-panel__icon"><KeyRound /></div>
         <label><span>Current password</span><input required type="password" autoComplete="current-password" value={form.currentPassword} onChange={(event) => setForm({ ...form, currentPassword: event.target.value })} /></label>
-        <label><span>New password</span><small>Use at least 12 characters with upper-case, lower-case and a number.</small><input required type="password" autoComplete="new-password" value={form.newPassword} onChange={(event) => setForm({ ...form, newPassword: event.target.value })} /></label>
+        <label><span>New password</span><small>{PASSWORD_POLICY_MESSAGE}</small><input required minLength={12} type="password" autoComplete="new-password" value={form.newPassword} onChange={(event) => setForm({ ...form, newPassword: event.target.value })} /></label>
         <label><span>Confirm new password</span><input required type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} /></label>
         <button className="primary" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Change password</button>
       </form>
@@ -828,7 +905,6 @@ export default function App() {
     const prepared = buildPeopleViews(
       buildCanonicalViews(
         buildPageViews(collectionResult.data, pageResult.data),
-        pageResult.data,
         publicInfoResult.data
       ),
       pageResult.data,
@@ -894,7 +970,6 @@ export default function App() {
   if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(nextUser); }} />;
   if (editing) return <><EntryEditor definition={selected} entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshCollection(); }} notify={notify} />{notice && <div className={`toast ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}</>;
 
-  const divisionWorkspaceDefinition = collections.find((item) => item.id === "division_pages");
   const navButton = (id, icon, label, action = () => openView(id)) => (
     <button
       className={view === id ? "active" : ""}
@@ -911,7 +986,7 @@ export default function App() {
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
         <div className="brand"><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
-        <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{divisionWorkspaceDefinition && navButton("content_workspace", <FileText />, "Division page sections", () => openCollection(divisionWorkspaceDefinition))}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
+        <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>

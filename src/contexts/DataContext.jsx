@@ -14,9 +14,13 @@ const previewMessageType = "rsac-cms-preview:update";
 const previewReadyMessageType = "rsac-cms-preview:ready";
 const cmsAdminOrigin = (() => {
   try {
-    return new URL(import.meta.env.VITE_CMS_ADMIN_URL || "http://localhost:5174").origin;
+    const configured = new URL(import.meta.env.VITE_CMS_ADMIN_URL || "http://localhost:5174");
+    if (import.meta.env.PROD && ["localhost", "127.0.0.1", "[::1]"].includes(configured.hostname)) {
+      return window.location.origin;
+    }
+    return configured.origin;
   } catch {
-    return "";
+    return import.meta.env.PROD ? window.location.origin : "";
   }
 })();
 const readPreviewToken = () => {
@@ -48,6 +52,7 @@ const readCachedBootstrap = (language) => {
 };
 
 const cacheBootstrap = (value) => {
+  if (!value?.language) return;
   try {
     window.sessionStorage.setItem(`${bootstrapCacheKey}:${value.language}`, JSON.stringify(value));
   } catch {
@@ -113,6 +118,7 @@ export function DataProvider({ children }) {
       try {
         const next = await getCmsBootstrap(language, { refresh, previewToken });
         if (languageRef.current !== language) return;
+        if (!next?.language) throw new Error("The content server returned incomplete language data.");
         if (!previewToken) scheduleBootstrapCache(next);
         contentVersionRef.current = next.contentVersion || "";
         const decorated = decorateBootstrap(next);

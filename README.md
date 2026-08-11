@@ -1,35 +1,29 @@
 # RSAC-UP Custom CMS Website
 
-This test project now uses a custom stack:
+This repository contains:
 
-- Public website: React, port `5173`
-- CMS portal: React, port `5174`
-- Content API: Express, port `3000`
-- Database: PostgreSQL database `rsac_custom_cms`
+- Public website: React + Vite
+- CMS portal: React + Vite
+- API and production server: Express
+- Content database: PostgreSQL database `rsac_custom_cms`
 
-The original project at `D:\rsac_website` and the old `rsac_cms` database are not modified. The website does not call Drupal or Directus at runtime.
+It intentionally uses one `package.json`, one `package-lock.json`, and one
+`node_modules` folder for both React applications and Express.
 
-## First Setup
+## Read First
 
-For a simple first-time walkthrough, database backup instructions, and moving the project to another computer, read [FIRST_TIME_SETUP.md](FIRST_TIME_SETUP.md).
+- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): complete source/target handover, first setup, later Git push/pull, database backup/restore, production, architecture, and file responsibilities.
+- [CMS_USER_GUIDE.md](CMS_USER_GUIDE.md): non-technical website editing instructions.
+- [LIBRARIES_BY_SECTION.md](LIBRARIES_BY_SECTION.md): important libraries used by each area.
+
+## Local Start
 
 Requirements: Node.js 20+, npm, and PostgreSQL 14+.
 
-```powershell
-npm.cmd ci --include=dev
-$env:POSTGRES_ADMIN_PASSWORD="your-local-postgres-password"
-npm.cmd run cms:setup
-Remove-Item Env:\POSTGRES_ADMIN_PASSWORD
-```
+On a new machine, follow `PROJECT_TRANSFER_GUIDE.md`. After first setup:
 
-Use `--include=dev` on local editor machines because the website and CMS launch through Vite. This also works when the machine has `NODE_ENV=production` configured globally.
-
-Setup creates the separate database, seeds the bilingual content, and stores generated local credentials only in ignored `.env.local`.
-
-## Start Everything
-
-```powershell
-npm.cmd run dev:all
+```cmd
+npm run dev:all
 ```
 
 Open:
@@ -38,21 +32,48 @@ Open:
 - CMS: `http://localhost:5174`
 - API check: `http://localhost:3000/api/health`
 
-CMS username is `admin`. Read `CMS_ADMIN_PASSWORD` from local `.env.local`. Never commit or share that file.
+CMS username is normally `admin`. Read `CMS_ADMIN_PASSWORD` from the ignored
+local `.env.local`. Never commit or publicly share that file.
 
 ## Checks
 
-```powershell
-npm.cmd run cms:validate
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run build:admin
+```cmd
+npm run cms:validate
+npm run lint
+npm run build:all
+npm run smoke:production
 ```
 
-## Guides
+## Production Build
 
-- [CMS_USER_GUIDE.md](CMS_USER_GUIDE.md): edit every website area in English and Hindi.
-- [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md): system flow and responsibility of each maintained source file.
-- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): GitHub, backup, transfer, and SDC deployment.
+This repository intentionally uses one npm workspace for both React applications
+and the Express API. A single `package.json` and `node_modules` directory are
+valid because the public site and CMS share the same dependency versions.
+
+Build and start the deployable application:
+
+```cmd
+npm ci --include=dev
+npm run build:all
+npm start
+```
+
+Production uses one Express process:
+
+- Public React website: `http://YOUR-SERVER:3000/`
+- React CMS portal: `http://YOUR-SERVER:3000/cms/`
+- Express API: `http://YOUR-SERVER:3000/api/health`
+- CMS uploads: `http://YOUR-SERVER:3000/uploads/...`
+
+Express includes React SPA fallbacks, so opening routes such as `/leadership`
+directly or refreshing them does not produce an `index.html` error. Set
+`CMS_HOST`, `CMS_PUBLIC_URL`, `CMS_ALLOWED_ORIGINS`, and secure-cookie values in
+the server's ignored `.env.local`; do not hardcode a changing IP in source code.
+
+Verify the complete production build locally with:
+
+```cmd
+npm run smoke:production
+```
 
 The code includes accessibility, security, responsive layout, audit history, bilingual content, and structured publishing controls. Official GIGW conformance and STQC certification still require formal testing and approval by the authorised assessment body.

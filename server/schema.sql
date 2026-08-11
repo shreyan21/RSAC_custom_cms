@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS cms_users (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS cms_users_single_administrator_idx
+  ON cms_users ((role)) WHERE role = 'admin';
+
 ALTER TABLE cms_users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL
   DEFAULT '{"homepage":true,"about":true,"divisions":true,"facilities":true,"academics":true,"people":true,"geoportals":true,"flood":true,"gallery":true,"mobile_apps":true,"public_information":true,"tenders":true,"faq":true,"notices":true,"navigation":true,"standalone_pages":true,"feedback":true,"audit":true}'::jsonb;
 

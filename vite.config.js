@@ -35,6 +35,15 @@ const reactRefreshPreamble = {
 
 export default defineConfig({
   plugins: [reactRefreshPreamble, react(), tailwindcss(), editorGuideAsset],
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      "/api": "http://127.0.0.1:3000",
+      "/uploads": "http://127.0.0.1:3000",
+    },
+  },
   define: {
     __APP_BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     "import.meta.env.CMS_PROVIDER": JSON.stringify(process.env.CMS_PROVIDER || ""),

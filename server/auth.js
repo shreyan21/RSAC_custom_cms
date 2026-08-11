@@ -1,5 +1,5 @@
-import { createHash, randomBytes } from "node:crypto";
-import { pool } from "./db.js";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { pool, withTransaction } from "./db.js";
 import { config } from "./config.js";
 
 export const sessionCookie = "rsac_cms_session";
@@ -9,10 +9,23 @@ export const createSession = async (userId) => {
   const token = randomBytes(32).toString("base64url");
   const csrfToken = randomBytes(24).toString("base64url");
   const expiresAt = new Date(Date.now() + config.sessionHours * 60 * 60 * 1000);
-  await pool.query(
-    "INSERT INTO cms_sessions (user_id, token_hash, csrf_token, expires_at) VALUES ($1, $2, $3, $4)",
-    [userId, hashToken(token), csrfToken, expiresAt]
-  );
+  await withTransaction(async (client) => {
+    await client.query(
+      "INSERT INTO cms_sessions (user_id, token_hash, csrf_token, expires_at) VALUES ($1, $2, $3, $4)",
+      [userId, hashToken(token), csrfToken, expiresAt]
+    );
+    await client.query(
+      `DELETE FROM cms_sessions
+       WHERE user_id = $1
+         AND id NOT IN (
+           SELECT id FROM cms_sessions
+           WHERE user_id = $1
+           ORDER BY created_at DESC, id DESC
+           LIMIT $2
+         )`,
+      [userId, config.maxSessionsPerUser]
+    );
+  });
   return { token, csrfToken, expiresAt };
 };
 
@@ -53,7 +66,13 @@ export const requireAuth = async (req, res, next) => {
 
 export const requireCsrf = (req, res, next) => {
   const supplied = req.get("X-CSRF-Token") || "";
-  if (!supplied || supplied !== req.cmsUser?.csrf_token) {
+  const expected = String(req.cmsUser?.csrf_token || "");
+  const suppliedBuffer = Buffer.from(supplied);
+  const expectedBuffer = Buffer.from(expected);
+  const valid = suppliedBuffer.length > 0 &&
+    suppliedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(suppliedBuffer, expectedBuffer);
+  if (!valid) {
     return res.status(403).json({ error: "Invalid CSRF token" });
   }
   next();

@@ -6940,6 +6940,9 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
   const usesCategorizedContent =
     section.key === "divisions" || /^training-division-?$/.test(page.slug);
   const isDivision = section.key === "divisions";
+  const isPeopleProfilePage =
+    section.key === "about-us" &&
+    (profilePageSlugs.has(page.slug) || staticProfilePageSlugs.has(page.slug));
   const sidebarPages =
     section.key === "about-us"
       ? section.pages.filter((item) => !formerPages.includes(item.slug))
@@ -6947,7 +6950,9 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
 
   return (
     <PageShell
-      className={`rsac-official-detail-page${isDivision ? " rsac-division-detail-page" : ""}`}
+      className={`rsac-official-detail-page${isDivision ? " rsac-division-detail-page" : ""}${
+        isPeopleProfilePage ? " rsac-people-directory" : ""
+      }`}
       eyebrow={page.eyebrow || (isDivision ? undefined : section.eyebrow)}
       title={localizeOfficialText(t(page.title), language)}
       intro={localizeOfficialText(page.summary || page.preview, language)}

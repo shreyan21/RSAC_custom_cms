@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Accessibility,
@@ -26,6 +27,7 @@ import {
   useTechnicalProfiles,
   useAdministrationProfiles,
   useDivisions,
+  useFloodData,
   useNotices,
   useGeoportals,
   usePolicies,
@@ -108,6 +110,14 @@ const getStoredFontSizeIndex = () => {
 const getStoredContrast = () =>
   typeof window !== "undefined" &&
   window.localStorage.getItem("rsac.highContrast") === "true";
+const syncDocumentTheme = (enabled) => {
+  const root = document.documentElement;
+  root.classList.toggle("rsac-high-contrast", enabled);
+  root.style.colorScheme = enabled ? "dark" : "light";
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", enabled ? "#102b34" : "#f4f8f6");
+};
 const getStoredPreference = (key) =>
   typeof window !== "undefined" &&
   window.localStorage.getItem(`rsac.${key}`) === "true";
@@ -185,7 +195,7 @@ const scoreResult = (item, query) => {
   return score + Math.max(0, 12 - titleWords.length);
 };
 
-const buildSearchIndex = (officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems = [], translate = (value) => value) => {
+const buildSearchIndex = (officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, floodData, institutionalItems = [], translate = (value) => value) => {
   const items = [];
 
   (officials || []).forEach((o) =>
@@ -206,7 +216,21 @@ const buildSearchIndex = (officials, scientists, technical, admin, divisions, no
   (notices || []).forEach((n) =>
     items.push({ title: n.title, description: n.category || "", path: "/notices", type: translate("Notice"), keywords: [n.title, n.category] })
   );
-  (menuItems || []).forEach((section) =>
+  (menuItems || []).forEach((section) => {
+    const sectionPath = String(section.path || "").trim();
+    const sectionTitle = String(section.title || "").trim();
+    if (sectionTitle && sectionPath && !/^https?:\/\//i.test(sectionPath)) {
+      const pluralTitle = sectionTitle.toLowerCase().endsWith("s")
+        ? sectionTitle
+        : `${sectionTitle}s`;
+      items.push({
+        title: sectionTitle,
+        description: section.description || "",
+        path: sectionPath,
+        type: translate("Section"),
+        keywords: [sectionTitle, pluralTitle, section.description || ""],
+      });
+    }
     (section.links || []).forEach((link) => {
       if (!/^https?:\/\//i.test(link.path || "")) {
         items.push({
@@ -217,8 +241,8 @@ const buildSearchIndex = (officials, scientists, technical, admin, divisions, no
           keywords: [section.title, link.label, link.description || ""],
         });
       }
-    })
-  );
+    });
+  });
   (geoportals || []).forEach((g) =>
     items.push({ title: g.title, description: g.description || "", path: "/geoportals", type: translate("Geoportal"), keywords: [g.title] })
   );
@@ -238,6 +262,30 @@ const buildSearchIndex = (officials, scientists, technical, admin, divisions, no
         type: s.title,
         keywords: [s.title, page.title, page.summary || "", page.preview || ""],
       });
+    });
+  });
+
+  const floodSection = floodData?.floodSection || {};
+  (floodSection.archives || []).forEach((archive) => {
+    const year = String(archive?.year || "").trim();
+    if (!year) return;
+    const label = `${floodSection.archiveItemLabel || translate("Flood")} ${year}`.trim();
+    items.push({
+      title: label,
+      description: floodSection.intro || "",
+      path: `/flood-reports/${year}`,
+      type: translate("Flood report"),
+      keywords: ["flood", "floods", "report", "reports", year],
+    });
+  });
+  (floodData?.floodReports || []).forEach((report) => {
+    const year = String(report.year || report.date || "").slice(0, 4);
+    items.push({
+      title: report.title,
+      description: [report.category, report.coverage, report.dateLabel].filter(Boolean).join(" · "),
+      path: /^\d{4}$/.test(year) ? `/flood-reports/${year}` : "/flood-reports",
+      type: translate("Flood report"),
+      keywords: ["flood", "floods", "report", report.category, report.coverage, year],
     });
   });
 
@@ -285,6 +333,7 @@ const TopBar = () => {
   const admin = useAdministrationProfiles();
   const divisions = useDivisions();
   const notices = useNotices();
+  const floodData = useFloodData();
   const geoportals = useGeoportals();
   const policies = usePolicies();
   const contactDetails = useContactDetails();
@@ -319,8 +368,8 @@ const TopBar = () => {
   };
 
   const searchIndex = useMemo(
-    () => buildSearchIndex(officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems, t),
-    [officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, institutionalItems, t]
+    () => buildSearchIndex(officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, floodData, institutionalItems, t),
+    [officials, scientists, technical, admin, divisions, notices, geoportals, policies, contactDetails, menuItems, officialSections, floodData, institutionalItems, t]
   );
 
   const scrollToHash = (hash) => {
@@ -335,7 +384,7 @@ const TopBar = () => {
 
   useEffect(() => {
     document.documentElement.style.fontSize = FONT_SIZE_LEVELS[fontSizeIndex];
-    document.documentElement.classList.toggle("rsac-high-contrast", highContrast);
+    syncDocumentTheme(highContrast);
     window.localStorage.setItem("rsac.fontSizeIndex", String(fontSizeIndex));
     window.localStorage.setItem("rsac.highContrast", String(highContrast));
   }, [fontSizeIndex, highContrast]);
@@ -457,16 +506,26 @@ const TopBar = () => {
   const toggleContrast = () => {
     const root = document.documentElement;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nextContrast = !highContrast;
+    const applyContrast = () => {
+      syncDocumentTheme(nextContrast);
+      flushSync(() => setHighContrast(nextContrast));
+    };
+
     window.clearTimeout(themeTransitionTimerRef.current);
-    if (!reduceMotion) {
+    root.classList.remove("rsac-theme-transitioning");
+
+    if (!reduceMotion && typeof document.startViewTransition === "function") {
+      document.startViewTransition(applyContrast);
+    } else if (!reduceMotion) {
       root.classList.add("rsac-theme-transitioning");
+      applyContrast();
       themeTransitionTimerRef.current = window.setTimeout(() => {
         root.classList.remove("rsac-theme-transitioning");
       }, 480);
     } else {
-      root.classList.remove("rsac-theme-transitioning");
+      applyContrast();
     }
-    setHighContrast((current) => !current);
   };
 
   const resetDisplayPreferences = () => {

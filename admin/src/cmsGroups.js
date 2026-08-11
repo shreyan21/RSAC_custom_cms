@@ -1,8 +1,8 @@
 export const cmsGroups = [
   { title: "Homepage", ids: ["site_settings", "hero_banners", "homepage_features", "homepage_tab_pages", "services", "applications", "operational_domains", "impact_stats", "quick_links", "geoportals"] },
-  { title: "Pages", ids: ["about_pages", "division_pages", "facility_pages", "academic_pages", "pages"] },
+  { title: "Divisions", ids: ["divisions", "division_pages"] },
+  { title: "Pages", ids: ["about_pages", "facility_pages", "academic_pages", "pages"] },
   { title: "Navigation and appearance", ids: ["page_sections", "page_display_settings", "design_settings", "menu_items", "contact", "logos"] },
-  { title: "Divisions", ids: ["divisions", "projects", "publications"] },
   {
     title: "People and Our Formers",
     ids: [

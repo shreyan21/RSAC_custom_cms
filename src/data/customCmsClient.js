@@ -1,4 +1,20 @@
-const apiBaseUrl = String(import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+const localApiHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const configuredApiUrl = String(
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin)
+).replace(/\/+$/, "");
+const apiBaseUrl = (() => {
+  try {
+    const configuredHost = new URL(configuredApiUrl).hostname;
+    if (localApiHosts.has(configuredHost) && localApiHosts.has(window.location.hostname)) {
+      return window.location.origin;
+    }
+    if (import.meta.env.PROD && localApiHosts.has(configuredHost)) return window.location.origin;
+    return configuredApiUrl;
+  } catch {
+    return import.meta.env.PROD ? window.location.origin : configuredApiUrl;
+  }
+})();
 const timeoutMs = Number(import.meta.env.VITE_API_TIMEOUT || 15000);
 const bootstrapCache = new Map();
 
@@ -31,7 +47,12 @@ export async function getCmsBootstrap(
     ? `/api/content/preview/${encodeURIComponent(previewToken)}?lang=${lang}`
     : `/api/content/bootstrap?lang=${lang}`;
   const request = cmsRequest(path, { cache: previewToken ? "no-store" : "no-cache" })
-    .then((payload) => payload.data)
+    .then((payload) => {
+      if (!payload?.data || typeof payload.data !== "object") {
+        throw new Error("The content server returned an incomplete website response.");
+      }
+      return payload.data;
+    })
     .catch((error) => {
       bootstrapCache.delete(cacheKey);
       throw error;

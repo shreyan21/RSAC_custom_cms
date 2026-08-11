@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
+import { assertStrongPassword } from "../shared/passwordPolicy.js";
 import { repairCmsPageParity } from "./pageParityRepairs.js";
 import { migrateDivisionAndFacilityRichContent } from "./sectionRichContentMigration.js";
 import { repairDivisionPageConsistency } from "./divisionPageSync.js";
@@ -25,8 +26,9 @@ const dbName = current.CMS_DATABASE_NAME || "rsac_custom_cms";
 const dbUser = current.CMS_DATABASE_USER || "rsac_custom_app";
 const existingUrl = current.CMS_DATABASE_URL ? new URL(current.CMS_DATABASE_URL) : null;
 const dbPassword = existingUrl?.password ? decodeURIComponent(existingUrl.password) : randomBytes(24).toString("base64url");
-const cmsAdminPassword = current.CMS_ADMIN_PASSWORD || randomBytes(18).toString("base64url");
+const cmsAdminPassword = current.CMS_ADMIN_PASSWORD || `Aa1${randomBytes(18).toString("base64url")}`;
 const cmsAdminUsername = current.CMS_ADMIN_USERNAME || "admin";
+assertStrongPassword(cmsAdminPassword);
 
 for (const identifier of [dbName, dbUser]) {
   if (!/^[a-z_][a-z0-9_]*$/i.test(identifier)) throw new Error(`Unsafe PostgreSQL identifier: ${identifier}`);
