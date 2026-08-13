@@ -1,6 +1,10 @@
 import { config as loadEnv } from "dotenv";
 import { assembleBootstrap } from "../server/contentAssembler.js";
 import { validateEntryPayload } from "../server/contentValidation.js";
+import {
+  createTemporaryCmsTestUser,
+  removeTemporaryCmsTestUser,
+} from "./lib/temporary-cms-test-user.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
 
@@ -8,11 +12,13 @@ const base = process.env.VITE_API_URL || "http://localhost:3000";
 const targetSections = new Set(["divisions", "facilities"]);
 let cookie = "";
 let csrf = "";
+let testUser;
 
 const request = async (path, options = {}) => {
   const headers = {
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...(cookie ? { Cookie: cookie } : {}),
+    ...(testUser?.forwardedFor ? { "X-Forwarded-For": testUser.forwardedFor } : {}),
     ...(csrf && options.method && options.method !== "GET" ? { "X-CSRF-Token": csrf } : {}),
     ...(options.headers || {}),
   };
@@ -87,23 +93,19 @@ if (fakeEnglish.blocks[0].contentHtml !== "<p>English only</p>" || fakeHindi.blo
   throw new Error("Bootstrap assembly copied content between languages.");
 }
 
-const login = await request("/api/auth/login", {
-  method: "POST",
-  body: JSON.stringify({ username: process.env.CMS_ADMIN_USERNAME, password: process.env.CMS_ADMIN_PASSWORD }),
-});
-cookie = login.response.headers.get("set-cookie")?.split(";")[0] || "";
-csrf = login.payload.csrfToken;
-if (!cookie || !csrf) throw new Error("CMS login did not return a secure session.");
-
 let original = null;
 let saved = null;
 let verificationError = null;
 
 try {
-  const users = (await request("/api/admin/users")).payload.data;
-  if (!Array.isArray(users) || !users.some((user) => user.role === "admin" && user.active)) {
-    throw new Error("CMS user administration has no active administrator.");
-  }
+  testUser = await createTemporaryCmsTestUser(process.env.CMS_DATABASE_URL);
+  const login = await request("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username: testUser.username, password: testUser.password }),
+  });
+  cookie = login.response.headers.get("set-cookie")?.split(";")[0] || "";
+  csrf = login.payload.csrfToken;
+  if (!cookie || !csrf) throw new Error("CMS login did not return a secure session.");
 
   const pages = (await request("/api/admin/content/pages")).payload.data;
   const targetPages = pages.filter((page) => targetSections.has(page.dataEn?.sectionKey));
@@ -198,8 +200,9 @@ try {
       }),
     });
   }
-  await request("/api/auth/logout", { method: "POST" });
+  if (cookie && csrf) await request("/api/auth/logout", { method: "POST" }).catch(() => {});
+  await removeTemporaryCmsTestUser(process.env.CMS_DATABASE_URL, testUser?.id);
 }
 
 if (verificationError) throw verificationError;
-console.log("Canonical bilingual Division/Facility rich-text, exact-empty language behavior, preview, public delivery, shared media, content versioning, users, and restoration smoke tests passed.");
+console.log("Canonical bilingual Division/Facility rich-text, exact-empty language behavior, preview, public delivery, shared media, content versioning, and restoration smoke tests passed.");

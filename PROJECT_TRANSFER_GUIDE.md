@@ -248,6 +248,33 @@ FEEDBACK_SMTP_PASSWORD=provided-password
 Separate multiple recipients with commas. Restart the Express process after
 changing SMTP settings.
 
+Check `http://localhost:3000/api/health` after restarting. The value
+`feedbackEmailConfigured` must be `true` before feedback notification emails
+can be sent. When it is `false`, the form still saves every valid submission
+in **CMS > Website feedback**, but it does not claim that an email was sent.
+
+After setup, restoration, or a large content change, run:
+
+```cmd
+npm run cms:verify-all
+```
+
+This checks CMS schemas, English/Hindi separation, preview and save behavior,
+newest-first lists, visibility, rich text, media uploads, feedback storage,
+Flood PDFs, official core pages, local assets, and both production builds. It
+creates only temporary test records and removes them again. It does not use or
+change the real administrator password.
+
+When internet access is available, also compare the current official RSAC-UP
+navigation with the local CMS coverage map:
+
+```cmd
+npm run cms:audit-live-navigation
+```
+
+This online check is separate because a new machine may be offline and the
+official server may occasionally be unavailable.
+
 ## 5. Important Root Files
 
 | File | What it does |

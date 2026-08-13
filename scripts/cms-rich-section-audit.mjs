@@ -35,8 +35,8 @@ try {
 
   const repeatedHeadingBlocks = [];
   const mediaMismatches = [];
+  const legacyChildrenBlocks = [];
   let localizedSections = 0;
-  let activeLegacyChildren = 0;
 
   for (const row of rows) {
     for (const [language, data] of [["en", row.data_en], ["hi", row.data_hi]]) {
@@ -46,7 +46,11 @@ try {
         const profileOverrides = children.length > 0 && children.every((child) =>
           String(child?.key || "").startsWith("profile-content:")
         );
-        if (Object.hasOwn(block, "children") && !profileOverrides) activeLegacyChildren += 1;
+        if (Object.hasOwn(block, "children") && !profileOverrides) {
+          legacyChildrenBlocks.push(
+            `${row.entry_key}:${language}:${block.id || block.value || "unidentified-section"}`
+          );
+        }
         const heading = normalizeText(block.value || block.sourceLabel || block.label);
         if (heading && normalizeText(firstBodyItem(block.contentHtml)) === heading) {
           repeatedHeadingBlocks.push(`${row.entry_key}:${language}:${block.id || heading}`);
@@ -68,13 +72,14 @@ try {
   const result = {
     pages: rows.length,
     localizedSections,
-    activeLegacyChildren,
+    activeLegacyChildren: legacyChildrenBlocks.length,
+    legacyChildrenBlocks,
     repeatedHeadingBlocks,
     sharedMediaMismatches: mediaMismatches,
   };
   console.log(JSON.stringify(result, null, 2));
 
-  if (activeLegacyChildren || repeatedHeadingBlocks.length || mediaMismatches.length) {
+  if (legacyChildrenBlocks.length || repeatedHeadingBlocks.length || mediaMismatches.length) {
     throw new Error("Canonical rich-section audit found migration inconsistencies.");
   }
 } finally {

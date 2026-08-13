@@ -3,8 +3,8 @@ import { cmsRequest } from "./customCmsClient";
 export const submitCmsFeedback = async (record) => {
   try {
     return await cmsRequest("/api/feedback", { method: "POST", body: JSON.stringify(record) });
-  } catch {
-    return null;
+  } catch (error) {
+    return { ok: false, error: error?.message || "Feedback submission failed" };
   }
 };
 

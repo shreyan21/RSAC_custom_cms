@@ -309,7 +309,13 @@ const audit = async (client, req, action, row, beforeData = null, afterData = nu
 app.get("/api/health", async (_req, res, next) => {
   try {
     const { rows } = await pool.query("SELECT current_database() AS database, now() AS time");
-    res.json({ ok: true, service: "RSAC Custom CMS", database: rows[0].database, time: rows[0].time });
+    res.json({
+      ok: true,
+      service: "RSAC Custom CMS",
+      database: rows[0].database,
+      time: rows[0].time,
+      feedbackEmailConfigured: feedbackMailConfigured(),
+    });
   } catch (error) { next(error); }
 });
 

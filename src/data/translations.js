@@ -625,6 +625,14 @@ export const hiTranslations = {
   "Organisation Chart": "संगठनात्मक चार्ट",
   "All notices": "सभी सूचनाएं",
   "Flood reports": "बाढ़ रिपोर्ट",
+  "Flood report": "बाढ़ रिपोर्ट",
+
+  "Your feedback was delivered successfully and saved for reference.":
+    "आपकी प्रतिक्रिया सफलतापूर्वक भेज दी गई है और संदर्भ के लिए सुरक्षित कर ली गई है।",
+  "Your feedback was saved successfully. Email delivery is not configured, so authorised staff will review it in the CMS.":
+    "आपकी प्रतिक्रिया सफलतापूर्वक सुरक्षित कर ली गई है। ईमेल सेवा कॉन्फ़िगर नहीं है, इसलिए अधिकृत कर्मचारी इसे सीएमएस में देखेंगे।",
+  "Your feedback was saved successfully, but the notification email could not be delivered. Authorised staff can still review it in the CMS.":
+    "आपकी प्रतिक्रिया सफलतापूर्वक सुरक्षित कर ली गई है, लेकिन सूचना ईमेल नहीं भेजा जा सका। अधिकृत कर्मचारी इसे सीएमएस में देख सकते हैं।",
 
   // GeoStats (Institution at a Glance) section
   "Institution at a Glance": "एक नज़र में संस्थान",

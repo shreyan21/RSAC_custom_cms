@@ -22,7 +22,7 @@ const FeedbackForm = ({ intro = "" }) => {
   const { t, language } = useLanguage();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  // false | "cms" (stored successfully)
+  // false | "sent" | "stored" | "failed"
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,8 +46,9 @@ const FeedbackForm = ({ intro = "" }) => {
     badEmail: t("Enter a valid email Id."),
     badPhone: t("Enter a valid phone number."),
     okTitle: t("Thank you!"),
-    okBodySent: t("Your feedback has been recorded successfully. Thank you for your suggestions."),
-    okBodyStored: t("Your feedback has been recorded successfully. Thank you for your suggestions."),
+    okBodySent: t("Your feedback was delivered successfully and saved for reference."),
+    okBodyStored: t("Your feedback was saved successfully. Email delivery is not configured, so authorised staff will review it in the CMS."),
+    okBodyFailed: t("Your feedback was saved successfully, but the notification email could not be delivered. Authorised staff can still review it in the CMS."),
     sending: t("Sending..."),
     again: t("Send another response"),
     submitError: t("Feedback could not be submitted. Please try again."),
@@ -100,7 +101,13 @@ const FeedbackForm = ({ intro = "" }) => {
     setSubmitting(false);
 
     if (result?.ok) {
-      setSent(result.delivery === "sent" ? "sent" : "stored");
+      setSent(
+        result.delivery === "sent"
+          ? "sent"
+          : result.delivery === "failed"
+            ? "failed"
+            : "stored"
+      );
       return;
     }
 
@@ -122,7 +129,11 @@ const FeedbackForm = ({ intro = "" }) => {
         />
         <h2 className="mt-3 text-xl font-extrabold text-[#102f46]">{L.okTitle}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-          {sent === "sent" ? L.okBodySent : L.okBodyStored}
+          {sent === "sent"
+            ? L.okBodySent
+            : sent === "failed"
+              ? L.okBodyFailed
+              : L.okBodyStored}
         </p>
         <button
           type="button"

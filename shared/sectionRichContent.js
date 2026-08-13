@@ -32,6 +32,13 @@ export const hasCanonicalSectionContent = (block) =>
 
 export const isPeopleSectionBlock = (block) => peopleSectionPattern.test(sectionLabel(block));
 
+const hasProfileOverrideChildren = (block) =>
+  Array.isArray(block?.children) &&
+  block.children.length > 0 &&
+  block.children.every((child) =>
+    String(child?.key || "").startsWith("profile-content:")
+  );
+
 export const legacySectionRows = (block, pageData) => importedEditorRows({
   block,
   referenceBlock: block,
@@ -66,6 +73,8 @@ export const legacyRowsToRichHtml = (block, pageData) => {
 
 export const migrateSectionBlock = (block, pageData) => {
   if (!block || typeof block !== "object") return { block, changed: false };
+  // Profile overrides are structured card data, not legacy section-body rows.
+  if (hasProfileOverrideChildren(block)) return { block, changed: false };
   const hasChildren = Array.isArray(block.children);
   const hasCanonical = hasCanonicalSectionContent(block);
   if (hasCanonical && !hasChildren) return { block, changed: false };

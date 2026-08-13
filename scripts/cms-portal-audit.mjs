@@ -5,6 +5,10 @@ import { collections } from "../shared/cmsCollections.js";
 import { validateEntryPayload } from "../server/contentValidation.js";
 import { divisionMatchesPage } from "../server/divisionPageSync.js";
 import { canonicalDivisionSection } from "../src/data/divisionSectionLabels.js";
+import {
+  createTemporaryCmsTestUser,
+  removeTemporaryCmsTestUser,
+} from "./lib/temporary-cms-test-user.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
 
@@ -248,12 +252,14 @@ try {
 const apiBase = String(process.env.CMS_API_URL || process.env.VITE_API_URL || "http://127.0.0.1:3000").replace(/\/$/u, "");
 let cookie = "";
 let csrf = "";
+let testUser;
 const apiRequest = async (path, options = {}) => {
   const response = await fetch(`${apiBase}${path}`, {
     ...options,
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(cookie ? { Cookie: cookie } : {}),
+      ...(testUser?.forwardedFor ? { "X-Forwarded-For": testUser.forwardedFor } : {}),
       ...(csrf && options.method && options.method !== "GET" ? { "X-CSRF-Token": csrf } : {}),
       ...(options.headers || {}),
     },
@@ -264,11 +270,12 @@ const apiRequest = async (path, options = {}) => {
 };
 
 try {
+  testUser = await createTemporaryCmsTestUser(process.env.CMS_DATABASE_URL);
   const login = await apiRequest("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({
-      username: process.env.CMS_ADMIN_USERNAME,
-      password: process.env.CMS_ADMIN_PASSWORD,
+      username: testUser.username,
+      password: testUser.password,
     }),
   });
   cookie = login.response.headers.get("set-cookie")?.split(";")[0] || "";
@@ -323,6 +330,7 @@ try {
       problems.push(`Admin API logout failed: ${error.message}`);
     }
   }
+  await removeTemporaryCmsTestUser(process.env.CMS_DATABASE_URL, testUser?.id);
 }
 
 const populatedLegacyFields = [...legacyFields.entries()]

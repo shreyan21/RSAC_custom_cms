@@ -3,6 +3,10 @@ import { unlink } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import pg from "pg";
 import { config } from "../server/config.js";
+import {
+  createTemporaryCmsTestUser,
+  removeTemporaryCmsTestUser,
+} from "./lib/temporary-cms-test-user.mjs";
 
 loadEnv({ path: ".env.local", quiet: true });
 
@@ -12,6 +16,7 @@ const base = String(process.env.CMS_API_URL || process.env.VITE_API_URL || "http
 let cookie = "";
 let csrf = "";
 const uploaded = [];
+let testUser;
 
 const request = async (path, options = {}) => {
   const response = await fetch(`${base}${path}`, {
@@ -19,6 +24,7 @@ const request = async (path, options = {}) => {
     headers: {
       ...(options.json ? { "Content-Type": "application/json" } : {}),
       ...(cookie ? { Cookie: cookie } : {}),
+      ...(testUser?.forwardedFor ? { "X-Forwarded-For": testUser.forwardedFor } : {}),
       ...(csrf && options.method && options.method !== "GET" ? { "X-CSRF-Token": csrf } : {}),
       ...(options.headers || {}),
     },
@@ -60,9 +66,10 @@ const cleanup = async () => {
 };
 
 try {
+  testUser = await createTemporaryCmsTestUser(process.env.CMS_DATABASE_URL);
   const login = await request("/api/auth/login", {
     method: "POST",
-    json: { username: process.env.CMS_ADMIN_USERNAME, password: process.env.CMS_ADMIN_PASSWORD },
+    json: { username: testUser.username, password: testUser.password },
   });
   if (!login.response.ok) throw new Error(login.payload.error || "CMS login failed.");
   cookie = login.response.headers.get("set-cookie")?.split(";")[0] || "";
@@ -94,6 +101,7 @@ try {
 } finally {
   await cleanup();
   if (cookie && csrf) await request("/api/auth/logout", { method: "POST" }).catch(() => {});
+  await removeTemporaryCmsTestUser(process.env.CMS_DATABASE_URL, testUser?.id);
 }
 
 console.log("CMS image/PDF upload, public retrieval, media listing and unsupported-file rejection passed; test files were removed.");
