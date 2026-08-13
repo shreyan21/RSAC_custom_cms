@@ -861,6 +861,7 @@ PostgreSQL database that survives application restarts. Rebuilding `dist\` and
 ### CMS login fails after restore
 
 ```cmd
+
 npm run cms:reset-admin
 ```
 
