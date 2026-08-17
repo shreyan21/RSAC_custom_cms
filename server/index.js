@@ -21,7 +21,7 @@ import {
 import { assertStrongPassword } from "../shared/passwordPolicy.js";
 import { config } from "./config.js";
 import { pool, withTransaction } from "./db.js";
-import { assembleBootstrap, localize, readPublishedEntries } from "./contentAssembler.js";
+import { assembleBootstrap, localize, mergePreviewRow, readPublishedEntries } from "./contentAssembler.js";
 import { clearSession, createSession, requireAdmin, requireAuth, requireCsrf, sessionCookie, sessionCookieOptions } from "./auth.js";
 import { preserveStoredUndeclaredFields, validateEntryPayload } from "./contentValidation.js";
 import { prepareFormerRosterSave } from "./formerRosterSync.js";
@@ -362,14 +362,7 @@ app.get("/api/content/preview/:token", async (req, res, next) => {
       ? publishedRowsCache.rows
       : await readPublishedEntries();
     publishedRowsCache = { version: currentVersion, rows: publishedRows };
-    const rows = [...publishedRows];
-    const previewIndex = rows.findIndex((row) =>
-      preview.entryId
-        ? String(row.id) === preview.entryId
-        : row.collection === preview.row.collection && row.entry_key === preview.row.entry_key
-    );
-    if (previewIndex >= 0) rows[previewIndex] = preview.row;
-    else rows.push(preview.row);
+    const rows = mergePreviewRow(publishedRows, preview);
 
     res.set("Cache-Control", "no-store");
     res.set("Referrer-Policy", "no-referrer");
@@ -619,7 +612,7 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
   try {
     const collection = String(req.body?.collection || "");
     const entry = req.body?.entry || {};
-    const { definition, dataEn, dataHi, sortOrder } = validateEntryPayload(collection, entry);
+    const { definition, dataEn, dataHi, status, sortOrder } = validateEntryPayload(collection, entry);
     const entryKey = entryKeyFor(entry, dataEn);
     assertEntryAccess(req, definition.id, { ...entry, entry_key: entryKey, data_en: dataEn });
     const now = new Date();
@@ -633,7 +626,7 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
       id: entryId || randomUUID(),
       collection: definition.id,
       entry_key: entryKey,
-      status: "published",
+      status,
       sort_order: definition.autoNewestFirst && !entryId ? -2147483648 : sortOrder,
       data_en: dataEn,
       data_hi: dataHi,
@@ -649,6 +642,7 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
     res.json({
       token,
       path: previewPathFor(definition.id, dataEn),
+      status,
       revision,
       expiresAt: new Date(expiresAt).toISOString(),
     });

@@ -4,7 +4,7 @@ import { api, websiteUrl } from "./api";
 const previewWindowName = "rsac-cms-live-preview";
 const previewMessageType = "rsac-cms-preview:update";
 const previewReadyMessageType = "rsac-cms-preview:ready";
-const previewDebounceMs = 450;
+const previewDebounceMs = 250;
 
 const previewUrl = (result, language) => {
   const target = new URL(result.path || "/", websiteUrl);

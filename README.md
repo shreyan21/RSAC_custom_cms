@@ -12,15 +12,14 @@ It intentionally uses one `package.json`, one `package-lock.json`, and one
 
 ## Read First
 
-- [PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md): complete source/target handover, first setup, later Git push/pull, database backup/restore, production, architecture, and file responsibilities.
+- [PROJECT_HANDBOOK.md](PROJECT_HANDBOOK.md): complete source/target handover, fresh and existing computer scenarios, commands, database backup/restore, architecture, libraries, and file responsibilities.
 - [CMS_USER_GUIDE.md](CMS_USER_GUIDE.md): non-technical website editing instructions.
-- [LIBRARIES_BY_SECTION.md](LIBRARIES_BY_SECTION.md): important libraries used by each area.
 
 ## Local Start
 
 Requirements: Node.js 20+, npm, and PostgreSQL 14+.
 
-On a new machine, follow `PROJECT_TRANSFER_GUIDE.md`. After first setup:
+On a new machine, follow `PROJECT_HANDBOOK.md`. After first setup:
 
 ```cmd
 npm run dev:all
@@ -32,8 +31,10 @@ Open:
 - CMS: `http://localhost:5174`
 - API check: `http://localhost:3000/api/health`
 
-CMS username is normally `admin`. Read `CMS_ADMIN_PASSWORD` from the ignored
-local `.env.local`. Never commit or publicly share that file.
+Read `CMS_ADMIN_USERNAME` and `CMS_ADMIN_PASSWORD` from the ignored local
+`.env.local`. Changing those lines alone does not change PostgreSQL. After an
+intentional credential change, run `npm run cms:reset-admin`. Never commit or
+publicly share `.env.local`.
 
 ## Checks
 

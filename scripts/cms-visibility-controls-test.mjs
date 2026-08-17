@@ -1,6 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
-import { assembleBootstrap, readPublishedEntries } from "../server/contentAssembler.js";
+import { assembleBootstrap, mergePreviewRow, readPublishedEntries } from "../server/contentAssembler.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) {
@@ -23,6 +23,36 @@ try {
 
   if (!ids.length) {
     throw new Error("No published CMS entries are available for the visibility test.");
+  }
+
+  const operationalDomain = selected.find((row) => row.collection === "operational_domains");
+  if (!operationalDomain) {
+    throw new Error("No published Operational Domain is available for the preview visibility test.");
+  }
+
+  for (const hiddenStatus of ["draft", "archived"]) {
+    const previewRows = mergePreviewRow(await readPublishedEntries(client), {
+      entryId: hiddenStatus === "draft" ? "stale-preview-identity" : String(operationalDomain.id),
+      row: { ...operationalDomain, status: hiddenStatus },
+    });
+    const previewDomains = assembleBootstrap(previewRows, "en").siteSettings?.missionPulse?.domains || [];
+    if (previewDomains.some((domain) => String(domain.id) === String(operationalDomain.id))) {
+      throw new Error(`${hiddenStatus} Operational Domain remained visible in private preview.`);
+    }
+  }
+
+  const previewLabel = `Preview visibility ${Date.now()}`;
+  const publishedPreviewRows = mergePreviewRow(await readPublishedEntries(client), {
+    entryId: String(operationalDomain.id),
+    row: {
+      ...operationalDomain,
+      status: "published",
+      data_en: { ...operationalDomain.data_en, label: previewLabel },
+    },
+  });
+  const publishedPreviewDomains = assembleBootstrap(publishedPreviewRows, "en").siteSettings?.missionPulse?.domains || [];
+  if (!publishedPreviewDomains.some((domain) => domain.label === previewLabel)) {
+    throw new Error("Published Operational Domain edits did not reach private preview.");
   }
 
   for (const hiddenStatus of ["draft", "archived"]) {
@@ -63,7 +93,7 @@ try {
 
   console.log(
     `Visibility controls passed for ${selected.length} public collections. ` +
-    "Draft and archived entries are excluded, including Geoportals."
+    "Draft and archived entries are excluded from the website and private preview, including Operational Domains and Geoportals."
   );
 } finally {
   await client.query("ROLLBACK").catch(() => undefined);

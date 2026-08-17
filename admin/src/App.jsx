@@ -461,7 +461,7 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
         ? "Published. Open live website tabs are updating now."
         : payload.status === "archived"
           ? "Archived. It has been removed from the live website."
-          : "Saved as Draft. It is hidden from the live website; a private Preview can still show it.";
+          : "Saved as Draft. It is hidden from the live website and private Preview reflects that hidden state.";
       notify(statusMessage, "success");
       onSaved(result.data);
     } catch (error) { notify(error.message, "error"); }
@@ -485,7 +485,7 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
         <aside className="editor-meta">
           <h3>Publishing</h3>
           <label>Visibility<select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived - hidden</option></select></label>
-          <p>{draft.status === "published" ? "Changes become public after Save." : "This stays hidden from the live website after Save. Private preview remains available for checking."}</p>
+          <p>{draft.status === "published" ? "Changes become public after Save." : "This stays hidden from the live website after Save. Private preview shows the page without this item."}</p>
           {!definition.singleton && !definition.autoNewestFirst && <label className="display-order-field">Display order<input type="number" step="1" value={draft.sortOrder ?? ""} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value === "" ? "" : Number(event.target.value) }))} /><small>Use 0 for the first item, 1 for the second, then 2, 3, and so on. Use a different number for each item.</small></label>}
           {!definition.autoNewestFirst && <details className="editor-advanced"><summary>Advanced options</summary><label>Internal key<input value={draft.entryKey || ""} onChange={(event) => setDraft((current) => ({ ...current, entryKey: event.target.value }))} placeholder="Generated automatically" /></label><small>Internal keys connect saved content to the website. Do not change an existing key.</small></details>}
         </aside>

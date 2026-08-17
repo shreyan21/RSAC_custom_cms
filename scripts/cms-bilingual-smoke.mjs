@@ -107,6 +107,47 @@ try {
   csrf = login.payload.csrfToken;
   if (!cookie || !csrf) throw new Error("CMS login did not return a secure session.");
 
+  const operationalDomains = (await request("/api/admin/content/operational_domains")).payload.data;
+  const operationalDomain = operationalDomains.find((entry) => entry.status === "published");
+  if (!operationalDomain) throw new Error("No published Operational Domain is available for preview testing.");
+
+  const hiddenPreview = (await request("/api/admin/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      collection: "operational_domains",
+      entry: { ...operationalDomain, status: "draft" },
+    }),
+  })).payload;
+  if (hiddenPreview.status !== "draft") {
+    throw new Error(`Preview endpoint changed draft visibility to ${hiddenPreview.status || "an empty status"}.`);
+  }
+  const hiddenPreviewBootstrap = (await request(`/api/content/preview/${hiddenPreview.token}?lang=en`)).payload.data;
+  if ((hiddenPreviewBootstrap.siteSettings?.missionPulse?.domains || []).some((domain) =>
+    String(domain.id) === String(operationalDomain.id)
+  )) {
+    throw new Error("A draft Operational Domain remained visible in the authenticated private preview.");
+  }
+
+  const previewDomainLabel = `Operational preview ${Date.now()}`;
+  const visiblePreview = (await request("/api/admin/preview", {
+    method: "POST",
+    body: JSON.stringify({
+      collection: "operational_domains",
+      token: hiddenPreview.token,
+      entry: {
+        ...operationalDomain,
+        status: "published",
+        dataEn: { ...operationalDomain.dataEn, label: previewDomainLabel },
+      },
+    }),
+  })).payload;
+  const visiblePreviewBootstrap = (await request(`/api/content/preview/${visiblePreview.token}?lang=en`)).payload.data;
+  if (!(visiblePreviewBootstrap.siteSettings?.missionPulse?.domains || []).some((domain) =>
+    domain.label === previewDomainLabel
+  )) {
+    throw new Error("A published Operational Domain edit did not refresh the existing private preview token.");
+  }
+
   const pages = (await request("/api/admin/content/pages")).payload.data;
   const targetPages = pages.filter((page) => targetSections.has(page.dataEn?.sectionKey));
   if (!targetPages.length) throw new Error("Division and Facility CMS pages are missing.");
@@ -205,4 +246,4 @@ try {
 }
 
 if (verificationError) throw verificationError;
-console.log("Canonical bilingual Division/Facility rich-text, exact-empty language behavior, preview, public delivery, shared media, content versioning, and restoration smoke tests passed.");
+console.log("Canonical bilingual Division/Facility rich-text, exact-empty language behavior, live preview visibility/refresh, public delivery, shared media, content versioning, and restoration smoke tests passed.");

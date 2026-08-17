@@ -2,6 +2,27 @@ import { pool } from "./db.js";
 import { getCollection } from "../shared/cmsCollections.js";
 import { hasCanonicalSectionContent } from "../shared/sectionRichContent.js";
 
+export const mergePreviewRow = (publishedRows, preview) => {
+  const rows = [...publishedRows];
+  let previewIndex = preview.entryId
+    ? rows.findIndex((row) => String(row.id) === String(preview.entryId))
+    : -1;
+  if (previewIndex < 0) {
+    previewIndex = rows.findIndex((row) =>
+      row.collection === preview.row.collection && row.entry_key === preview.row.entry_key
+    );
+  }
+
+  if (preview.row.status !== "published") {
+    if (previewIndex >= 0) rows.splice(previewIndex, 1);
+    return rows;
+  }
+
+  if (previewIndex >= 0) rows[previewIndex] = preview.row;
+  else rows.push(preview.row);
+  return rows;
+};
+
 const imageTags = (html) => String(html || "").match(/<img\b[^>]*\bsrc\s*=\s*["'][^"']+["'][^>]*>/gi) || [];
 
 const imageSource = (tag) => tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)?.[1] || "";
