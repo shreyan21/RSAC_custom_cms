@@ -69,6 +69,54 @@ const collectionIconFor = (collection) => {
   return rules.find(([pattern]) => pattern.test(text))?.[1] || <FileText aria-hidden="true" />;
 };
 const CollectionCardIcon = ({ collection }) => collectionIconFor(collection);
+const collectionKindFor = (collection) => {
+  if (collection.workspace) return "Guided page editor";
+  if (collection.allowCreate === false || collection.singleton) return "Page settings";
+  return "Content list";
+};
+const collectionActionFor = (collection) => {
+  if (collection.workspace) {
+    return collection.workspaceKind === "divisions" || collection.id === "division_pages"
+      ? "Choose division"
+      : "Choose page";
+  }
+  return collection.allowCreate === false || collection.singleton ? "Open editor" : "View and edit";
+};
+
+function CollectionCard({ collection, onOpen, onAdd }) {
+  const total = collection.counts?.total || 0;
+  const published = collection.counts?.published || 0;
+  const hindi = collection.counts?.hindi || 0;
+  const drafts = collection.counts?.drafts || 0;
+  const canAdd = collection.allowCreate !== false && (!collection.singleton || !total);
+
+  return (
+    <article className="collection-card">
+      <header className="collection-card__heading">
+        <span className="collection-card__icon"><CollectionCardIcon collection={collection} /></span>
+        <div>
+          <span className="collection-card__kind">{collectionKindFor(collection)}</span>
+          <h5>{collection.label}</h5>
+        </div>
+        <span className={drafts ? "count draft" : "count"} aria-label={`${total} records`}>{total}</span>
+      </header>
+      <p>{collection.description}</p>
+      <footer>
+        {total ? (
+          <>
+            <span>{published} visible</span>
+            <span>{hindi} Hindi ready</span>
+            {drafts > 0 && <span className="draft-text">{drafts} draft</span>}
+          </>
+        ) : <span>No items yet</span>}
+      </footer>
+      <div className="collection-card__actions">
+        <button className="secondary" onClick={() => onOpen(collection)}>{collectionActionFor(collection)} <ChevronRight /></button>
+        {canAdd && <button className="primary" onClick={() => onAdd(collection)}><Plus /> Add new</button>}
+      </div>
+    </article>
+  );
+}
 const floodReportYearOf = (entry) =>
   `${entry?.dataEn?.date || ""} ${entry?.dataEn?.dateLabel || ""} ${entry?.entryKey || ""}`
     .match(/\b(?:19|20)\d{2}\b/)?.[0] || "";
@@ -117,9 +165,9 @@ const findDuplicateProfilePairs = (entries) => {
 
 const pageViewDefinitions = [
   ["about_pages", "About and Institutional Pages", "about-us", "About RSAC-UP, Visitor's Book, and Administrative Staff content. People and the organisation chart use their dedicated editors."],
-  ["division_pages", "Division Page Sections", "divisions", "Edit each division's sections. Create a new division in Divisions; its responsive page is created automatically."],
-  ["facility_pages", "Facilities", "facilities", "All facility pages, descriptions, images and flexible page blocks."],
-  ["academic_pages", "Training and Academics", "academics", "Training Division and School of Geo-Informatics pages."],
+  ["division_pages", "Division Pages and Sections", "divisions", "Choose a division, then edit the sections, lists and media shown inside its page. Create and order division directory cards separately in Division Directory Cards."],
+  ["facility_pages", "Facility Pages and Sections", "facilities", "Choose a facility, then edit its descriptions, sections, images and documents."],
+  ["academic_pages", "Training and Academic Pages", "academics", "Edit the Training Division and School of Geo-Informatics pages."],
 ];
 
 const dedicatedPageSections = new Set(pageViewDefinitions.map(([, , sectionKey]) => sectionKey));
@@ -255,7 +303,7 @@ const buildPeopleViews = (definitions, pageEntries, profileEntries) => {
     ...siteSettings,
     id: "people_page_text",
     storageId: "site_settings",
-    label: "People Page Headings and Labels",
+    label: "Shared People Page Text",
     description: "Edit the English and Hindi headings, introductions, back buttons and group labels used across all People and Our Formers pages.",
     allowCreate: false,
         fields: siteSettings.fields.map((field) =>
@@ -274,6 +322,8 @@ const buildPeopleViews = (definitions, pageEntries, profileEntries) => {
       if (definition.id !== "site_settings") return definition;
       return {
         ...definition,
+        label: "Homepage, Sitemap and Shared Text",
+        description: "Edit homepage section text and layout, Sitemap content, footer wording and other labels shared across the website.",
         fields: definition.fields.map((field) =>
           field.name === "settings"
             ? { ...field, excludeSettingsGroups: ["People and Our Formers pages"] }
@@ -478,18 +528,21 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
     <div className="editor-shell">
       <header className="editor-head">
         <button type="button" className="back-button" onClick={onClose}><ArrowLeft /> Back</button>
-        <div><span>{definition.label}</span><h2>{draft.id ? titleOf(draft) : `Add ${definition.label}`}</h2></div>
+        <div><span>{definition.label}</span><h2>{draft.id ? definition.singleton ? `Edit ${definition.label}` : titleOf(draft) : `Add ${definition.label}`}</h2></div>
         <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy} onClick={preview}><Eye /> Private preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} {draft.status === "published" ? "Publish changes" : draft.status === "archived" ? "Save as archived" : "Save as draft"}</button></div>
       </header>
       <div className="editor-body">
         <aside className="editor-meta">
-          <h3>Publishing</h3>
-          <label>Visibility<select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived - hidden</option></select></label>
-          <p>{draft.status === "published" ? "Changes become public after Save." : "This stays hidden from the live website after Save. Private preview shows the page without this item."}</p>
+          <div className="editor-meta__intro"><h3>Publishing and order</h3><p>Choose whether this item is visible and where it appears before saving.</p></div>
+          <div className="editor-meta__control"><label>Visibility<select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Published - visible</option><option value="draft">Draft - hidden</option><option value="archived">Archived - hidden</option></select></label><p>{draft.status === "published" ? "Visible on the public website after Save." : "Hidden from the public website after Save."}</p></div>
           {!definition.singleton && !definition.autoNewestFirst && <label className="display-order-field">Display order<input type="number" step="1" value={draft.sortOrder ?? ""} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value === "" ? "" : Number(event.target.value) }))} /><small>Use 0 for the first item, 1 for the second, then 2, 3, and so on. Use a different number for each item.</small></label>}
           {!definition.autoNewestFirst && <details className="editor-advanced"><summary>Advanced options</summary><label>Internal key<input value={draft.entryKey || ""} onChange={(event) => setDraft((current) => ({ ...current, entryKey: event.target.value }))} placeholder="Generated automatically" /></label><small>Internal keys connect saved content to the website. Do not change an existing key.</small></details>}
         </aside>
         <section className="editor-fields">
+          <div className="editor-context">
+            <span className="collection-card__icon"><Pencil /></span>
+            <div><span>You are editing</span><strong>{definition.label}</strong><p>{definition.description}</p></div>
+          </div>
           <div className="language-tabs" role="tablist" aria-label="Editing language">
             <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English <span className={hasLanguage(draft, "dataEn") ? "language-dot ready" : "language-dot"} /></button>
             <button type="button" className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी <span className={hasLanguage(draft, "dataHi") ? "language-dot ready" : "language-dot"} /></button>
@@ -964,7 +1017,23 @@ export default function App() {
     [activePageSize, filteredEntries, safeListPage]
   );
   const profileDuplicatePairs = useMemo(() => selected?.storageId === "profiles" ? findDuplicateProfilePairs(entries) : [], [entries, selected]);
-  const visibleGroups = useMemo(() => cmsGroups.map((group) => ({ ...group, items: group.ids.map((id) => collections.find((item) => item.id === id)).filter(Boolean).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(collectionSearch.toLowerCase())) })).filter((group) => group.items.length), [collections, collectionSearch]);
+  const visibleGroups = useMemo(() => {
+    const query = collectionSearch.trim().toLowerCase();
+    return cmsGroups
+      .map((group) => {
+        const sections = group.sections
+          .map((section) => ({
+            ...section,
+            items: section.ids
+              .map((id) => collections.find((item) => item.id === id))
+              .filter(Boolean)
+              .filter((item) => !query || `${item.label} ${item.description} ${group.title} ${section.title}`.toLowerCase().includes(query)),
+          }))
+          .filter((section) => section.items.length);
+        return { ...group, sections, items: sections.flatMap((section) => section.items) };
+      })
+      .filter((group) => group.items.length);
+  }, [collections, collectionSearch]);
 
   if (booting) return <div className="full-loader"><LoaderCircle className="spin" /><span>Opening secure CMS...</span></div>;
   if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(nextUser); }} />;
@@ -986,23 +1055,81 @@ export default function App() {
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
         <div className="brand"><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
-        <nav>{navButton("dashboard", <LayoutDashboard />, "Collections")}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
+        <nav>{navButton("dashboard", <LayoutDashboard />, "Edit website")}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>
       {menuOpen && <button className="sidebar-scrim" type="button" aria-label="Close CMS navigation" onClick={() => setMenuOpen(false)} />}
       <main className="main-content">
-        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Custom CMS</span><h1>{view === "dashboard" ? "Website collections" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : view === "password" ? "My password" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
+        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Content Management</span><h1>{view === "dashboard" ? "Edit website" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : view === "password" ? "My password" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.storageId === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
-        {view === "dashboard" && <section className="dashboard"><div className="section-intro"><div><h2>What do you want to edit?</h2><p>Choose the same website area a visitor sees. Uploads and lists do not require technical addresses or code.</p></div></div><div className="collection-search"><Search /><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search: about, former staff, facilities, gallery..." /></div>{visibleGroups.map((group) => <section className="collection-group" key={group.title}><h3>{group.title}</h3><div className="collection-grid">{group.items.map((collection) => <article className="collection-card" key={collection.id}><div><CollectionCardIcon collection={collection} /><span className={collection.counts?.drafts ? "count draft" : "count"}>{collection.counts?.total || 0}</span></div><h4>{collection.label}</h4><p>{collection.description}</p><footer><span>{collection.counts?.hindi || 0} Hindi</span><span>{collection.counts?.published || 0} visible</span></footer><div className="collection-card__actions"><button className="secondary" onClick={() => openCollection(collection)}>{collection.workspace ? collection.workspaceKind === "divisions" || collection.id === "division_pages" ? "Choose division" : "Choose page" : "View and edit"} <ChevronRight /></button>{collection.allowCreate !== false && (!collection.singleton || !collection.counts?.total) && <button className="primary" onClick={() => addNew(collection)}><Plus /> Add new</button>}</div></article>)}</div></section>)}{!visibleGroups.length && <div className="empty-panel">No editable website areas are assigned to this account. Ask an administrator to update your permissions.</div>}</section>}
+        {view === "dashboard" && (
+          <section className="dashboard">
+            <div className="section-intro dashboard-intro">
+              <div>
+                <span className="section-kicker">Website editor</span>
+                <h2>What do you want to change?</h2>
+                <p>Choose the website area first, then open the clearly named editor for that content.</p>
+              </div>
+            </div>
+            <div className="dashboard-find">
+              <div className="collection-search">
+                <Search />
+                <input
+                  value={collectionSearch}
+                  onChange={(event) => setCollectionSearch(event.target.value)}
+                  placeholder="Search website areas..."
+                  aria-label="Search website editing areas"
+                />
+              </div>
+              {!collectionSearch && (
+                <nav className="collection-directory" aria-label="Website editing areas">
+                  {visibleGroups.map((group) => (
+                    <a href={`#cms-group-${group.id}`} key={group.id}>
+                      <span>{group.title}</span>
+                      <small>{group.items.length}</small>
+                    </a>
+                  ))}
+                </nav>
+              )}
+            </div>
+            {visibleGroups.map((group) => (
+              <section className="collection-group" id={`cms-group-${group.id}`} key={group.id}>
+                <header className="collection-group__header">
+                  <span>{group.items.length} editing {group.items.length === 1 ? "area" : "areas"}</span>
+                  <h3>{group.title}</h3>
+                  <p>{group.description}</p>
+                </header>
+                {group.sections.map((section) => (
+                  <div className="collection-subgroup" key={section.title}>
+                    <div className="collection-subgroup__heading">
+                      <h4>{section.title}</h4>
+                      <p>{section.description}</p>
+                    </div>
+                    <div className="collection-grid">
+                      {section.items.map((collection) => (
+                        <CollectionCard collection={collection} onOpen={openCollection} onAdd={addNew} key={collection.id} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            ))}
+            {!visibleGroups.length && <div className="empty-panel">No matching website area was found. Try a shorter search, or ask an administrator to check your editing permissions.</div>}
+          </section>
+        )}
         {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} profiles={profileEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "people_scientists"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
         {view === "collection" && selected && (
           <section className={`collection-view ${isFloodReportCollection ? "collection-view--flood" : ""}`}>
+            <div className="collection-view__intro">
+              <span className="collection-card__icon"><CollectionCardIcon collection={selected} /></span>
+              <div><span>{collectionKindFor(selected)}</span><h2>{selected.label}</h2><p>{selected.description}</p></div>
+            </div>
             <div className="collection-tools">
               <button className="back-button" onClick={() => openView("dashboard")}>
-                <ArrowLeft /> Collections
+                <ArrowLeft /> All website areas
               </button>
               <div className="search">
                 <Search />
@@ -1015,7 +1142,7 @@ export default function App() {
                   placeholder={
                     isFloodReportCollection
                       ? "Search title, district, date or year"
-                      : "Search English, Hindi, title or key"
+                      : "Search title or text in English or Hindi"
                   }
                 />
               </div>
@@ -1072,12 +1199,9 @@ export default function App() {
                     <tr key={entry.id}>
                       <td data-label="Content">
                         <strong>{titleOf(entry)}</strong>
-                        <small>
-                          {entry.entryKey}
-                          {isFloodReportCollection && entry.dataEn?.dateLabel
-                            ? ` · ${entry.dataEn.dateLabel}${entry.dataEn?.coverage ? ` · ${entry.dataEn.coverage}` : ""}`
-                            : ""}
-                        </small>
+                        {isFloodReportCollection && entry.dataEn?.dateLabel && (
+                          <small>{entry.dataEn.dateLabel}{entry.dataEn?.coverage ? ` · ${entry.dataEn.coverage}` : ""}</small>
+                        )}
                       </td>
                       <td data-label="English">
                         {hasLanguage(entry, "dataEn")

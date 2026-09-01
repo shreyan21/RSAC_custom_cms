@@ -95,7 +95,9 @@ for (const definition of collections) {
   }
 }
 
-const groupedIds = cmsGroups.flatMap((group) => group.ids);
+const groupedIds = cmsGroups.flatMap((group) =>
+  (group.sections || []).flatMap((section) => section.ids || [])
+);
 const groupedIdSet = new Set(groupedIds);
 for (const definition of collections) {
   if (!groupedIdSet.has(definition.id) && !intentionallyHiddenCollections.has(definition.id)) {

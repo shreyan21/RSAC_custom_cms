@@ -431,7 +431,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   if (!draft) {
     return (
       <section className="division-workspace">
-        <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>No page HTML. Choose the {itemName} whose content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> Collections</button></div>
+        <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>Choose the {itemName} whose visible page content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> All website areas</button></div>
         <label className="workspace-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
         <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span className="workspace-card__meta"><span>Order {orderOf(page)} · Open sections</span><span className={`status ${page.status || "published"}`}>{visibilityLabel(page.status)}</span></span></button>)}</div>
       </section>
@@ -483,7 +483,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
         <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3</span><h2>{label}</h2><p>Shared people details stay consistent everywhere. Optional changes below affect only this {itemName}.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "Hindi" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
         <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> Hindi</button></div>
         <p className="workspace-language-note">The photograph and master profile stay shared everywhere. When extra content is entered, it appears left of the photograph on desktop and below it on mobile for this {itemName} only.</p>
-        <div className="workspace-reference workspace-reference--wide"><UserRound /><h3>Shared people collection</h3><p>Edit the master name, photograph, and full profile once when the change should appear everywhere.</p><button className="secondary" onClick={onOpenPeople}>Open people collection</button></div>
+        <div className="workspace-reference workspace-reference--wide"><UserRound /><h3>Shared people profiles</h3><p>Edit the master name, photograph, and full profile once when the change should appear everywhere.</p><button className="secondary" onClick={onOpenPeople}>Open people profiles</button></div>
         <div className="profile-section-content-list">
           {pageProfiles.map((entry) => {
             const localized = language === "hi" ? entry.dataHi || {} : entry.dataEn || {};
@@ -495,14 +495,14 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
               : "";
             return (
               <article className="profile-section-content-editor" key={entry.id}>
-                <header><div className="profile-section-content-editor__photo">{reference.photo ? <img src={mediaPreviewUrl(reference.photo)} alt="" /> : <UserRound />}</div><div><strong>{displayName}</strong><span>{localized.designation || reference.designation || "Scientist profile"}</span><small>Photo and master details come from the shared people collection.</small></div></header>
+                <header><div className="profile-section-content-editor__photo">{reference.photo ? <img src={mediaPreviewUrl(reference.photo)} alt="" /> : <UserRound />}</div><div><strong>{displayName}</strong><span>{localized.designation || reference.designation || "Scientist profile"}</span><small>Photo and master details come from Shared People Profiles.</small></div></header>
                 {englishReference && <details className="profile-section-reference"><summary>View English reference</summary><div dangerouslySetInnerHTML={{ __html: englishReference }} /></details>}
                 <label className="profile-section-content-label">Additional content shown only in this {itemName} ({language === "hi" ? "Hindi" : "English"})</label>
                 <SectionRichTextEditor value={additionalContent} onChange={(html) => updateProfileSectionContent(entry, html)} ariaLabel={`${displayName} additional ${language === "hi" ? "Hindi" : "English"} content`} />
               </article>
             );
           })}
-          {!pageProfiles.length && <div className="empty-panel">No scientist is assigned to this {itemName}. Open the people collection and set the correct Deployment / division.</div>}
+          {!pageProfiles.length && <div className="empty-panel">No scientist is assigned to this {itemName}. Open Shared People Profiles and set the correct Deployment / division.</div>}
         </div>
       </section>
     );

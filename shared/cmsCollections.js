@@ -211,14 +211,14 @@ export const collections = [
   },
   {
     id: "page_sections",
-    label: "Directory Page Headings",
-    description: "Headings and introductions for top-level directories such as About, Divisions, Facilities, and Training.",
+    label: "Directory Introductions",
+    description: "Edit the heading and short introduction shown at the top of the About, Divisions, Facilities and Training directory pages.",
     fields: [text("title", "Title"), plain("key", "Internal page key", { required: true, advanced: true }), plain("route", "Website page", { advanced: true }), text("eyebrow", "Small heading"), textarea("intro", "Introduction")],
   },
   {
     id: "divisions",
-    label: "Divisions",
-    description: "Division cards and summaries.",
+    label: "Division Directory Cards",
+    description: "Add, rename, hide or reorder the cards visitors see before opening a division page.",
     requireHindiWhenPublished: true,
     fields: [text("title", "Division name", { required: true }), plain("slug", "Website page name", { required: true, advanced: true }), textarea("lead", "Lead"), { name: "highlights", label: "Highlights", type: "list", localized: true }, plain("sourceUrl", "Original source reference", { type: "url", advanced: true })],
   },
@@ -435,7 +435,7 @@ export const collections = [
     fields: [text("title", "Logo title", { required: true }), text("altText", "Alt text", { required: true }), { name: "image", label: "Logo image", type: "media", localized: false }, plain("linkUrl", "Link URL", { type: "url" }), { name: "placement", label: "Placement", type: "select", localized: false, options: ["primary", "supporting", "footer"] }],
   },
   ...[
-    ["homepage_features", "Homepage Tab Names, Icons and Order", "Edit only the five compact tabs shown below homepage announcements. The full Objective, Implementation, Approach and Sphere page text has its own adjacent editor."],
+    ["homepage_features", "Homepage Tab Cards: Names, Icons and Order", "Edit only the five compact tabs shown below homepage announcements. The full Objective, Implementation, Approach and Sphere page text has its own adjacent editor."],
     ["services", "Services / Programme Cards", "Homepage services and programme cards."],
     ["applications", "Application Cards", "Homepage application cards."],
     ["quick_links", "Quick Links", "Homepage quick links."],
