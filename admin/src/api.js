@@ -1,4 +1,4 @@
-const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const localHosts = new Set(["localhost", "192.168.100.64", "[::1]"]);
 const matchLocalBrowserHost = (value) => {
   const source = String(value || "");
   if (typeof window === "undefined" || !localHosts.has(window.location.hostname)) return source;

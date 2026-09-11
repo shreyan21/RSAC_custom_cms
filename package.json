@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
-    "dev:website": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev": "vite --host 192.168.100.64 --port 5173 --strictPort",
+    "dev:website": "vite --host 192.168.100.64 --port 5173 --strictPort",
     "dev:admin": "vite --config vite.admin.config.js",
     "dev:api": "node server/index.js",
     "dev:all": "node scripts/start-custom-stack.mjs",

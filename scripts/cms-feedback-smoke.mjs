@@ -9,7 +9,7 @@ loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) throw new Error("CMS_DATABASE_URL is missing.");
 
 const base = String(
-  process.env.CMS_API_URL || process.env.VITE_API_URL || "http://127.0.0.1:3000"
+  process.env.CMS_API_URL || process.env.VITE_API_URL || "http://192.168.100.64:3000"
 ).replace(/\/$/u, "");
 const healthResponse = await fetch(`${base}/api/health`);
 const health = await healthResponse.json().catch(() => ({}));

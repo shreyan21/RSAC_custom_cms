@@ -251,7 +251,7 @@ try {
   await client.end();
 }
 
-const apiBase = String(process.env.CMS_API_URL || process.env.VITE_API_URL || "http://127.0.0.1:3000").replace(/\/$/u, "");
+const apiBase = String(process.env.CMS_API_URL || process.env.VITE_API_URL || "http://192.168.100.64:3000").replace(/\/$/u, "");
 let cookie = "";
 let csrf = "";
 let testUser;

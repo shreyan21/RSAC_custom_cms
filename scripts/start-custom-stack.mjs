@@ -7,14 +7,14 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const vite = fileURLToPath(new URL("../node_modules/vite/bin/vite.js", import.meta.url));
 
 const services = [
-  { name: "API", port: 3000, url: "http://127.0.0.1:3000/api/health", marker: "RSAC Custom CMS" },
-  { name: "Website", port: 5173, url: "http://127.0.0.1:5173", marker: "RSAC-UP" },
-  { name: "CMS", port: 5174, url: "http://127.0.0.1:5174", marker: "RSAC-UP Content Management" },
+  { name: "API", port: 3000, url: "http://192.168.100.64:3000/api/health", marker: "RSAC Custom CMS" },
+  { name: "Website", port: 5173, url: "http://192.168.100.64:5173", marker: "RSAC-UP" },
+  { name: "CMS", port: 5174, url: "http://192.168.100.64:5174", marker: "RSAC-UP Content Management" },
 ];
 
 function isPortOpen(port) {
   return new Promise((resolveOpen) => {
-    const socket = createConnection({ host: "127.0.0.1", port });
+    const socket = createConnection({ host: "192.168.100.64", port });
     const finish = (isOpen) => {
       socket.destroy();
       resolveOpen(isOpen);
@@ -71,7 +71,7 @@ const children = [
     ? spawn(process.execPath, [resolve(root, "server/index.js")], { cwd: root, stdio: "inherit" })
     : null,
   !portStates.find((service) => service.name === "Website").open
-    ? spawn(process.execPath, [vite, "--host", "127.0.0.1", "--port", "5173", "--strictPort"], { cwd: root, stdio: "inherit" })
+    ? spawn(process.execPath, [vite, "--host", "192.168.100.64", "--port", "5173", "--strictPort"], { cwd: root, stdio: "inherit" })
     : null,
   !portStates.find((service) => service.name === "CMS").open
     ? spawn(process.execPath, [vite, "--config", "vite.admin.config.js"], { cwd: root, stdio: "inherit" })

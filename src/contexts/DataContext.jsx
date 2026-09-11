@@ -15,7 +15,7 @@ const previewReadyMessageType = "rsac-cms-preview:ready";
 const cmsAdminOrigin = (() => {
   try {
     const configured = new URL(import.meta.env.VITE_CMS_ADMIN_URL || "http://localhost:5174");
-    if (import.meta.env.PROD && ["localhost", "127.0.0.1", "[::1]"].includes(configured.hostname)) {
+    if (import.meta.env.PROD && ["localhost", "192.168.100.64", "[::1]"].includes(configured.hostname)) {
       return window.location.origin;
     }
     return configured.origin;

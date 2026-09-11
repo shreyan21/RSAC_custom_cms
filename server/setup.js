@@ -20,7 +20,7 @@ const current = { ...parseEnv(currentText), ...process.env };
 const adminPassword = current.POSTGRES_ADMIN_PASSWORD;
 if (!adminPassword) throw new Error("Set POSTGRES_ADMIN_PASSWORD for local PostgreSQL setup.");
 
-const dbHost = current.POSTGRES_HOST || "127.0.0.1";
+const dbHost = current.POSTGRES_HOST || "192.168.100.64";
 const dbPort = Number(current.POSTGRES_PORT || 5432);
 const dbName = current.CMS_DATABASE_NAME || "rsac_custom_cms";
 const dbUser = current.CMS_DATABASE_USER || "rsac_custom_app";
@@ -106,7 +106,7 @@ const output = [
   "VITE_CMS_ADMIN_URL=http://localhost:5174",
   "CMS_PORT=3000",
   "CMS_PUBLIC_URL=http://localhost:3000",
-  "CMS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174",
+  "CMS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://192.168.100.64:5173,http://192.168.100.64:5174",
   "CMS_COOKIE_SECURE=false",
   "CMS_SESSION_HOURS=8",
   `POSTGRES_HOST=${dbHost}`,

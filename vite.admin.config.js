@@ -25,12 +25,12 @@ export default defineConfig(({ command }) => ({
   cacheDir: "../node_modules/.vite-admin",
   plugins: [reactRefreshPreamble, react()],
   server: {
-    host: "127.0.0.1",
+    host: "192.168.100.64",
     port: 5174,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:3000",
-      "/uploads": "http://127.0.0.1:3000",
+      "/api": "http://192.168.100.64:3000",
+      "/uploads": "http://192.168.100.64:3000",
     },
   },
   build: { outDir: "../dist-admin", emptyOutDir: true },

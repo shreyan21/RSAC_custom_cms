@@ -5,21 +5,21 @@ import { resolve } from "node:path";
 const freePort = () => new Promise((resolvePort, reject) => {
   const probe = createServer();
   probe.once("error", reject);
-  probe.listen(0, "127.0.0.1", () => {
+  probe.listen(0, "192.168.100.64", () => {
     const address = probe.address();
     probe.close(() => resolvePort(address.port));
   });
 });
 
 const port = await freePort();
-const origin = `http://127.0.0.1:${port}`;
+const origin = `http://192.168.100.64:${port}`;
 const output = [];
 const child = spawn(process.execPath, [resolve("scripts/start-production.mjs")], {
   cwd: process.cwd(),
   env: {
     ...process.env,
     CMS_PORT: String(port),
-    CMS_HOST: "127.0.0.1",
+    CMS_HOST: "192.168.100.64",
     CMS_PUBLIC_URL: origin,
     CMS_ALLOWED_ORIGINS: origin,
     CMS_COOKIE_SECURE: "false",

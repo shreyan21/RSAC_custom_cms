@@ -1,4 +1,4 @@
-const localApiHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const localApiHosts = new Set(["localhost", "192.168.100.64", "[::1]"]);
 const configuredApiUrl = String(
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin)

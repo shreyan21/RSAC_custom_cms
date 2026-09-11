@@ -23,10 +23,10 @@ const production = process.env.NODE_ENV === "production";
 
 export const config = {
   port: Number(process.env.CMS_PORT || 3000),
-  host: String(process.env.CMS_HOST || (production ? "0.0.0.0" : "127.0.0.1")).trim(),
+  host: String(process.env.CMS_HOST || (production ? "0.0.0.0" : "192.168.100.64")).trim(),
   serveBuiltApps: bool(process.env.CMS_SERVE_BUILT_APPS, production),
   databaseUrl: process.env.CMS_DATABASE_URL || "",
-  allowedOrigins: split(process.env.CMS_ALLOWED_ORIGINS || "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174"),
+  allowedOrigins: split(process.env.CMS_ALLOWED_ORIGINS || "http://localhost:5173,http://localhost:5174,http://192.168.100.64:5173,http://192.168.100.64:5174"),
   publicUrl: String(process.env.CMS_PUBLIC_URL || "http://localhost:3000").replace(/\/+$/, ""),
   cookieSecure: process.env.CMS_COOKIE_SECURE === "true",
   sessionHours: boundedNumber(process.env.CMS_SESSION_HOURS, 8, 1, 168),
