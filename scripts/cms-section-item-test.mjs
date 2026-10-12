@@ -42,6 +42,9 @@ const validatedPage = validateEntryPayload("pages", {
 });
 assert.match(validatedPage.dataEn.blocks[0].contentHtml, /data-rsac-added-item="true"/u);
 
+const headerlessTable = addLatestSectionItem('<table><tbody><tr><td>1</td><td>Existing</td></tr><tr><td>2</td><td>Older</td></tr></tbody></table>', true, document);
+assert.deepEqual(Array.from(document.createRange().createContextualFragment(headerlessTable).querySelectorAll("tbody td:first-child")).map((cell) => cell.textContent), ["1", "2", "3"]);
+
 const referenceLayout = "<p><strong>Introduction</strong></p><ul><li><p>First</p></li><li><p>Second</p></li></ul><h4>Software</h4><ul><li>Third</li></ul>";
 const localizedLayout = "<p>Extra introduction</p><p>Translated introduction</p><p>Translated first</p><p>Translated second</p><h3>Translated software</h3><p>Translated third</p>";
 const matchedLayout = matchSectionListStructure(localizedLayout, referenceLayout, document);

@@ -157,8 +157,8 @@ const tableHasSerialColumn = (table) => {
   const rows = tableBodyRows(table);
   return Boolean(rows.length && rows.every((row) => /^\d+$/u.test(String(row.cells?.[0]?.textContent || "").trim())));
 };
-const renumberTable = (table) => {
-  if (!tableHasSerialColumn(table)) return;
+const renumberTable = (table, hasSerialColumn = tableHasSerialColumn(table)) => {
+  if (!hasSerialColumn) return;
   tableBodyRows(table).forEach((row, index) => {
     if (row.cells[0]) row.cells[0].textContent = String(index + 1);
   });
@@ -190,6 +190,7 @@ export const addLatestSectionItem = (html, ordered = true, documentRef) => {
   if (!list) {
     const table = findManagedTable(container);
     if (table) {
+      const hasSerialColumn = tableHasSerialColumn(table);
       const rows = tableBodyRows(table);
       const template = rows[0] || table.querySelector("tr");
       const columnCount = Math.max(1, template?.cells?.length || 1);
@@ -207,7 +208,7 @@ export const addLatestSectionItem = (html, ordered = true, documentRef) => {
       }
       if (rows[0]) rows[0].before(row);
       else body.append(row);
-      renumberTable(table);
+      renumberTable(table, hasSerialColumn);
       return container.innerHTML;
     }
   }

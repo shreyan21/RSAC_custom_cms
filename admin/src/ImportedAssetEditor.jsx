@@ -37,6 +37,7 @@ function AssetUploadField({ asset, onChange, onBusy, onError }) {
     } catch (error) {
       onError(error.message);
     } finally {
+      if (fileRef.current) fileRef.current.value = "";
       onBusy(false);
     }
   };

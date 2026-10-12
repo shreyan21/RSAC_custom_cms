@@ -33,6 +33,8 @@ const richTextOptions = {
   allowedSchemes: ["http", "https", "mailto", "tel"],
   allowedSchemesByTag: { img: ["http", "https", "data"] },
   transformTags: {
+    b: "strong",
+    i: "em",
     a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }, true),
     img: sanitizeHtml.simpleTransform("img", { loading: "lazy" }, true),
     span: (tagName, attributes) => {

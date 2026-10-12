@@ -80,6 +80,7 @@ function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "im
     } catch (error) {
       onError(error.message);
     } finally {
+      if (fileRef.current) fileRef.current.value = "";
       onBusy(false);
     }
   };

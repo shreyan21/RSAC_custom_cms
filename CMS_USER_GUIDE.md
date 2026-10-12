@@ -154,6 +154,10 @@ Select the text first, then choose a toolbar action:
 Hover over a toolbar button to read what it does. Avoid making entire paragraphs
 bold. Use proper lists instead of typing bullets or serial numbers manually.
 
+After clicking elsewhere in the text, select the desired words again before
+applying a style. Text colour changes the letters; it does not add a background
+highlight. Save, reopen the same section, and check the published page.
+
 ## Edit a Division or Facility Section
 
 1. Open **Division page sections** or **Pages -> Facilities**.
@@ -181,7 +185,7 @@ Use the move controls to change order and the bin button to remove an item.
 ## Add or Replace an Image
 
 1. Open the correct card, person, page, or section.
-2. Use **Upload** or **Upload / replace** in its image field.
+2. Use **Choose file** or **Replace file** in its image field.
 3. Choose a local image file.
 4. Enter clear English and Hindi alt text/captions.
 5. Save and verify the crop on desktop and mobile.
@@ -192,6 +196,14 @@ image area empty unless the field clearly says a default is used.
 
 For a face that needs repositioning, use **Photo position** only when available,
 for example `center 22%`.
+
+For a scientist's photograph, open **People and Our Formers -> Current
+Scientists**, find that person, replace **Photo**, and save. The same photograph
+is used in both languages and in the division's Scientific Manpower section.
+You can choose the same filename again after editing the picture on your
+computer. A successful upload gives it a new address, so the old cached picture
+does not replace the new one. If an upload fails, the previous picture remains
+selected; retry the upload before saving.
 
 ## Add or Replace a PDF/Document
 

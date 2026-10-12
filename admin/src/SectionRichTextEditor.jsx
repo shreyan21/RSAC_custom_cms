@@ -1,120 +1,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { Extension, Mark, mergeAttributes } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Eraser, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered, Minus, Palette, Quote, Redo2, RemoveFormatting, Sparkles, Strikethrough, Table2, Underline, Undo2, Unlink } from "lucide-react";
 import EditorTooltipButton from "./EditorTooltipButton";
 import { formatRichTextHtml } from "./formatRichText";
 import { toggleEditorQuote } from "./richTextQuote";
-import { DEFAULT_TEXT_COLOR, normalizeTextColor, textColorStyle } from "../../shared/richTextColor.js";
-
-const fontOptions = [
-  ["", "Default font"],
-  ["inter", "Inter"],
-  ["jakarta", "Plus Jakarta Sans"],
-  ["system-sans", "System Sans"],
-  ["system-serif", "System Serif"],
-];
-
-const sizeOptions = [
-  ["", "Default size"],
-  ["small", "Small"],
-  ["normal", "Normal"],
-  ["large", "Large"],
-  ["xlarge", "Extra large"],
-];
-
-const safeFonts = new Set(fontOptions.map(([value]) => value).filter(Boolean));
-const safeSizes = new Set(sizeOptions.map(([value]) => value).filter(Boolean));
-const safeAlignments = new Set(["start", "center", "end", "justify"]);
-
-const RsacTextAlignment = Extension.create({
-  name: "rsacTextAlignment",
-  addOptions: () => ({ types: ["heading", "paragraph"] }),
-  addGlobalAttributes() {
-    return [{
-      types: this.options.types,
-      attributes: {
-        textAlign: {
-          default: "start",
-          parseHTML: (element) => safeAlignments.has(element.getAttribute("data-rsac-align"))
-            ? element.getAttribute("data-rsac-align")
-            : "start",
-          renderHTML: ({ textAlign }) => textAlign && textAlign !== "start"
-            ? { "data-rsac-align": textAlign }
-            : {},
-        },
-      },
-    }];
-  },
-  addCommands() {
-    return {
-      setRsacTextAlign: (textAlign) => ({ commands }) => {
-        if (!safeAlignments.has(textAlign)) return false;
-        this.options.types.forEach((type) => {
-          commands.updateAttributes(type, { textAlign });
-        });
-        return true;
-      },
-      unsetRsacTextAlign: () => ({ commands }) => {
-        this.options.types.forEach((type) => {
-          commands.resetAttributes(type, "textAlign");
-        });
-        return true;
-      },
-    };
-  },
-});
-
-const RsacTextStyle = Mark.create({
-  name: "rsacTextStyle",
-  parseHTML: () => [{ tag: "span[data-rsac-font], span[data-rsac-size], span[data-rsac-color]" }],
-  renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes), 0],
-  addAttributes() {
-    return {
-      fontFamily: {
-        default: null,
-        parseHTML: (element) => safeFonts.has(element.getAttribute("data-rsac-font"))
-          ? element.getAttribute("data-rsac-font")
-          : null,
-        renderHTML: ({ fontFamily }) => safeFonts.has(fontFamily) ? { "data-rsac-font": fontFamily } : {},
-      },
-      fontSize: {
-        default: null,
-        parseHTML: (element) => safeSizes.has(element.getAttribute("data-rsac-size"))
-          ? element.getAttribute("data-rsac-size")
-          : null,
-        renderHTML: ({ fontSize }) => safeSizes.has(fontSize) ? { "data-rsac-size": fontSize } : {},
-      },
-      color: {
-        default: null,
-        parseHTML: (element) => normalizeTextColor(element.getAttribute("data-rsac-color")) || null,
-        renderHTML: ({ color }) => {
-          const safeColor = normalizeTextColor(color);
-          return safeColor
-            ? { "data-rsac-color": safeColor, style: textColorStyle(safeColor) }
-            : {};
-        },
-      },
-    };
-  },
-});
-
-const extensions = [
-  StarterKit.configure({
-    heading: { levels: [2, 3, 4] },
-    code: false,
-    codeBlock: false,
-    link: { autolink: true, defaultProtocol: "https", openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } },
-  }),
-  RsacTextAlignment,
-  RsacTextStyle,
-  Table.configure({ resizable: true }),
-  TableRow,
-  TableHeader,
-  TableCell,
-];
+import { DEFAULT_TEXT_COLOR, normalizeTextColor } from "../../shared/richTextColor.js";
+import { fontOptions, sizeOptions, sectionEditorExtensions } from "./richTextExtensions.js";
 
 const toolDescriptions = {
   "Add column": "Adds a new column immediately after the selected table cell.",
@@ -183,7 +74,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
   };
 
   const editor = useEditor({
-    extensions,
+    extensions: sectionEditorExtensions,
     content: value || "",
     immediatelyRender: false,
     editorProps: { attributes: { class: "section-rich-editor__surface", role: "textbox", "aria-label": ariaLabel, "aria-multiline": "true" } },
@@ -194,6 +85,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
     onSelectionUpdate: ({ editor: current }) => {
       const { from, to } = current.state.selection;
       if (from !== to) selectedTextRangeRef.current = { from, to };
+      else if (current.isFocused) selectedTextRangeRef.current = null;
     },
     onBlur: ({ editor: current }) => {
       const currentHtml = current.isEmpty ? "" : current.getHTML();
@@ -212,6 +104,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
       && current !== next
     ) {
       editor.commands.setContent(next, { emitUpdate: false });
+      selectedTextRangeRef.current = null;
     }
   }, [editor, value]);
 

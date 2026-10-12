@@ -951,7 +951,10 @@ export default function FieldInput({ field, value, referenceValue, language = "e
       const result = await api("/api/admin/media", { method: "POST", body });
       onChange(result.data.public_url);
     } catch (error) { onError(error.message); }
-    finally { onBusy(false); }
+    finally {
+      if (fileRef.current) fileRef.current.value = "";
+      onBusy(false);
+    }
   };
   if (field.type === "blocks") return <BlockEditor value={value} referenceValue={referenceValue} language={language} pageData={pageData} referencePageData={referencePageData} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;

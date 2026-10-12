@@ -19,6 +19,7 @@ const checks = [
   "cms:test-section-items",
   "cms:test-section-rendering",
   "cms:test-editor-quote",
+  "cms:test-editor",
   "cms:test-divisions",
   "cms:test-former-roster",
   "cms:media-smoke",
