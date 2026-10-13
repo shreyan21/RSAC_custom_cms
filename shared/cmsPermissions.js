@@ -1,3 +1,5 @@
+import { isCanonicalAcademicPage } from "./pageBodyOwnership.js";
+
 export const cmsPermissionAreas = [
   {
     group: "Website content",
@@ -252,7 +254,7 @@ const peoplePageKeys = new Set([
 
 export const permissionForCmsEntry = (collection, entry = {}) => {
   const data = entry.data_en || entry.dataEn || entry || {};
-  const entryKey = String(entry.entry_key || entry.entryKey || "").trim().toLowerCase();
+  const entryKey = String(entry.entry_key || entry.entryKey || entry.key || "").trim().toLowerCase();
   if (collection === "pages") {
     if (peoplePageKeys.has(entryKey)) return "people";
     if (data.sectionKey === "divisions") return "divisions";
@@ -267,4 +269,17 @@ export const permissionForCmsEntry = (collection, entry = {}) => {
     return "public_information";
   }
   return directCollectionPermissions[collection] || null;
+};
+
+// Academic editors share just these two authoritative bodies with Division
+// editors. Keep the original entry's permission metadata and every other
+// Division record's access unchanged.
+export const hasCmsEntryPermission = (user, collection, entry = {}) => {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  const permission = permissionForCmsEntry(collection, entry);
+  if (permission && hasCmsPermission(user, permission)) return true;
+  return collection === "pages"
+    && isCanonicalAcademicPage(entry)
+    && hasCmsPermission(user, "academics");
 };

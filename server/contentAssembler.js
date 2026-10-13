@@ -1,6 +1,7 @@
 import { pool } from "./db.js";
 import { getCollection } from "../shared/cmsCollections.js";
 import { hasCanonicalSectionContent } from "../shared/sectionRichContent.js";
+import { resolvePageBodyRows } from "../shared/pageBodyOwnership.js";
 
 export const mergePreviewRow = (publishedRows, preview) => {
   const rows = [...publishedRows];
@@ -55,11 +56,6 @@ const normalizeProfileText = (value) => String(value || "")
   .replace(/^(?:dr|prof|mr|mrs|ms|shri|sri|smt)\.?\s+/iu, "")
   .replace(/[^\p{Letter}\p{Number}]+/gu, "");
 
-const isPlaceholderProfileImage = (value) =>
-  /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(
-    String(value || "").split(/[?#]/)[0]
-  );
-
 const publicProfileKeys = (profile, { includeType = true } = {}) => {
   const type = String(profile.profileType || "profile").toLowerCase();
   const pairs = [
@@ -67,8 +63,6 @@ const publicProfileKeys = (profile, { includeType = true } = {}) => {
     ["email", String(profile.email || "").trim().toLowerCase()],
     ["name", normalizeProfileText(profile.name)],
   ];
-  const photo = String(profile.photo || profile.image || "").split(/[?#]/)[0].toLowerCase();
-  if (photo && !isPlaceholderProfileImage(photo)) pairs.push(["photo", photo]);
   return pairs
     .filter(([, value]) => value && value !== "notlisted")
     .map(([kind, value]) => `${includeType ? `${type}:` : ""}${kind}:${value}`);
@@ -388,8 +382,9 @@ export const assembleBootstrap = (rows, language = "en") => {
     const value = source ? new Date(source).toISOString() : "";
     return value > latest ? value : latest;
   }, "");
+  const effectiveRows = resolvePageBodyRows(rows);
   const groups = new Map();
-  for (const row of rows) {
+  for (const row of effectiveRows) {
     if (!groups.has(row.collection)) groups.set(row.collection, []);
     groups.get(row.collection).push(row);
   }
@@ -451,7 +446,7 @@ export const assembleBootstrap = (rows, language = "en") => {
   }
   const pages = list("pages").map((page) => ({
     ...page,
-    managedSectionItems: itemsByDivision.get(page.slug) || {},
+    managedSectionItems: itemsByDivision.get(page.bodyOwnerSlug || page.slug) || {},
   }));
   const divisions = list("divisions");
   const facilities = list("facilities");
@@ -478,6 +473,8 @@ export const assembleBootstrap = (rows, language = "en") => {
         : sectionPages,
     };
   });
+  const standalonePages = pages.filter(page => page.sectionKey === "standalone");
+  if (standalonePages.length) sections.push({ key: "standalone", route: "standalone", pages: standalonePages });
   const siteSettings = structuredClone(first("site_settings")?.settings || {});
   const homepageFeatures = list("homepage_features").map((item) => ({
     id: item.id,

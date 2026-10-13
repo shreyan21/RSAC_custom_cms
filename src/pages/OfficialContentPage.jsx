@@ -6934,12 +6934,13 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
   }
 
   if (!page) {
-    return <Navigate to={`/${section.route}`} replace />;
+    return <Navigate to={section.key === "standalone" ? "/sitemap" : `/${section.route}`} replace />;
   }
 
   const usesCategorizedContent =
     section.key === "divisions" || /^training-division-?$/.test(page.slug);
   const isDivision = section.key === "divisions";
+  const isStandalone = section.key === "standalone";
   const isPeopleProfilePage =
     section.key === "about-us" &&
     (profilePageSlugs.has(page.slug) || staticProfilePageSlugs.has(page.slug));
@@ -6971,16 +6972,16 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
       contentSpacing={page.contentSpacing}
       actions={
         <BackButton
-          fallback={`/${section.route}`}
+          fallback={isStandalone ? "/sitemap" : `/${section.route}`}
           label={section.title ? `${t("Back")} ${section.title}` : t("Back")}
         />
       }
     >
-      {!isDivision && <Breadcrumbs section={section} page={page} />}
+      {!isDivision && !isStandalone && <Breadcrumbs section={section} page={page} />}
 
       <div
         className={
-          usesCategorizedContent
+          usesCategorizedContent || isStandalone
             ? "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6"
             : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]"
         }
@@ -7022,7 +7023,7 @@ export const OfficialContentDetailPage = ({ sectionKey }) => {
           )}
         </article>
 
-        {!usesCategorizedContent && (
+        {!usesCategorizedContent && !isStandalone && (
           <aside
             className={`rsac-section-menu h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-[0_14px_38px_rgba(18,50,74,0.055)] xl:sticky xl:top-36 ${
               section.key === "facilities" ? "order-first xl:order-none" : ""

@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import multer from "multer";
 import { existsSync, mkdirSync } from "node:fs";
+import { unlink } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { collections, getCollection } from "../shared/cmsCollections.js";
@@ -14,8 +15,8 @@ import {
   cmsPermissionKeys,
   createCmsPermissions,
   hasCmsPermission,
+  hasCmsEntryPermission,
   normalizeCmsPermissions,
-  permissionForCmsEntry,
   permissionOptionsForCollection,
 } from "../shared/cmsPermissions.js";
 import { assertStrongPassword } from "../shared/passwordPolicy.js";
@@ -32,6 +33,12 @@ import {
   syncDivisionStatusFromPage,
 } from "./divisionPageSync.js";
 import { allocateUniqueEntryKey, entryKeyFor } from "./entryKeys.js";
+import {
+  pageBodyOwnerForEntry,
+  changedAliasBodyFields,
+  preserveAliasStoredBody,
+  isCanonicalAcademicPage,
+} from "../shared/pageBodyOwnership.js";
 
 const app = express();
 const ensureUploadDirectory = () => mkdirSync(config.uploadDir, { recursive: true });
@@ -227,21 +234,14 @@ const normalizeProfileIdentity = (value) => String(value || "")
   .replace(/^(?:dr|prof|mr|mrs|ms|shri|sri|smt)\.?\s+/iu, "")
   .replace(/[^\p{Letter}\p{Number}]+/gu, "");
 
-const isPlaceholderProfilePhoto = (value) =>
-  /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(
-    String(value || "").split(/[?#]/)[0]
-  );
-
 const profileIdentityKeys = (profile) => {
   const keys = new Set();
   const employeeId = normalizeProfileIdentity(profile.employeeId);
   const email = String(profile.email || "").trim().toLowerCase();
   const name = normalizeProfileIdentity(profile.name);
-  const photo = String(profile.photo || "").split(/[?#]/)[0].toLowerCase();
   if (employeeId && employeeId !== "notlisted") keys.add(`employee:${employeeId}`);
   if (email) keys.add(`email:${email}`);
   if (name) keys.add(`name:${name}`);
-  if (photo && !isPlaceholderProfilePhoto(photo)) keys.add(`photo:${photo}`);
   return keys;
 };
 
@@ -547,14 +547,31 @@ const canAccessCollection = (user, collection) => (
 const canAccessEntry = (user, collection, entry) => {
   if (user?.role === "admin") return true;
   if (collection === "site_settings") return canAccessCollection(user, collection);
-  const permission = permissionForCmsEntry(collection, entry);
-  return Boolean(permission && hasCmsPermission(user, permission));
+  return hasCmsEntryPermission(user, collection, entry);
 };
 const assertCollectionAccess = (req, collection) => {
   if (!canAccessCollection(req.cmsUser, collection)) throw permissionError();
 };
 const assertEntryAccess = (req, collection, entry) => {
   if (!canAccessEntry(req.cmsUser, collection, entry)) throw permissionError();
+};
+
+const assertAliasPageBodyUnchanged = (stored, payload, entryKey) => {
+  if (stored.collection !== "pages") return;
+  const owner = pageBodyOwnerForEntry(stored);
+  if (!owner) return;
+  if (entryKey !== stored.entry_key || changedAliasBodyFields(stored, payload).length) {
+    throw Object.assign(new Error(
+      `This page shares its section content with ${owner.label}. Edit the body at /divisions/${owner.ownerKey}; this route has one content owner. Only this page's heading, introduction and layout can be saved here.`
+    ), { status: 409 });
+  }
+};
+
+const assertStableAcademicBodyOwner = (stored, entryKey, dataEn) => {
+  if (stored.collection === "pages" && isCanonicalAcademicPage(stored)
+      && (stored.entry_key !== entryKey || dataEn.sectionKey !== "divisions")) {
+    throw Object.assign(new Error("This shared academic body keeps its canonical internal key and Divisions section. Edit its heading, introduction, layout or section content without moving its content owner."), { status: 409 });
+  }
 };
 
 const peopleSettingPrefixes = [
@@ -614,7 +631,18 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
     const entry = req.body?.entry || {};
     const { definition, dataEn, dataHi, status, sortOrder } = validateEntryPayload(collection, entry);
     const entryKey = entryKeyFor(entry, dataEn);
+    const stored = entry.id
+      ? (await pool.query("SELECT * FROM cms_entries WHERE id=$1 AND collection=$2", [entry.id, definition.id])).rows[0]
+      : (await pool.query("SELECT * FROM cms_entries WHERE entry_key=$1 AND collection=$2", [entryKey, definition.id])).rows[0];
+    if (entry.id && !stored) throw Object.assign(new Error("Content item not found"), { status: 404 });
+    if (stored) {
+      assertEntryAccess(req, definition.id, stored);
+      assertAliasPageBodyUnchanged(stored, entry, entryKey);
+      assertStableAcademicBodyOwner(stored, entryKey, dataEn);
+    }
     assertEntryAccess(req, definition.id, { ...entry, entry_key: entryKey, data_en: dataEn });
+    const previewDataEn = stored && pageBodyOwnerForEntry(stored) ? preserveAliasStoredBody(stored.data_en, dataEn) : dataEn;
+    const previewDataHi = stored && pageBodyOwnerForEntry(stored) ? preserveAliasStoredBody(stored.data_hi, dataHi) : dataHi;
     const now = new Date();
     deleteExpiredPreviews();
     const requestedToken = String(req.body?.token || "").trim();
@@ -628,8 +656,8 @@ app.post("/api/admin/preview", writeLimiter, requireCsrf, async (req, res, next)
       entry_key: entryKey,
       status,
       sort_order: definition.autoNewestFirst && !entryId ? -2147483648 : sortOrder,
-      data_en: dataEn,
-      data_hi: dataHi,
+      data_en: previewDataEn,
+      data_hi: previewDataHi,
       version: Number(entry.version) || 0,
       updated_at: now,
       content_version: now,
@@ -872,6 +900,7 @@ app.post("/api/admin/content/:collection", writeLimiter, requireCsrf, async (req
       const entryKey = await allocateUniqueEntryKey(client, definition.id, baseEntryKey, {
         automatic: automaticEntryKey,
       });
+      assertEntryAccess(req, definition.id, { ...req.body, entry_key: entryKey, data_en: dataEn });
       let effectiveSortOrder = sortOrder;
       if (!definition.singleton && (definition.autoNewestFirst || !hasExplicitSortOrder)) {
         const minimum = await client.query("SELECT COALESCE(min(sort_order),1)::int AS value FROM cms_entries WHERE collection=$1 AND status <> 'archived'", [definition.id]);
@@ -907,10 +936,16 @@ app.put("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, async (
       assertEntryAccess(req, definition.id, before.rows[0]);
       assertEntryAccess(req, definition.id, { ...before.rows[0], entry_key: entryKey, data_en: dataEn });
       if (before.rows[0].version !== expectedVersion) throw Object.assign(new Error("Content changed in another session. Reload before saving."), { status: 409 });
+      assertAliasPageBodyUnchanged(before.rows[0], req.body || {}, entryKey);
+      assertStableAcademicBodyOwner(before.rows[0], entryKey, dataEn);
       if (definition.id === "profiles") await assertUniqueProfile(client, dataEn, status, req.params.id);
       if (definition.id === "page_display_settings") await assertUniquePageDisplayPath(client, dataEn, status, req.params.id);
       let nextDataEn = preserveStoredUndeclaredFields(definition, before.rows[0].data_en, dataEn);
       let nextDataHi = preserveStoredUndeclaredFields(definition, before.rows[0].data_hi, dataHi);
+      if (definition.id === "pages" && pageBodyOwnerForEntry(before.rows[0])) {
+        nextDataEn = preserveAliasStoredBody(before.rows[0].data_en, nextDataEn);
+        nextDataHi = preserveAliasStoredBody(before.rows[0].data_hi, nextDataHi);
+      }
       if (definition.id === "site_settings") {
         assertSiteSettingsChanges(req, before.rows[0], nextDataEn, nextDataHi);
       }
@@ -1000,6 +1035,10 @@ app.delete("/api/admin/content/:collection/:id", writeLimiter, requireCsrf, asyn
 });
 
 const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif", "image/svg+xml", "application/pdf", "video/mp4", "video/webm", "text/csv", "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.presentationml.presentation"]);
+const imageExtensions = new Map([
+  ["image/jpeg", ".jpg"], ["image/png", ".png"], ["image/webp", ".webp"],
+  ["image/avif", ".avif"], ["image/gif", ".gif"], ["image/svg+xml", ".svg"],
+]);
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => {
@@ -1010,7 +1049,9 @@ const upload = multer({
         callback(error);
       }
     },
-    filename: (_req, file, callback) => callback(null, `${randomUUID()}${extname(file.originalname).toLowerCase().slice(0, 12)}`),
+    filename: (_req, file, callback) => callback(null,
+      `${randomUUID()}${imageExtensions.get(file.mimetype) || extname(file.originalname).toLowerCase().slice(0, 12)}`
+    ),
   }),
   limits: { fileSize: config.maxUploadBytes, files: 1 },
   fileFilter: (_req, file, callback) => {
@@ -1026,16 +1067,28 @@ const upload = multer({
 });
 
 app.post("/api/admin/media", writeLimiter, requireCsrf, requireAnyContentPermission, upload.single("file"), async (req, res, next) => {
+  let mediaStored = false;
   try {
     if (!req.file) return res.status(400).json({ error: "File is required" });
+    if (req.body?.purpose === "image" && !imageExtensions.has(req.file.mimetype)) {
+      throw Object.assign(new Error("Choose a JPG, PNG, WebP, AVIF, GIF or SVG image for this photo field."), { status: 415 });
+    }
     const publicUrl = `${config.publicUrl}/uploads/${req.file.filename}`;
     const { rows } = await pool.query(
       `INSERT INTO cms_media (stored_name, original_name, public_url, mime_type, size_bytes, alt_en, alt_hi, uploaded_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [req.file.filename, req.file.originalname, publicUrl, req.file.mimetype, req.file.size, String(req.body?.altEn || ""), String(req.body?.altHi || ""), req.cmsUser.id]
     );
+    mediaStored = true;
     res.status(201).json({ data: rows[0] });
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (req.file && !mediaStored) {
+      await unlink(req.file.path).catch((cleanupError) => {
+        if (cleanupError.code !== "ENOENT") console.error("Could not remove a rejected CMS upload:", cleanupError.message);
+      });
+    }
+    next(error);
+  }
 });
 
 app.get("/api/admin/media", async (req, res, next) => {

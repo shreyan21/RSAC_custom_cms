@@ -405,6 +405,11 @@ function App() {
         />
 
 
+        <Route
+          path="/standalone/:slug"
+          element={officialContentRoute(<OfficialContentDetailPage sectionKey="standalone" />)}
+        />
+
         {/* ================= PEOPLE ================= */}
 
         <Route

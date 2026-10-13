@@ -1,4 +1,4 @@
-import { Extension, Mark, mergeAttributes } from "@tiptap/core";
+import { Extension, Mark, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { normalizeTextColor, textColorStyle } from "../../shared/richTextColor.js";
@@ -88,11 +88,29 @@ const RsacAddedItem = Extension.create({
   },
 });
 
+// Imported rich sections can include portraits and other photographs.
+// Keep their nodes when opening and saving a section, even without an upload toolbar.
+const RsacImage = Node.create({
+  name: "image",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes() {
+    return Object.fromEntries(
+      ["src", "alt", "title", "loading", "width", "height"]
+        .map((name) => [name, { default: null }])
+    );
+  },
+  parseHTML: () => [{ tag: "img[src]" }],
+  renderHTML: ({ HTMLAttributes }) => ["img", mergeAttributes(HTMLAttributes)],
+});
+
 export const sectionEditorExtensions = [
   StarterKit.configure({
-    heading: { levels: [2, 3, 4] }, code: false, codeBlock: false,
+    heading: { levels: [2, 3, 4, 5] }, code: false, codeBlock: false,
     link: { autolink: true, defaultProtocol: "https", openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } },
   }),
   RsacTextAlignment, RsacTextStyle, RsacAddedItem,
+  RsacImage,
   Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
 ];

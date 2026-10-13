@@ -1,8 +1,10 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Plus, Search, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 import { api, mediaPreviewUrl } from "./api";
+import { imageUploadAccept, isImageMediaField, useMediaItemList, useMediaUpload } from "./mediaUpload";
+import { getSettingsFieldOwnership } from "./pageEditorOwnership";
 import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
 import {
@@ -128,24 +130,35 @@ const selectedFileName = (value) => {
   }
 };
 
-function JsonEditor({ field, value, onChange, onError }) {
+function JsonEditor({ field, value, onChange, onError, onValidationChange }) {
   const textareaRef = useRef(null);
+  const validationRef = useRef(onValidationChange);
+  const errorId = useId();
   const serializedValue = typeof value === "string" ? value : JSON.stringify(value || {}, null, 2);
   const [text, setText] = useState(() => serializedValue);
+  const [error, setError] = useState("");
+
+  useLayoutEffect(() => { validationRef.current = onValidationChange; });
+  useEffect(() => () => validationRef.current?.(false), []);
 
   useEffect(() => {
     if (document.activeElement !== textareaRef.current) setText(serializedValue);
   }, [serializedValue]);
 
-  const commit = () => {
+  const commit = (nextText = text) => {
     try {
-      onChange(JSON.parse(text));
+      onChange(JSON.parse(nextText));
+      setError("");
+      onValidationChange?.(false);
       onError("");
     } catch {
-      onError(`${field.label}: invalid JSON`);
+      const message = `${field.label || "JSON"}: invalid JSON. Correct the syntax before saving or previewing.`;
+      setError(message);
+      onValidationChange?.(true);
+      onError(message);
     }
   };
-  return <textarea ref={textareaRef} className="code-input" rows="14" value={text} onChange={(event) => setText(event.target.value)} onBlur={commit} />;
+  return <div className="json-editor"><textarea ref={textareaRef} className="code-input" aria-label={`${field.label || "JSON"} JSON`} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} rows="14" value={text} onChange={(event) => { const nextText = event.target.value; setText(nextText); commit(nextText); }} onBlur={() => commit()} />{error && <p className="field-help" role="alert" id={errorId}>{error}</p>}</div>;
 }
 
 const settingsGroups = [
@@ -602,8 +615,8 @@ const setAtPath = (value, path, nextValue) => {
 };
 
 function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onSharedRowsChange, onBusy, onError }) {
-  const items = Array.isArray(rows) ? rows : [];
-  const sharedItems = Array.isArray(sharedRows) ? sharedRows : items;
+  const items = useMediaItemList(rows);
+  const sharedItems = Array.isArray(sharedRows) ? sharedRows.map((row, index) => ({ ...row, id: row.id || items[index]?.id })) : items;
   const update = (index, name, nextValue) => onChange(items.map((item, position) => position === index ? { ...item, [name]: nextValue } : item));
   const updateColumn = (index, name, nextValue, type) => {
     const isShared = ["shared-select", "shared-media", "shared-text"].includes(type);
@@ -622,7 +635,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
     <div className="nested-rows settings-rows">
       <strong>{label}</strong>
       {items.map((item, index) => (
-        <section key={`${label}-${index}`}>
+        <section key={item.id || `${label}-${index}`}>
           <header>
             <strong>{index + 1}. {item.label || item.name || item.title || "New row"}</strong>
             <button type="button" title={`Remove ${label} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button>
@@ -636,7 +649,7 @@ function SettingsRowsEditor({ label, rows, sharedRows, columns, onChange, onShar
               <FieldContainer className={`settings-row-field${type === "checkbox" ? " settings-row-checkbox" : ""}`} key={name}>
                 <span>{fieldLabel}{isShared && <small>Shared by both languages</small>}</span>
                 {type === "media" || type === "shared-media"
-                  ? <FieldInput field={{ name, label: fieldLabel, type: "media" }} value={fieldItem?.[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
+                  ? <FieldInput field={{ name, label: fieldLabel, type: "media", uploadIdentity: item.id, onUploadStart: () => isShared && onSharedRowsChange ? onSharedRowsChange(sharedItems) : onChange(items) }} value={fieldItem?.[name]} onChange={(nextValue) => updateColumn(index, name, nextValue, type)} onBusy={onBusy} onError={onError} />
                   : type === "list"
                     ? <textarea rows="4" value={Array.isArray(item[name]) ? item[name].join("\n") : ""} onChange={(event) => updateColumn(index, name, event.target.value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean), type)} />
                   : type === "textarea"
@@ -768,7 +781,7 @@ function HomepageTypographyEditor({ value, onChange }) {
   );
 }
 
-function SettingsEditor({ field, value, language, onChange, sharedValue, onSharedChange, onBusy, onError }) {
+function SettingsEditor({ field, value, language, onChange, sharedValue, onSharedChange, onBusy, onError, onValidationChange }) {
   const sharedSettings = sharedValue && typeof sharedValue === "object" ? sharedValue : value;
   const updateSharedSettings = onSharedChange || onChange;
   const includedGroups = new Set(field.settingsGroupFilter || []);
@@ -799,10 +812,17 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
           const isShared = sharedSettingsPaths.has(path);
           const source = isShared ? sharedSettings : value;
           const updateSource = isShared ? updateSharedSettings : onChange;
+          const ownership = getSettingsFieldOwnership(path, field.pageDisplayEntries, language);
+          if (ownership && !ownership.reused) {
+            const displayEntry = (field.pageDisplayEntries || []).find((entry) => entry.id === ownership.entryId);
+            const displayData = language === "hi" ? displayEntry?.dataHi || displayEntry?.data_hi : displayEntry?.dataEn || displayEntry?.data_en;
+            return <div className="settings-field" key={path}><span>{label}</span><small className="field-help">Edit this page heading in {ownership.label} ({ownership.path}).</small>{type === "textarea" ? <textarea rows="4" readOnly value={displayData?.[ownership.field] || ""} /> : <input readOnly value={displayData?.[ownership.field] || ""} />}</div>;
+          }
           const FieldContainer = type === "media" ? "div" : "label";
           return (
           <FieldContainer className={type === "media" ? "settings-field" : undefined} key={path}>
             <span>{label}{isShared && <small>Shared by both languages</small>}</span>
+            {ownership?.reused && <small className="field-help">This shared label also appears elsewhere. The {ownership.path} page heading is edited in {ownership.label}.</small>}
             {type === "select"
               ? <select value={getAtPath(source, path) || ""} onChange={(event) => updateSource(setAtPath(source, path, event.target.value))}><option value="">Select</option>{columns.map(([optionValue, optionLabel]) => <option value={optionValue} key={optionValue}>{optionLabel}</option>)}</select>
               : type === "number"
@@ -869,7 +889,7 @@ function SettingsEditor({ field, value, language, onChange, sharedValue, onShare
       {!isFocusedEditor && <details className="advanced-settings">
         <summary>Advanced technical settings</summary>
         <p>Use only when instructed by developer. Invalid JSON will not save.</p>
-        <JsonEditor field={field} value={value} onChange={onChange} onError={onError} />
+        <JsonEditor key={language} field={field} value={value} onChange={onChange} onError={onError} onValidationChange={onValidationChange} />
       </details>}
     </div>
   );
@@ -888,9 +908,9 @@ function ObjectListEditor({ field, value, onChange }) {
 }
 
 function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
-  const items = Array.isArray(rows) ? rows : [];
+  const items = useMediaItemList(rows);
   const update = (index, name, value) => onChange(items.map((item, position) => position === index ? { ...item, [name]: value } : item));
-  return <div className="nested-rows"><strong>{label}</strong>{items.map((item, index) => <div key={index}>{fields.map(([name, fieldLabel, fieldType = "text"]) => fieldType === "media" ? <div className="nested-field" key={name}><span>{fieldLabel}</span><FieldInput field={{ name, label: fieldLabel, type: "media", localized: false }} value={item[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} /></div> : <label key={name}>{fieldLabel}<input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} /></label>)}<button type="button" title={`Remove ${label.toLowerCase()} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button></div>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...items])}><Plus /> Add {label.toLowerCase()} row at top</button></div>;
+  return <div className="nested-rows"><strong>{label}</strong>{items.map((item, index) => <div key={item.id || index}>{fields.map(([name, fieldLabel, fieldType = "text"]) => fieldType === "media" ? <div className="nested-field" key={name}><span>{fieldLabel}</span><FieldInput field={{ name, label: fieldLabel, type: "media", localized: false, uploadIdentity: item.id, onUploadStart: () => onChange(items) }} value={item[name] || ""} onChange={(nextValue) => update(index, name, nextValue)} onBusy={onBusy} onError={onError} /></div> : <label key={name}>{fieldLabel}<input value={item[name] || ""} onChange={(event) => update(index, name, event.target.value)} /></label>)}<button type="button" title={`Remove ${label.toLowerCase()} row`} onClick={() => onChange(items.filter((_item, position) => position !== index))}><Trash2 /></button></div>)}<button type="button" className="add-item" onClick={() => onChange([{}, ...items])}><Plus /> Add {label.toLowerCase()} row at top</button></div>;
 }
 
 function SectionListEditor({ value, onChange, onBusy, onError }) {
@@ -939,34 +959,22 @@ function SectionListEditor({ value, onChange, onBusy, onError }) {
   );
 }
 
-export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {} }) {
+export default function FieldInput({ field, value, referenceValue, language = "en", pageData, referencePageData, onChange, sharedValue, onSharedChange, onBusy = () => {}, onError = () => {}, onValidationChange = () => {} }) {
   const fileRef = useRef(null);
   const suggestionId = useId();
-  const upload = async (file) => {
-    if (!file) return;
-    onBusy(true);
-    try {
-      const body = new FormData();
-      body.append("file", file);
-      const result = await api("/api/admin/media", { method: "POST", body });
-      onChange(result.data.public_url);
-    } catch (error) { onError(error.message); }
-    finally {
-      if (fileRef.current) fileRef.current.value = "";
-      onBusy(false);
-    }
-  };
+  const imageOnly = isImageMediaField(field);
+  const upload = useMediaUpload({ request: api, fileRef, imageOnly, identity: field.uploadIdentity || field.name, value, onStart: field.onUploadStart, onChange, onBusy, onError });
   if (field.type === "blocks") return <BlockEditor value={value} referenceValue={referenceValue} language={language} pageData={pageData} referencePageData={referencePageData} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "boolean") return <label className="inline-check"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /> {field.booleanLabel || "Enabled"}</label>;
   if (field.type === "select" && field.allowCustom) return <CustomSelectInput field={field} value={value} onChange={onChange} />;
   if (field.type === "select") return <select value={value || field.defaultValue || ""} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{field.options.map((option) => { const item = typeof option === "object" ? option : { value: option, label: option }; return <option value={item.value} key={item.value}>{item.label}</option>; })}</select>;
   if (field.type === "suggestions") return <SuggestionInput id={suggestionId} value={value} options={field.options} language={language} onChange={onChange} />;
   if (field.type === "list") return <textarea rows="6" value={Array.isArray(value) ? value.join("\n") : value || ""} onChange={(event) => onChange(event.target.value.split(/\r?\n/).filter(Boolean))} />;
-  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} language={language} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} />;
+  if (field.type === "json" && field.name === "settings") return <SettingsEditor field={field} value={value} language={language} onChange={onChange} sharedValue={sharedValue} onSharedChange={onSharedChange} onBusy={onBusy} onError={onError} onValidationChange={onValidationChange} />;
   if (field.type === "json" && field.name === "sections") return <SectionListEditor key={language} value={value} onChange={onChange} onBusy={onBusy} onError={onError} />;
   if (field.type === "json" && objectListFields[field.name]) return <ObjectListEditor field={field} value={value} onChange={onChange} />;
-  if (field.type === "json") return <JsonEditor field={field} value={value} onChange={onChange} onError={onError} />;
-  if (field.type === "media") return <div className="media-field"><div className="media-field__selection"><span>{value ? selectedFileName(value) : "No file selected"}</span><small>{value ? "This local file will be used after you save." : "Choose a photo, PDF, document, video, or other approved file."}</small></div><input ref={fileRef} hidden type="file" accept={field.accept} onChange={(event) => upload(event.target.files?.[0])} /><div className="media-field__actions"><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> {value ? "Replace file" : "Choose file"}</button>{value && <button type="button" className="danger-icon" title="Remove selected file" onClick={() => onChange("")}><Trash2 /></button>}</div><details className="technical-value"><summary>Use an existing local file address</summary><p>Normally use Choose file above. Open this only when a website administrator gives you an existing local address.</p><input value={value || ""} onChange={(event) => onChange(event.target.value)} /></details>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
+  if (field.type === "json") return <JsonEditor key={language} field={field} value={value} onChange={onChange} onError={onError} onValidationChange={onValidationChange} />;
+  if (field.type === "media") return <div className="media-field"><div className="media-field__selection"><span>{value ? selectedFileName(value) : "No file selected"}</span><small>{value ? "This local file will be used after you save." : imageOnly ? "Choose a JPG, PNG, WebP, AVIF, GIF or SVG photo." : "Choose a photo, PDF, document, video, or other approved file."}</small></div><input ref={fileRef} hidden type="file" accept={imageOnly ? imageUploadAccept : field.accept} onChange={(event) => upload(event.target.files?.[0])} /><div className="media-field__actions"><button type="button" className="secondary" onClick={() => fileRef.current?.click()}><Upload /> {value ? "Replace file" : "Choose file"}</button>{value && <button type="button" className="danger-icon" title="Remove selected file" onClick={() => onChange("")}><Trash2 /></button>}</div><details className="technical-value"><summary>Use an existing local file address</summary><p>Normally use Choose file above. Open this only when a website administrator gives you an existing local address.</p><input value={value || ""} onChange={(event) => onChange(event.target.value)} /></details>{value && /\.(png|jpe?g|webp|avif|gif|svg)(\?|$)/i.test(value) && <img src={mediaPreviewUrl(value)} alt="Selected media preview" />}</div>;
   if (field.type === "color") {
     const color = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#0f6f42";
     return <div className="color-field"><input type="color" value={color} aria-label={`${field.label} colour picker`} onChange={(event) => onChange(event.target.value)} /><input value={value || ""} placeholder="#0f6f42" pattern="#[0-9a-fA-F]{6}" onChange={(event) => onChange(event.target.value)} /></div>;

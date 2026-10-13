@@ -10,6 +10,10 @@ import { reorderDivisionPageSections } from "./divisionSectionOrder";
 import { fieldHelpText } from "./fieldHelpText";
 import { pageCardIconOptions } from "../../shared/cmsCollections";
 import useLivePreview from "./useLivePreview";
+import usePendingOperations from "./usePendingOperations";
+import useEditorValidation from "./useEditorValidation";
+import { getSourceFieldOwnership } from "./pageEditorOwnership";
+import { pageBodyOwnerForEntry } from "../../shared/pageBodyOwnership";
 import { mediaPreviewUrl } from "./api";
 import {
   createLocalizedDivisionBlock,
@@ -177,13 +181,15 @@ const profileContentIdentity = (entry) => ({
 
 const isCmsCreatedSection = (block) => String(block?.id || "").startsWith("cms-section-");
 
-export default function DivisionContentWorkspace({ pages, profiles = [], workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, notify }) {
+export default function DivisionContentWorkspace({ pages, profiles = [], displayEntries = [], initialPage = null, workspaceKind = "divisions", sectionFilter, onSave, onClose, onOpenPeople, onOpenBodyOwner, canOpenPeople = true, notify }) {
   const [search, setSearch] = useState("");
-  const [draft, setDraftState] = useState(null);
-  const draftRef = useRef(null);
+  const [draft, setDraftState] = useState(() => initialPage ? structuredClone(initialPage) : null);
+  const draftRef = useRef(draft);
   const [sectionIndex, setSectionIndex] = useState(null);
   const [language, setLanguage] = useState("en");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy, isBusy] = usePendingOperations();
+  const { hasErrors, isInvalid, setFieldValidation } = useEditorValidation();
+  const bodyOwner = pageBodyOwnerForEntry(draft);
   const richEditorRef = useRef(null);
   const { openPreview } = useLivePreview({ collection: "pages", draft, language, notify });
 
@@ -389,6 +395,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   });
 
   const save = async () => {
+    if (isBusy() || isInvalid()) return;
     setBusy(true);
     try {
       richEditorRef.current?.flush?.();
@@ -410,6 +417,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   };
 
   const preview = async () => {
+    if (isBusy() || isInvalid()) return;
     setBusy(true);
     try {
       richEditorRef.current?.flush?.();
@@ -419,6 +427,12 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
     } finally {
       setBusy(false);
     }
+  };
+  const openBodyOwner = async () => {
+    if (isBusy() || !onOpenBodyOwner) return;
+    setBusy(true);
+    try { await onOpenBodyOwner(draftRef.current); }
+    finally { setBusy(false); }
   };
 
   const moveSection = (sourceIndex, direction) => {
@@ -431,7 +445,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   if (!draft) {
     return (
       <section className="division-workspace">
-        <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>Choose the {itemName} whose visible page content you want to change.</p></div><button className="secondary" onClick={onClose}><ArrowLeft /> All website areas</button></div>
+        <div className="division-workspace-head"><div><span>Step 1 of 3</span><h2>Choose a {itemName}</h2><p>Choose the {itemName} whose visible page content you want to change.</p></div><button className="secondary" disabled={busy} onClick={onClose}><ArrowLeft /> All website areas</button></div>
         <label className="workspace-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
         <div className="workspace-card-grid">{filteredPages.map((page) => <button type="button" className="workspace-card" key={page.id} onClick={() => openPage(page)}><strong>{titleOf(page)}</strong><span className="workspace-card__meta"><span>Order {orderOf(page)} · Open sections</span><span className={`status ${page.status || "published"}`}>{visibilityLabel(page.status)}</span></span></button>)}</div>
       </section>
@@ -441,9 +455,10 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   if (sectionIndex === null) {
     return (
       <section className="division-workspace">
-        <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose one section. Each section has one complete editor per language.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : workspaceKind === "people" ? "People pages" : "Pages"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save order"}</button></div></div>
-        <p className="workspace-order-note">Use the arrow buttons to change the section order on the website. The same order is kept for English and Hindi; select Save order when finished.</p>
-        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" onClick={() => setSectionIndex("page-details")}><strong>Page heading and layout</strong><span>Edit the title, display order, index image and card, text size, width, and spacing</span></button>{visibleSectionBlocks.map(({ block, index }) => {
+        <div className="division-workspace-head"><div><span>Step 2 of 3</span><h2>{titleOf(draft)}</h2><p>Choose one section. Each section has one complete editor per language.</p></div><div className="workspace-head-actions"><button className="secondary" disabled={busy} onClick={() => setDraft(null)}><ArrowLeft /> {workspaceKind === "divisions" ? "Divisions" : workspaceKind === "people" ? "People pages" : "Pages"}</button><button className="primary" disabled={busy || hasErrors} onClick={save}><Save /> {busy ? "Saving..." : bodyOwner ? "Save page settings" : "Save order"}</button></div></div>
+        {bodyOwner && <div className="alert info"><p>{bodyOwner.label} sections and photos have one shared editor. This page keeps its own heading and layout.</p><button className="secondary" disabled={busy || !onOpenBodyOwner} onClick={openBodyOwner}>Edit shared sections in Division Pages and Sections</button></div>}
+        {!bodyOwner && <p className="workspace-order-note">Use the arrow buttons to change the section order on the website. The same order is kept for English and Hindi; select Save order when finished.</p>}
+        <div className="workspace-card-grid workspace-section-grid"><button type="button" className="workspace-card" disabled={busy} onClick={() => setSectionIndex("page-details")}><strong>Page heading and layout</strong><span>Edit the title, display order, index image and card, text size, width, and spacing</span></button>{(bodyOwner ? [] : visibleSectionBlocks).map(({ block, index }) => {
           const sectionLabel = sourceLabel(block);
           const localizedIndex = findLocalizedDivisionBlockIndex(draft.dataHi, block, index);
           const localizedBlock = localizedIndex >= 0 ? draft.dataHi?.blocks?.[localizedIndex] : null;
@@ -453,8 +468,8 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
             ? "Hidden in English and Hindi"
             : isPeopleSection(block) ? "Open people controls" : `${contentTextLength(usesCanonicalSections, block) ? "English ready" : "English blank"} | ${contentTextLength(usesCanonicalSections, localizedBlock) ? "Hindi ready" : "Hindi blank"}${mediaCount ? ` | ${mediaCount} media` : ""}`;
           const visibleIndex = visibleSectionBlocks.findIndex((item) => item.index === index);
-          return <article className="workspace-card workspace-section-card" key={block.id || index}><button type="button" className="workspace-section-card__open" onClick={() => setSectionIndex(index)}><strong>{sectionLabel}</strong><span>{status}</span></button><div className="workspace-section-card__order"><span>Position {visibleIndex + 1}</span><div className="workspace-order-buttons"><button type="button" disabled={visibleIndex === 0} title={`Move ${sectionLabel} up`} aria-label={`Move ${sectionLabel} up`} onClick={() => moveSection(index, -1)}><ArrowUp /></button><button type="button" disabled={visibleIndex === visibleSectionBlocks.length - 1} title={`Move ${sectionLabel} down`} aria-label={`Move ${sectionLabel} down`} onClick={() => moveSection(index, 1)}><ArrowDown /></button><button type="button" title={`${hiddenBoth ? "Show" : "Hide"} ${sectionLabel} in both languages`} aria-label={`${hiddenBoth ? "Show" : "Hide"} ${sectionLabel} in both languages`} onClick={() => setSectionVisibilityBoth(index, !hiddenBoth)}>{hiddenBoth ? <Eye /> : <EyeOff />}</button>{isCmsCreatedSection(block) && <button type="button" className="danger-icon" title={`Remove ${sectionLabel}`} aria-label={`Remove ${sectionLabel}`} onClick={() => removeSection(index)}><Trash2 /></button>}</div></div></article>;
-        })}{!sectionFilter && <button type="button" className="workspace-card workspace-add-section" onClick={addSection}><Plus /><strong>Add a new section</strong><span>Create a responsive section with separate English and Hindi text, media, and visibility.</span></button>}</div>
+          return <article className="workspace-card workspace-section-card" key={block.id || index}><button type="button" className="workspace-section-card__open" disabled={busy} onClick={() => setSectionIndex(index)}><strong>{sectionLabel}</strong><span>{status}</span></button><div className="workspace-section-card__order"><span>Position {visibleIndex + 1}</span><div className="workspace-order-buttons"><button type="button" disabled={visibleIndex === 0} title={`Move ${sectionLabel} up`} aria-label={`Move ${sectionLabel} up`} onClick={() => moveSection(index, -1)}><ArrowUp /></button><button type="button" disabled={visibleIndex === visibleSectionBlocks.length - 1} title={`Move ${sectionLabel} down`} aria-label={`Move ${sectionLabel} down`} onClick={() => moveSection(index, 1)}><ArrowDown /></button><button type="button" title={`${hiddenBoth ? "Show" : "Hide"} ${sectionLabel} in both languages`} aria-label={`${hiddenBoth ? "Show" : "Hide"} ${sectionLabel} in both languages`} onClick={() => setSectionVisibilityBoth(index, !hiddenBoth)}>{hiddenBoth ? <Eye /> : <EyeOff />}</button>{isCmsCreatedSection(block) && <button type="button" className="danger-icon" title={`Remove ${sectionLabel}`} aria-label={`Remove ${sectionLabel}`} onClick={() => removeSection(index)}><Trash2 /></button>}</div></div></article>;
+        })}{!bodyOwner && !sectionFilter && <button type="button" className="workspace-card workspace-add-section" onClick={addSection}><Plus /><strong>Add a new section</strong><span>Create a responsive section with separate English and Hindi text, media, and visibility.</span></button>}</div>
       </section>
     );
   }
@@ -462,28 +477,29 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
   if (sectionIndex === "page-details") {
     return (
       <section className="division-workspace division-workspace-editor">
-        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>{workspaceKind === "divisions" ? "The main heading controls the opened division page. Its directory-card name is edited separately in Divisions." : "Edit the page heading, introduction, media, sizing, and layout."}</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>Page heading and layout</h2><p>{workspaceKind === "divisions" ? "The main heading controls the opened division page. Its directory-card name is edited separately in Divisions." : "Edit the page heading, introduction, media, sizing, and layout."}</p></div><div className="workspace-head-actions"><button className="secondary" disabled={busy} onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy || hasErrors} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy || hasErrors} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
         <div className="workspace-publishing"><label>{itemName.charAt(0).toUpperCase() + itemName.slice(1)} visibility<select value={draft.status || "published"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="published">Visible on website</option><option value="draft">Hidden draft</option><option value="archived">Archived</option></select></label><label className="display-order-field">Display order<input type="number" step="1" value={draft.sortOrder ?? ""} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value === "" ? "" : Number(event.target.value) }))} /><small>Use 0 first, then 1, 2, 3, and so on.</small></label><div><span className={`status ${draft.status || "published"}`}>{visibilityLabel(draft.status)}</span><p>{draft.status === "published" ? `The ${itemName} is public after Save.` : draft.status === "archived" ? `The ${itemName} stays stored in CMS but is removed from the public website.` : `The ${itemName} stays editable here but is hidden from the public website.`}</p></div></div>
-        <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
+        <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} disabled={busy} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} disabled={busy} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
         <p className="workspace-language-note">{language === "hi" ? "Edit the approved Hindi heading and introduction here. The featured image is shared with English." : "Edit the English heading and introduction here. The featured image is shared with Hindi."}</p>
         <div className="editor-fields">
           {pageFields.map((field) => {
             const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
-            const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
-            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}<FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>;
+            const ownership = getSourceFieldOwnership("pages", draft, field.name, displayEntries, language); const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
+            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{language === "hi" && field.localized !== false && draft.dataEn?.[field.name] && <small className="english-field-reference">English: {draft.dataEn[field.name]}</small>}{ownership ? <div className="field-help"><strong>{String(ownership.value ?? "")}</strong><p>Edit this value in {ownership.label} for {ownership.path}.</p></div> : <FieldInput field={field} value={target?.[field.name]} referenceValue={language === "hi" ? draft.dataEn?.[field.name] : undefined} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => updatePageField(field, value)} onBusy={setBusy} onValidationChange={(invalid) => setFieldValidation(field.name, invalid)} onError={(message) => notify(message, message ? "error" : "")} />}</FieldContainer>;
           })}
         </div>
       </section>
     );
   }
 
-  if (isPeopleSection(englishBlock) && pageProfiles.length) {
+  if (isPeopleSection(englishBlock) && (workspaceKind === "divisions" || pageProfiles.length > 0)) {
     return (
       <section className="division-workspace division-workspace-editor">
-        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3</span><h2>{label}</h2><p>Shared people details stay consistent everywhere. Optional changes below affect only this {itemName}.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "Hindi" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
-        <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> Hindi</button></div>
+        <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3</span><h2>{label}</h2><p>Shared people details stay consistent everywhere. Optional changes below affect only this {itemName}.</p></div><div className="workspace-head-actions"><button className="secondary" disabled={busy} onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy || hasErrors} onClick={preview}><Eye /> Preview {language === "hi" ? "Hindi" : "English"}</button><button className="primary" disabled={busy || hasErrors} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+        <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} disabled={busy} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} disabled={busy} onClick={() => setLanguage("hi")}><Languages /> Hindi</button></div>
         <p className="workspace-language-note">The photograph and master profile stay shared everywhere. When extra content is entered, it appears left of the photograph on desktop and below it on mobile for this {itemName} only.</p>
-        <div className="workspace-reference workspace-reference--wide"><UserRound /><h3>Shared people profiles</h3><p>Edit the master name, photograph, and full profile once when the change should appear everywhere.</p><button className="secondary" onClick={onOpenPeople}>Open people profiles</button></div>
+        <div className="workspace-reference workspace-reference--wide"><UserRound /><h3>Shared people profiles</h3><p>Edit the master name, photograph, and full profile once when the change should appear everywhere.</p><button className="secondary" disabled={busy || !canOpenPeople} onClick={onOpenPeople}>Open people profiles</button></div>
+        {!canOpenPeople && <p className="workspace-language-note">A People editor manages the shared master photographs and person details.</p>}
         <div className="profile-section-content-list">
           {pageProfiles.map((entry) => {
             const localized = language === "hi" ? entry.dataHi || {} : entry.dataEn || {};
@@ -510,8 +526,8 @@ export default function DivisionContentWorkspace({ pages, profiles = [], workspa
 
   return (
     <section className="division-workspace division-workspace-editor">
-      <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>{label}</h2><p>Write the complete section here. Press Enter for another paragraph; no extra blocks are needed.</p></div><div className="workspace-head-actions"><button className="secondary" onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
-      <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
+      <div className="division-workspace-head workspace-sticky-head"><div><span>Step 3 of 3 · {titleOf(draft)}</span><h2>{label}</h2><p>Write the complete section here. Press Enter for another paragraph; no extra blocks are needed.</p></div><div className="workspace-head-actions"><button className="secondary" disabled={busy} onClick={() => setSectionIndex(null)}><ArrowLeft /> Sections</button><button className="secondary" disabled={busy || hasErrors} onClick={preview}><Eye /> Preview {language === "hi" ? "हिन्दी" : "English"}</button><button className="primary" disabled={busy || hasErrors} onClick={save}><Save /> {busy ? "Saving..." : "Save"}</button></div></div>
+      <div className="workspace-language-tabs" role="tablist" aria-label="Editing language"><button className={language === "en" ? "active" : ""} disabled={busy} onClick={() => setLanguage("en")}><Languages /> English</button><button className={language === "hi" ? "active" : ""} disabled={busy} onClick={() => setLanguage("hi")}><Languages /> हिन्दी</button></div>
       <div className="workspace-editor-toolbar"><button className="secondary" type="button" onClick={toggleSectionVisibility}>{currentBlock?.hidden ? <Eye /> : <EyeOff />} {currentBlock?.hidden ? "Show section" : "Hide section"} in {language === "hi" ? "Hindi" : "English"}</button></div>
       <p className="workspace-language-note">{language === "hi" ? "Enter approved Hindi manually. Blank Hindi never copies English." : "Edit the official English version. Switch to Hindi before Save and enter Hindi separately."}</p>
       {currentBlock?.hidden && <p className="workspace-language-note workspace-language-note--hidden">This section is hidden only in {language === "hi" ? "Hindi" : "English"}. Other language remains unchanged.</p>}

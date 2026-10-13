@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
   AlignCenter,
   AlignJustify,
@@ -67,7 +67,6 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
   const editorRef = useRef(null);
   const selectionRef = useRef(null);
   const composingRef = useRef(false);
-  const changeTimerRef = useRef(null);
   const [formatState, setFormatState] = useState(EMPTY_FORMAT_STATE);
 
   const currentEditorRange = useCallback((allowSaved = false) => {
@@ -135,8 +134,6 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
     updateFormatState();
   }, [richText, updateFormatState, value]);
 
-  useEffect(() => () => clearTimeout(changeTimerRef.current), []);
-
   const emitChange = () => {
     const editor = editorRef.current;
     if (!editor || composingRef.current) return;
@@ -147,17 +144,7 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
     });
   };
 
-  const scheduleChange = () => {
-    clearTimeout(changeTimerRef.current);
-    changeTimerRef.current = setTimeout(() => {
-      changeTimerRef.current = null;
-      emitChange();
-    }, 140);
-  };
-
   const flushChange = () => {
-    clearTimeout(changeTimerRef.current);
-    changeTimerRef.current = null;
     emitChange();
   };
 
@@ -425,8 +412,8 @@ export default function InlineRichTextEditor({ value, richText, onChange, ariaLa
         aria-label={ariaLabel}
         aria-multiline="true"
         suppressContentEditableWarning
-        onInput={() => { scheduleChange(); }}
-        onBlur={() => { flushChange(); updateFormatState(); }}
+        onInput={emitChange}
+        onBlur={() => { composingRef.current = false; flushChange(); updateFormatState(); }}
         onFocus={updateFormatState}
         onSelect={() => { saveSelection(); updateFormatState(); }}
         onCompositionStart={() => {

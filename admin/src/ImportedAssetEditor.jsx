@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { FileUp, Film, ImagePlus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { api, mediaPreviewUrl } from "./api";
+import { imageUploadAccept, useMediaUpload } from "./mediaUpload";
 
 const imagePattern = /\.(?:png|jpe?g|webp|avif|gif|svg)(?:[?#].*)?$/i;
 
@@ -26,28 +27,14 @@ const selectedFileName = (value) => {
 
 function AssetUploadField({ asset, onChange, onBusy, onError }) {
   const fileRef = useRef(null);
-  const upload = async (file) => {
-    if (!file) return;
-    onBusy(true);
-    try {
-      const body = new FormData();
-      body.append("file", file);
-      const result = await api("/api/admin/media", { method: "POST", body });
-      onChange({ value: result.data.public_url });
-    } catch (error) {
-      onError(error.message);
-    } finally {
-      if (fileRef.current) fileRef.current.value = "";
-      onBusy(false);
-    }
-  };
+  const upload = useMediaUpload({ request: api, fileRef, imageOnly: asset.kind === "image", identity: asset.key || asset.sourceValue, value: asset.value, onChange: (value) => onChange({ value }), onBusy, onError });
   const accept = asset.kind === "image"
-    ? "image/*"
+    ? imageUploadAccept
     : asset.kind === "video"
-      ? ".mp4,.webm,.mov,.m4v"
+      ? "video/mp4,video/webm"
       : asset.kind === "audio"
         ? ".mp3,.wav,.ogg,.m4a"
-        : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip,.apk,image/*,video/mp4,video/webm";
+        : `.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,${imageUploadAccept},video/mp4,video/webm`;
   const acceptsExternalAddress = asset.kind === "link" || asset.kind === "embed";
 
   return (
@@ -78,6 +65,8 @@ function AssetUploadField({ asset, onChange, onBusy, onError }) {
 export default function ImportedAssetEditor({ assets, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {
   const [query, setQuery] = useState("");
   const list = Array.isArray(assets) ? assets : [];
+  const listRef = useRef(list);
+  useLayoutEffect(() => { listRef.current = list; });
   const active = list.reduce((result, asset, index) => {
     if (!asset.hidden) result.push({ asset, index });
     return result;
@@ -86,7 +75,12 @@ export default function ImportedAssetEditor({ assets, language = "en", onChange,
     `${asset.label || ""} ${asset.value || ""} ${asset.alt || ""}`.toLowerCase().includes(query.trim().toLowerCase())
   );
   const removed = list.filter((asset) => asset.hidden).length;
-  const update = (index, patch) => onChange(list.map((asset, position) => position === index ? { ...asset, ...patch } : asset));
+  const update = (index, patch) => {
+    const identity = list[index]?.key || list[index]?.sourceValue;
+    onChange(listRef.current.map((asset, position) =>
+      (identity ? (asset.key || asset.sourceValue) === identity : position === index) ? { ...asset, ...patch } : asset
+    ));
+  };
   const remove = (index) => {
     const asset = list[index];
     onChange(asset?.isNew

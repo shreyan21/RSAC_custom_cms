@@ -7,6 +7,7 @@ import {
   updateImportedEditorRow,
 } from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
+import { imageUploadAccept, useMediaItemList, useMediaUpload } from "./mediaUpload";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import InlineRichTextEditor from "./InlineRichTextEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
@@ -67,23 +68,9 @@ function BlockDisplayControls({ block, onChange }) {
   );
 }
 
-function BlockMediaField({ label, value, onChange, onBusy, onError, accept = "image/*", showPreview = true }) {
+function BlockMediaField({ label, value, onChange, onBusy, onError, accept = imageUploadAccept, showPreview = true, identity, onUploadStart }) {
   const fileRef = useRef(null);
-  const upload = async (file) => {
-    if (!file) return;
-    onBusy(true);
-    try {
-      const body = new FormData();
-      body.append("file", file);
-      const result = await api("/api/admin/media", { method: "POST", body });
-      onChange(result.data.public_url);
-    } catch (error) {
-      onError(error.message);
-    } finally {
-      if (fileRef.current) fileRef.current.value = "";
-      onBusy(false);
-    }
-  };
+  const upload = useMediaUpload({ request: api, fileRef, imageOnly: showPreview, identity, value, onStart: onUploadStart, onChange, onBusy, onError });
   return (
     <div className="composite-control block-media-control">
       <span>{label}</span>
@@ -210,6 +197,7 @@ export function ImportedContentFields({ block, referenceBlock, pageData, referen
 }
 
 function StructuredItems({ block, onChange, onBusy, onError }) {
+  const mediaItems = useMediaItemList(block.items, block.type === "gallery" ? "url" : ["cards", "links"].includes(block.type) ? "title" : undefined);
   if (block.type === "list") {
     const items = Array.isArray(block.items) ? block.items : [];
     return <div className="structured-items"><strong>List items</strong><button type="button" className="add-item" onClick={() => onChange({ items: ["", ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item" key={index}><span className="item-number">{index + 1}</span><textarea rows="2" aria-label={`List item ${index + 1}`} value={typeof item === "string" ? item : item.title || ""} onChange={(event) => onChange({ items: items.map((current, position) => position === index ? event.target.value : current) })} /><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
@@ -226,9 +214,9 @@ function StructuredItems({ block, onChange, onBusy, onError }) {
 
   const fields = itemFields[block.type];
   if (!fields) return null;
-  const items = Array.isArray(block.items) ? block.items : [];
+  const items = mediaItems;
   const updateItem = (index, name, value) => onChange({ items: items.map((item, position) => position === index ? { ...(typeof item === "object" ? item : {}), [name]: value } : item) });
-  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "Document or website link" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : "image/*"} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
+  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "Document or website link" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : imageUploadAccept} identity={item.id || index} onUploadStart={() => onChange({ items })} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
 export default function BlockEditor({ value, referenceValue, pageData, referencePageData, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {

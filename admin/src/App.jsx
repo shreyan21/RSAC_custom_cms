@@ -27,6 +27,12 @@ import {
   homepageTabPageSettingsGroupLabel,
 } from "./settingsGroupLabels";
 import useLivePreview from "./useLivePreview";
+import usePendingOperations from "./usePendingOperations";
+import useEditorValidation from "./useEditorValidation";
+import { pageBodyOwnerForEntry } from "../../shared/pageBodyOwnership";
+import { readPublishedDisplaySettings } from "./displaySettingsClient";
+import { readPublishedProfiles } from "./publishedProfilesClient";
+import { filterPageDisplayEditorFields, getSourceFieldOwnership, pageDisplayOwnershipNotice, sanitizePageDisplayDraft } from "./pageEditorOwnership";
 
 const DivisionContentWorkspace = lazy(() => import("./DivisionContentWorkspace"));
 const CONTENT_PAGE_SIZE = 50;
@@ -126,7 +132,7 @@ const prepareEntryPayload = (definition, draft) => {
   const storageId = definition.storageId || definition.id;
   if (storageId === "pages") {
     payload.dataEn ||= {};
-    payload.dataEn.sectionKey ||= definition.presetDataEn?.sectionKey || "about-us";
+    payload.dataEn.sectionKey ||= definition.presetDataEn?.sectionKey || "standalone";
     payload.dataEn.slug ||= slugify(payload.dataEn.title);
   }
   return { payload, storageId };
@@ -139,12 +145,9 @@ const profileIdentityKeys = (entry) => {
   const employeeId = normalize(data.employeeId);
   const email = String(data.email || "").trim().toLowerCase();
   const name = normalize(data.name);
-  const photo = String(data.photo || "").split(/[?#]/)[0].toLowerCase();
-  const placeholder = /(?:^|[/\\])(?:\d+)?(?:no(?:[-_ ]*copy[-_ ]*\d*)?|placeholder|default[-_ ]*profile|profile[-_ ]*placeholder)\.(?:jpe?g|png|webp)$/i.test(photo);
   if (employeeId && employeeId !== "notlisted") keys.add(`employee:${employeeId}`);
   if (email) keys.add(`email:${email}`);
   if (name) keys.add(`name:${name}`);
-  if (photo && !placeholder) keys.add(`photo:${photo}`);
   return keys;
 };
 
@@ -216,6 +219,8 @@ const buildPageViews = (definitions, pageEntries) => {
     description: "Create a new independent website page when it does not belong to About, Divisions, Facilities, Training, Policies, or Public Information.",
     entryFilter: (entry) => !dedicatedPageSections.has(entry.dataEn?.sectionKey),
     counts: countsFor(generalPages),
+    presetDataEn: { sectionKey: "standalone" },
+    fields: pages.fields.map(field => field.name === "sectionKey" ? { ...field, hidden: true } : field),
   };
   const views = pageViewDefinitions.map(([id, label, sectionKey, description]) => {
     const matching = pageEntries.filter((entry) =>
@@ -485,11 +490,20 @@ function Login({ onLogin }) {
   );
 }
 
-function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
+function EntryEditor({ definition, entry, displayEntries = [], onClose, onSaved, notify }) {
   const [draft, setDraft] = useState(() => structuredClone(entry || emptyEntry(definition)));
   const [language, setLanguage] = useState("en");
-  const [busy, setBusy] = useState(false);
-  const previewPayload = useMemo(() => prepareEntryPayload(definition, draft), [definition, draft]);
+  const [busy, setBusy, isBusy] = usePendingOperations();
+  const { hasErrors, isInvalid, setFieldValidation } = useEditorValidation();
+  const storageId = definition.storageId || definition.id;
+  const editorFields = storageId === "page_display_settings"
+    ? filterPageDisplayEditorFields(definition.fields, draft, entry)
+    : definition.fields;
+  const previewPayload = useMemo(() => prepareEntryPayload(definition,
+    storageId === "page_display_settings"
+      ? sanitizePageDisplayDraft(definition.fields, draft, entry)
+      : draft
+  ), [definition, draft, entry, storageId]);
   const { openPreview } = useLivePreview({
     collection: previewPayload.storageId,
     draft: previewPayload.payload,
@@ -501,9 +515,10 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
     setDraft((current) => ({ ...current, [target]: { ...current[target], [field.name]: value } }));
   };
   const save = async () => {
+    if (isBusy() || isInvalid()) return;
     setBusy(true); notify("");
     try {
-      const { payload, storageId } = prepareEntryPayload(definition, draft);
+      const { payload, storageId } = previewPayload;
       const method = payload.id ? "PUT" : "POST";
       const path = payload.id ? `/api/admin/content/${storageId}/${payload.id}` : `/api/admin/content/${storageId}`;
       const result = await api(path, { method, body: JSON.stringify(payload) });
@@ -518,6 +533,7 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
     finally { setBusy(false); }
   };
   const preview = async () => {
+    if (isBusy() || isInvalid()) return;
     setBusy(true); notify("");
     try {
       await openPreview();
@@ -527,9 +543,9 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
   return (
     <div className="editor-shell">
       <header className="editor-head">
-        <button type="button" className="back-button" onClick={onClose}><ArrowLeft /> Back</button>
+        <button type="button" className="back-button" disabled={busy} onClick={onClose}><ArrowLeft /> Back</button>
         <div><span>{definition.label}</span><h2>{draft.id ? definition.singleton ? `Edit ${definition.label}` : titleOf(draft) : `Add ${definition.label}`}</h2></div>
-        <div className="editor-actions"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy} onClick={preview}><Eye /> Private preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} {draft.status === "published" ? "Publish changes" : draft.status === "archived" ? "Save as archived" : "Save as draft"}</button></div>
+        <div className="editor-actions"><button type="button" className="secondary" disabled={busy} onClick={onClose}>Cancel</button><button type="button" className="secondary" disabled={busy || hasErrors} onClick={preview}><Eye /> Private preview {language === "hi" ? "हिन्दी" : "English"}</button><button type="button" className="primary" disabled={busy || hasErrors} onClick={save}>{busy ? <LoaderCircle className="spin" /> : <Save />} {draft.status === "published" ? "Publish changes" : draft.status === "archived" ? "Save as archived" : "Save as draft"}</button></div>
       </header>
       <div className="editor-body">
         <aside className="editor-meta">
@@ -544,19 +560,21 @@ function EntryEditor({ definition, entry, onClose, onSaved, notify }) {
             <div><span>You are editing</span><strong>{definition.label}</strong><p>{definition.description}</p></div>
           </div>
           <div className="language-tabs" role="tablist" aria-label="Editing language">
-            <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}><Languages /> English <span className={hasLanguage(draft, "dataEn") ? "language-dot ready" : "language-dot"} /></button>
-            <button type="button" className={language === "hi" ? "active" : ""} onClick={() => setLanguage("hi")}><Languages /> हिन्दी <span className={hasLanguage(draft, "dataHi") ? "language-dot ready" : "language-dot"} /></button>
+            <button type="button" className={language === "en" ? "active" : ""} disabled={busy} onClick={() => setLanguage("en")}><Languages /> English <span className={hasLanguage(draft, "dataEn") ? "language-dot ready" : "language-dot"} /></button>
+            <button type="button" className={language === "hi" ? "active" : ""} disabled={busy} onClick={() => setLanguage("hi")}><Languages /> हिन्दी <span className={hasLanguage(draft, "dataHi") ? "language-dot ready" : "language-dot"} /></button>
           </div>
+          {hasErrors && <div className="alert error" role="alert">Correct the invalid JSON before saving or previewing.</div>}
           <div className="alert info">{language === "hi" ? "Hindi is stored separately. Blank Hindi remains blank and never copies English text." : "Edit the official English version here. Shared URLs and media are used in both languages."}</div>
-          {definition.fields.filter((field) => !field.hidden && !field.advanced).map((field) => {
+          {storageId === "page_display_settings" && pageDisplayOwnershipNotice(draft) && <div className="alert info">{pageDisplayOwnershipNotice(draft)}</div>}
+          {editorFields.filter((field) => !field.hidden && !field.advanced).map((field) => {
             const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi;
             const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined;
             const sharedSettingsValue = (definition.storageId || definition.id) === "site_settings" && field.name === "settings" ? draft.dataEn?.settings : undefined;
             const setSharedSettingsValue = sharedSettingsValue === undefined ? undefined : (value) => setDraft((current) => ({ ...current, dataEn: { ...current.dataEn, settings: value } }));
-            const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
-            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>;
+            const ownership = getSourceFieldOwnership(storageId, draft, field.name, displayEntries, language); const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label";
+            return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}{field.localized === false && <small>Shared by both languages</small>}</span><small className="field-help">{fieldHelpText(field)}</small>{ownership ? <div className="field-help"><strong>{String(ownership.value ?? "")}</strong><p>Edit this value in {ownership.label} for {ownership.path}.</p></div> : <FieldInput field={{ ...field, pageDisplayEntries: displayEntries }} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} sharedValue={sharedSettingsValue} onSharedChange={setSharedSettingsValue} onBusy={setBusy} onValidationChange={(invalid) => setFieldValidation(field.name, invalid)} onError={(message) => notify(message, message ? "error" : "")} />}</FieldContainer>;
           })}
-          {definition.fields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{definition.fields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label"; return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}</span><small className="field-help">{fieldHelpText(field)}</small><FieldInput field={field} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onError={(message) => notify(message, message ? "error" : "")} /></FieldContainer>; })}</details>}
+          {editorFields.some((field) => !field.hidden && field.advanced) && <details className="field-advanced"><summary>Advanced page settings</summary><p>Legacy imported body, routes, source links and card appearance. Normal editing does not need these fields.</p>{editorFields.filter((field) => !field.hidden && field.advanced).map((field) => { const target = field.localized === false || language === "en" ? draft.dataEn : draft.dataHi; const referenceValue = language === "hi" && field.localized !== false ? draft.dataEn?.[field.name] : undefined; const ownership = getSourceFieldOwnership(storageId, draft, field.name, displayEntries, language); const FieldContainer = usesCompositeFieldContainer(field) ? "div" : "label"; return <FieldContainer className={`field-row field-${field.type}${usesCompositeFieldContainer(field) ? " field-row--composite" : ""}`} key={field.name}><span>{field.label}{field.required && " *"}</span><small className="field-help">{fieldHelpText(field)}</small>{ownership ? <div className="field-help"><strong>{String(ownership.value ?? "")}</strong><p>Edit this value in {ownership.label} for {ownership.path}.</p></div> : <FieldInput field={{ ...field, pageDisplayEntries: displayEntries }} value={target?.[field.name]} referenceValue={referenceValue} language={language} pageData={target} referencePageData={draft.dataEn} onChange={(value) => setField(field, value)} onBusy={setBusy} onValidationChange={(invalid) => setFieldValidation(field.name, invalid)} onError={(message) => notify(message, message ? "error" : "")} />}</FieldContainer>; })}</details>}
         </section>
       </div>
     </div>
@@ -577,7 +595,7 @@ function GuideView() {
     ["Edit Our Formers", "Use Our Formers: Chairmen and Directors for those two historical groups. Use Our Formers: Former Scientists as the only place to add, edit, reorder, hide, archive, or replace a former scientist and photograph."],
     ["Add division-only profile information", "Open Division Page Sections, choose the division and Scientific Manpower. The photo and master profile remain shared; write extra English or Hindi content beside that person and Save."],
     ["Add page sections", "Open the matching page collection. Flexible page blocks provide Add item buttons for text, cards, images, galleries, tables, links, or dividers."],
-    ["Change page headings", "Open Page Headings and Subheadings. Hide, rename or resize a heading or introduction for an exact route such as /gallery or a route group such as /divisions/*."],
+    ["Change page headings", "Edit page wording and layout in the owning page editor. Page Headings and Subheadings controls visibility, extra content, and existing custom heading overrides; overridden fields point to that editor."],
     ["Change homepage text sizes", "Open Homepage, Sitemap and Global Text. Use Homepage default text sizes for all sections, or Homepage section size overrides for one section."],
     ["Change website fonts", "Open Website Design and Fonts. Choose a bundled font and base size from 14 to 20, then verify English, Hindi and mobile."],
     ["Upload media", "Use Upload, add meaningful alt text, and verify the result at mobile and desktop width."],
@@ -590,7 +608,7 @@ function GuideView() {
     ["Facilities", "Use Facilities only. It contains every facility detail page, section editor and shared photograph."],
     ["Create a division", "Use Divisions. Saving a new division card automatically creates its responsive page in Division Page Sections."],
     ["Division sections", "Use Division Page Sections as the single place for Projects, Publications, Research Papers, Technical Reports, Software, Hardware, Photos and every other division section."],
-    ["Full pages", "Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. A body page appears in only one of these editors."],
+    ["Full pages", "Use About and Institutional Pages, Division Page Sections, Facilities, Training and Academics, or Custom Standalone Pages. Training and School of Geo-Informatics share their section editor in Division Pages and Sections. Their Academic editor keeps route-specific headings and layout."],
     ["Gallery heading", "Open Page Headings and Subheadings, then Photo Gallery. The Hide subheading / introduction control removes or restores the text below the gallery heading."],
     ["Heading visibility", "Page Headings and Subheadings controls small heading, main title, introduction and heading size by route."],
     ["Website font and base size", "Website Design and Fonts controls safe bundled English/Hindi fonts and the responsive site-wide base size."],
@@ -933,6 +951,8 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [entries, setEntries] = useState([]);
   const [profileEntries, setProfileEntries] = useState([]);
+  const [workspaceInitialPage, setWorkspaceInitialPage] = useState(null);
+  const [displayEntries, setDisplayEntries] = useState([]);
   const [editing, setEditing] = useState(null);
   const [view, setView] = useState("dashboard");
   const [search, setSearch] = useState("");
@@ -949,12 +969,14 @@ export default function App() {
     const needsPages = pagePermissionKeys.some((key) => hasCmsPermission(activeUser, key));
     const needsPublicInfo = publicInfoPermissionKeys.some((key) => hasCmsPermission(activeUser, key));
     const needsProfiles = hasCmsPermission(activeUser, "people");
-    const [collectionResult, pageResult, publicInfoResult, profileResult] = await Promise.all([
+    const [collectionResult, pageResult, publicInfoResult, profileResult, displayResult] = await Promise.all([
       api("/api/admin/collections"),
       needsPages ? api("/api/admin/content/pages") : Promise.resolve({ data: [] }),
       needsPublicInfo ? api("/api/admin/content/public_info") : Promise.resolve({ data: [] }),
       needsProfiles ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] }),
+      readPublishedDisplaySettings(),
     ]);
+    setDisplayEntries(displayResult);
     const prepared = buildPeopleViews(
       buildCanonicalViews(
         buildPageViews(collectionResult.data, pageResult.data),
@@ -971,7 +993,7 @@ export default function App() {
 
   useEffect(() => { api("/api/auth/me").then((result) => { setCsrfToken(result.csrfToken); setUser(result.user); return loadCollections(result.user); }).catch(() => {}).finally(() => setBooting(false)); }, [loadCollections]);
   const openView = (next) => { setView(next); setSelected(null); setEditing(null); setMenuOpen(false); };
-  const openCollection = async (definition) => { setBusy(true); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setFloodYear(""); setListPage(1); setMenuOpen(false); try { const canReadProfiles = definition.workspace && hasCmsPermission(user, "people"); const [result, peopleResult] = await Promise.all([api(`/api/admin/content/${definition.storageId || definition.id}`), canReadProfiles ? api("/api/admin/content/profiles") : Promise.resolve({ data: [] })]); const fieldFiltered = definition.filterField ? result.data.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result.data; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); setProfileEntries(peopleResult.data.filter((entry) => entry.status !== "archived")); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
+  const openCollection = async (definition) => { setBusy(true); setWorkspaceInitialPage(null); setSelected(definition); setEditing(null); setView(definition.workspace ? "content_workspace" : "collection"); setSearch(""); setFloodYear(""); setListPage(1); setMenuOpen(false); try { const canReadProfiles = definition.workspace && hasCmsPermission(user, "people"); const [result, peopleResult] = await Promise.all([api(`/api/admin/content/${definition.storageId || definition.id}`), canReadProfiles ? api("/api/admin/content/profiles") : definition.workspace ? readPublishedProfiles().then(data => ({ data })) : Promise.resolve({ data: [] })]); const fieldFiltered = definition.filterField ? result.data.filter((entry) => entry.dataEn?.[definition.filterField] === definition.filterValue) : result.data; setEntries(definition.entryFilter ? fieldFiltered.filter(definition.entryFilter) : fieldFiltered); setProfileEntries(peopleResult.data.filter((entry) => entry.status !== "archived")); } catch (error) { notify(error.message, "error"); } finally { setBusy(false); } };
   const addNew = (definition) => { setSelected(definition); setView("collection"); setEditing("new"); setMenuOpen(false); };
   const refreshCollection = async () => { if (selected) await openCollection(selected); await loadCollections(user); };
   const archive = async (entry) => { if (!window.confirm(`Archive "${titleOf(entry)}"? It will disappear from the public website.`)) return; try { await api(`/api/admin/content/${selected.storageId || selected.id}/${entry.id}`, { method: "DELETE" }); notify("Item archived.", "success"); await refreshCollection(); } catch (error) { notify(error.message, "error"); } };
@@ -982,6 +1004,23 @@ export default function App() {
     setEntries((current) => current.map((entry) => entry.id === result.data.id ? result.data : entry));
     await loadCollections(user);
     return result.data;
+  };
+  const openSharedPageBody = async (alias) => {
+    const reference = pageBodyOwnerForEntry(alias);
+    if (!reference) return;
+    setBusy(true);
+    try {
+      const result = await api("/api/admin/content/pages");
+      const owner = result.data.find(item => item.entryKey === reference.ownerKey);
+      if (!owner) throw new Error("The shared section editor is unavailable for your account. Contact the CMS administrator.");
+      const sourceDefinition = collections.find(item => item.id === "division_pages") || selected;
+      setSelected({ ...sourceDefinition, id: "division_pages", storageId: "pages", label: "Division Pages and Sections", workspace: true, workspaceKind: "divisions", filterField: "sectionKey", filterValue: "divisions", entryFilter: undefined, presetDataEn: { sectionKey: "divisions" } });
+      setEntries([owner]);
+      setWorkspaceInitialPage(owner);
+      setEditing(null);
+      setView("content_workspace");
+    } catch (error) { notify(error.message, "error"); }
+    finally { setBusy(false); }
   };
   const isFloodReportCollection =
     (selected?.storageId || selected?.id) === "flood_reports";
@@ -1037,7 +1076,7 @@ export default function App() {
 
   if (booting) return <div className="full-loader"><LoaderCircle className="spin" /><span>Opening secure CMS...</span></div>;
   if (!user) return <Login onLogin={(nextUser) => { setUser(nextUser); loadCollections(nextUser); }} />;
-  if (editing) return <><EntryEditor definition={selected} entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshCollection(); }} notify={notify} />{notice && <div className={`toast ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}</>;
+  if (editing) return <><EntryEditor displayEntries={displayEntries} definition={selected} entry={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await refreshCollection(); }} notify={notify} />{notice && <div className={`toast ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}</>;
 
   const navButton = (id, icon, label, action = () => openView(id)) => (
     <button
@@ -1120,7 +1159,7 @@ export default function App() {
             {!visibleGroups.length && <div className="empty-panel">No matching website area was found. Try a shorter search, or ask an administrator to check your editing permissions.</div>}
           </section>
         )}
-        {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} profiles={profileEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "people_scientists"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
+        {view === "content_workspace" && selected && <Suspense fallback={<div className="loading-state"><LoaderCircle className="spin" /> Opening section editor</div>}><DivisionContentWorkspace key={selected.id} pages={entries} initialPage={workspaceInitialPage} profiles={profileEntries} displayEntries={displayEntries} workspaceKind={selected.workspaceKind || selected.filterValue} sectionFilter={selected.sectionFilter} onSave={saveDivisionPage} onOpenBodyOwner={openSharedPageBody} canOpenPeople={hasCmsPermission(user, "people")} onClose={() => openView("dashboard")} onOpenPeople={() => { const definition = collections.find((item) => item.id === "people_scientists"); if (definition) openCollection(definition); }} notify={notify} /></Suspense>}
         {view === "collection" && selected && (
           <section className={`collection-view ${isFloodReportCollection ? "collection-view--flood" : ""}`}>
             <div className="collection-view__intro">

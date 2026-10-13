@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Eraser, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered, Minus, Palette, Quote, Redo2, RemoveFormatting, Sparkles, Strikethrough, Table2, Underline, Undo2, Unlink } from "lucide-react";
 import EditorTooltipButton from "./EditorTooltipButton";
@@ -47,30 +47,17 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
   const onChangeRef = useRef(onChange);
   const latestValueRef = useRef(value || "");
   const lastEmittedHtmlRef = useRef(null);
-  const pendingHtmlRef = useRef(null);
-  const updateTimerRef = useRef(null);
   const selectedTextRangeRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     onChangeRef.current = onChange;
     latestValueRef.current = value || "";
   }, [onChange, value]);
 
-  useEffect(() => () => clearTimeout(updateTimerRef.current), []);
-
   const emitEditorHtml = (html) => {
-    clearTimeout(updateTimerRef.current);
-    updateTimerRef.current = null;
-    pendingHtmlRef.current = null;
     lastEmittedHtmlRef.current = html;
+    latestValueRef.current = html;
     onChangeRef.current(html);
-  };
-
-  const scheduleEditorHtml = (html) => {
-    clearTimeout(updateTimerRef.current);
-    pendingHtmlRef.current = html;
-    lastEmittedHtmlRef.current = html;
-    updateTimerRef.current = setTimeout(() => emitEditorHtml(pendingHtmlRef.current ?? html), 140);
   };
 
   const editor = useEditor({
@@ -80,7 +67,9 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
     editorProps: { attributes: { class: "section-rich-editor__surface", role: "textbox", "aria-label": ariaLabel, "aria-multiline": "true" } },
     onUpdate: ({ editor: current }) => {
       const html = current.isEmpty ? "" : current.getHTML();
-      scheduleEditorHtml(html);
+      // Update the draft before a Save click or section switch can read it.
+      // The live-preview hook applies its own debounce to network requests.
+      emitEditorHtml(html);
     },
     onSelectionUpdate: ({ editor: current }) => {
       const { from, to } = current.state.selection;
@@ -89,7 +78,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
     },
     onBlur: ({ editor: current }) => {
       const currentHtml = current.isEmpty ? "" : current.getHTML();
-      if (pendingHtmlRef.current !== null || currentHtml !== latestValueRef.current) emitEditorHtml(currentHtml);
+      if (currentHtml !== latestValueRef.current) emitEditorHtml(currentHtml);
     },
     shouldRerenderOnTransaction: false,
   });
@@ -112,7 +101,7 @@ const SectionRichTextEditor = forwardRef(function SectionRichTextEditor({ value,
     flush() {
       if (!editor) return "";
       const html = editor.isEmpty ? "" : editor.getHTML();
-      if (pendingHtmlRef.current !== null || html !== latestValueRef.current) {
+      if (html !== latestValueRef.current) {
         emitEditorHtml(html);
       }
       return html;
