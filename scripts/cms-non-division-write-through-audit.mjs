@@ -7,6 +7,7 @@ import {
   validateEntryPayload,
 } from "../server/contentValidation.js";
 import { getCollection } from "../shared/cmsCollections.js";
+import { pageBodyOwnerForEntry, pageBodyFieldNames } from "../shared/pageBodyOwnership.js";
 
 loadEnv({ path: ".env.local", quiet: true });
 if (!process.env.CMS_DATABASE_URL) {
@@ -263,6 +264,10 @@ try {
 
     for (const field of definition.fields || []) {
       if (field.hidden) continue;
+      // Alias routes edit their metadata here. Canonical bilingual body writes
+      // and both public routes are verified by cms-canonical-body-api-test.
+      if (row.collection === "pages" && pageBodyOwnerForEntry(row)
+          && pageBodyFieldNames.includes(field.name)) continue;
       if (field.localized !== false) {
         const markerEn = markerFor(row, field, "en");
         const markerHi = markerFor(row, field, "hi");

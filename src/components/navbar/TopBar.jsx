@@ -39,6 +39,8 @@ import {
 import { useLanguage } from "../../hooks/useLanguage";
 import { useDialog } from "../../hooks/useDialog";
 import { scrollToTarget } from "../../utils/scroll";
+import { readBrowserStorage, writeBrowserStorage } from "../../utils/browserStorage";
+import useModalFocus from "../../hooks/useModalFocus";
 
 // Brand icons (lucide dropped social-brand glyphs) — inline SVG.
 const FacebookIcon = (props) => (
@@ -97,9 +99,13 @@ const LiveClock = ({ locale }) => {
 };
 const getStoredFontSizeIndex = () => {
   if (typeof window === "undefined") return DEFAULT_FONT_INDEX;
-  const stored = window.localStorage.getItem("rsac.fontSizeIndex");
-  if (stored !== null) return parseInt(stored, 10);
-  const oldSize = window.localStorage.getItem("rsac.fontSize");
+  const stored = readBrowserStorage("localStorage", "rsac.fontSizeIndex");
+  if (stored !== null) {
+    const index = Number(stored);
+    return stored.trim() && Number.isInteger(index) && index >= 0 && index < FONT_SIZE_LEVELS.length
+      ? index : DEFAULT_FONT_INDEX;
+  }
+  const oldSize = readBrowserStorage("localStorage", "rsac.fontSize");
   if (oldSize) {
     const px = parseInt(oldSize, 10);
     const closestIndex = FONT_SIZE_LEVELS.findIndex((s) => parseInt(s, 10) >= px);
@@ -109,7 +115,7 @@ const getStoredFontSizeIndex = () => {
 };
 const getStoredContrast = () =>
   typeof window !== "undefined" &&
-  window.localStorage.getItem("rsac.highContrast") === "true";
+  readBrowserStorage("localStorage", "rsac.highContrast") === "true";
 const syncDocumentTheme = (enabled) => {
   const root = document.documentElement;
   root.classList.toggle("rsac-high-contrast", enabled);
@@ -120,7 +126,7 @@ const syncDocumentTheme = (enabled) => {
 };
 const getStoredPreference = (key) =>
   typeof window !== "undefined" &&
-  window.localStorage.getItem(`rsac.${key}`) === "true";
+  readBrowserStorage("localStorage", `rsac.${key}`) === "true";
 const searchText = (item) =>
   normalize(
     [
@@ -305,6 +311,7 @@ const TopBar = () => {
   const { language, setLanguage, isHindi, t } = useLanguage();
   const { requestLanguageChange } = useDialog();
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchDialogRef = useModalFocus({ isOpen: searchOpen, onClose: () => setSearchOpen(false) });
   const [query, setQuery] = useState("");
   const [fontSizeIndex, setFontSizeIndex] = useState(getStoredFontSizeIndex);
   const [highContrast, setHighContrast] = useState(getStoredContrast);
@@ -385,8 +392,8 @@ const TopBar = () => {
   useEffect(() => {
     document.documentElement.style.fontSize = FONT_SIZE_LEVELS[fontSizeIndex];
     syncDocumentTheme(highContrast);
-    window.localStorage.setItem("rsac.fontSizeIndex", String(fontSizeIndex));
-    window.localStorage.setItem("rsac.highContrast", String(highContrast));
+    writeBrowserStorage("localStorage", "rsac.fontSizeIndex", String(fontSizeIndex));
+    writeBrowserStorage("localStorage", "rsac.highContrast", String(highContrast));
   }, [fontSizeIndex, highContrast]);
 
   useEffect(() => () => {
@@ -406,7 +413,7 @@ const TopBar = () => {
     Object.entries(preferences).forEach(([key, enabled]) => {
       const className = `rsac-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
       root.classList.toggle(className, enabled);
-      window.localStorage.setItem(`rsac.${key}`, String(enabled));
+      writeBrowserStorage("localStorage", `rsac.${key}`, String(enabled));
     });
   }, [hideImages, largeCursor, lineHeight, textSpacing]);
 
@@ -756,7 +763,7 @@ const TopBar = () => {
           role="dialog"
           aria-modal="false"
           aria-labelledby="display-options-title"
-          className="fixed left-3 right-3 top-12 z-[175] mx-auto max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(18,50,74,0.22)] sm:left-auto sm:right-6 sm:w-[34rem]"
+          className="fixed left-3 right-3 top-12 z-[175] mx-auto max-h-[calc(100dvh-4rem)] max-w-xl overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(18,50,74,0.22)] sm:left-auto sm:right-6 sm:w-[34rem]"
         >
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-[#f7fbfe] p-4">
             <div>
@@ -859,6 +866,8 @@ const TopBar = () => {
 
       {searchOpen && (
         <div
+          ref={searchDialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby="site-search-title"
@@ -867,6 +876,7 @@ const TopBar = () => {
         >
           <button
             type="button"
+            tabIndex={-1}
             className="absolute inset-0 h-full w-full cursor-default"
             aria-label={topbarText.closeSearch}
             onClick={closeSearch}

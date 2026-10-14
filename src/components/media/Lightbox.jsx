@@ -2,38 +2,45 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../../hooks/useLanguage";
+import useModalFocus from "../../hooks/useModalFocus";
+
+const validIndex = (index, count) => Math.min(Math.max(Number.isInteger(index) ? index : 0, 0), Math.max(count - 1, 0));
 
 // Full-screen image viewer with prev/next + keyboard control.
 // images: [{ src, caption }]. startIndex: which one opens first.
 const Lightbox = ({ images = [], startIndex = 0, onClose }) => {
   const { t } = useLanguage();
-  const [index, setIndex] = useState(startIndex);
+  const [index, setIndex] = useState(() => validIndex(startIndex, images.length));
   const count = images.length;
+  const currentIndex = validIndex(index, count);
+  const dialogRef = useModalFocus({ isOpen: count > 0, onClose });
 
   const go = useCallback(
-    (delta) => setIndex((i) => (i + delta + count) % count),
+    (delta) => { if (count) setIndex((i) => (validIndex(i, count) + delta + count) % count); },
     [count]
   );
 
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key === "Escape") onClose();
-      else if (event.key === "ArrowRight") go(1);
-      else if (event.key === "ArrowLeft") go(-1);
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        go(event.key === "ArrowRight" ? 1 : -1);
+      }
     };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    if (!count) return undefined;
+    document.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
     };
-  }, [go, onClose]);
+  }, [go, count]);
 
   if (!count) return null;
-  const current = images[index] || {};
+  const current = images[currentIndex] || {};
 
   return createPortal(
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label={t("Image viewer")}
@@ -44,7 +51,7 @@ const Lightbox = ({ images = [], startIndex = 0, onClose }) => {
       {/* top bar */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 text-white sm:px-6">
         <span className="text-sm font-bold tabular-nums text-white/80">
-          {index + 1} / {count}
+          {currentIndex + 1} / {count}
         </span>
         <button
           type="button"
@@ -73,16 +80,16 @@ const Lightbox = ({ images = [], startIndex = 0, onClose }) => {
         )}
 
         <figure
-          className="flex max-h-full max-w-5xl flex-col items-center"
+          className="flex min-h-0 max-h-full max-w-5xl flex-col items-center"
           onClick={(e) => e.stopPropagation()}
         >
           <img
             src={current.src}
             alt={current.caption || ""}
-            className="max-h-[78vh] w-auto max-w-full rounded-lg object-contain shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+            className="min-h-0 max-h-[78vh] w-auto max-w-full rounded-lg object-contain shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
           />
           {current.caption && (
-            <figcaption className="mt-4 max-w-2xl text-center text-sm leading-relaxed text-white/80">
+            <figcaption className="mt-4 max-h-[20dvh] max-w-2xl shrink-0 overflow-y-auto overscroll-contain text-center text-sm leading-relaxed text-white/80">
               {current.caption}
             </figcaption>
           )}

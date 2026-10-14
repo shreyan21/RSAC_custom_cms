@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LanguageContext } from "./LanguageContextCore";
+import { readBrowserStorage, writeBrowserStorage } from "../utils/browserStorage";
 import {
   getUiLabelOverride,
   getUiLabelsVersion,
@@ -21,7 +22,7 @@ const getInitialLanguage = () => {
     return requested;
   }
 
-  const stored = window.localStorage.getItem(languageStorageKey);
+  const stored = readBrowserStorage("localStorage", languageStorageKey);
   return supportedLanguages.has(stored) ? stored : "en";
 };
 
@@ -47,7 +48,7 @@ export function LanguageProvider({ children }) {
   };
 
   useEffect(() => {
-    window.localStorage.setItem(languageStorageKey, language);
+    writeBrowserStorage("localStorage", languageStorageKey, language);
     document.documentElement.lang = language === "hi" ? "hi" : "en-IN";
   }, [language]);
 

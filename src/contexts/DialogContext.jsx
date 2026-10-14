@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DialogContext } from "./DialogContextCore";
 import { useLanguage } from "../hooks/useLanguage";
+import useModalFocus from "../hooks/useModalFocus";
 
 // True when an href points to a different origin over http(s). Internal
 // router links, in-page anchors, mailto:, and tel: are left untouched.
@@ -93,16 +94,7 @@ export function DialogProvider({ children }) {
     setPendingLang(null);
     setDoc(null);
   }, []);
-
-  // Escape closes whichever dialog is open.
-  useEffect(() => {
-    if (!externalTarget && !pendingLang && !doc) return undefined;
-    const onKey = (event) => {
-      if (event.key === "Escape") closeAll();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [externalTarget, pendingLang, doc, closeAll]);
+  const dialogRef = useModalFocus({ isOpen: Boolean(externalTarget || pendingLang || doc), onClose: closeAll });
 
   const confirmExternal = () => {
     if (externalTarget) {
@@ -143,6 +135,8 @@ export function DialogProvider({ children }) {
   const overlay = (node) =>
     createPortal(
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         data-lenis-prevent
         className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#041220]/62 p-4 backdrop-blur-sm sm:p-6"
       >

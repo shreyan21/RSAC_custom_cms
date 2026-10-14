@@ -3,6 +3,8 @@
 This guide covers moving the project to a fresh computer and updating a computer
 that already has it. Commands are written for Windows Command Prompt (`cmd`).
 
+For the project overview and a working local-only setup on a different machine, start with [DEVELOPER_HANDOVER.md](DEVELOPER_HANDOVER.md). Run content-changing verification on an isolated development database/API, with outgoing email disabled.
+
 ## What a Complete Transfer Contains
 
 A complete handover has four parts:
@@ -102,8 +104,8 @@ Do not send `.env.local` through GitHub or public email. Do not include
 
 ### 1. Install Software
 
-Install Git, Node.js 20 or newer, npm, and PostgreSQL 14 or newer with its command
-line tools.
+Install Git, Node.js 20.19+ or 22.12+, npm, and PostgreSQL 14 or newer with its command
+line tools. This project was checked with Node.js 22.22.3; use the committed lockfile.
 
 Check them:
 
@@ -133,10 +135,13 @@ Use `.env.example` as the field list. Put real values in a new ignored
 Minimum local setup values include:
 
 ```env
-VITE_API_URL=http://localhost:3000
-VITE_CMS_ADMIN_URL=http://localhost:5174
+VITE_API_URL=http://192.168.100.64:3000
+VITE_WEBSITE_URL=http://192.168.100.64:5173
+VITE_CMS_ADMIN_URL=http://192.168.100.64:5174
+CMS_HOST=192.168.100.64
 CMS_PORT=3000
-CMS_PUBLIC_URL=http://localhost:3000
+CMS_PUBLIC_URL=http://192.168.100.64:3000
+CMS_COOKIE_SECURE=false
 POSTGRES_HOST=192.168.100.64
 POSTGRES_PORT=5432
 POSTGRES_ADMIN_USER=postgres
@@ -147,7 +152,7 @@ CMS_ADMIN_USERNAME=YOUR_ADMIN_USERNAME
 CMS_ADMIN_PASSWORD=YourStrongPassword123
 ```
 
-Do not hardcode a changing server IP in source code.
+The values above describe the current office machine. On a different computer, use its actual addresses or the loopback-only setup in DEVELOPER_HANDOVER.md. Existing startup/proxy files still contain the office address; changing only environment values does not change those bindings. Use secure cookies with HTTPS production.
 
 ### 4. Create Database Structure
 
@@ -200,9 +205,11 @@ npm run dev:all
 
 Open:
 
-- `http://localhost:5173` for the website;
-- `http://localhost:5174` for the CMS;
-- `http://localhost:3000/api/health` for API health.
+- `http://192.168.100.64:5173` for the website;
+- `http://192.168.100.64:5174` for the CMS;
+- `http://192.168.100.64:3000/api/health` for API health.
+
+For local-only setup, open the loopback addresses from DEVELOPER_HANDOVER.md instead.
 
 ## C. Existing Destination: Only Code Changed
 
@@ -429,3 +436,7 @@ problem.
 - `npm run build:all` passed.
 - Website, CMS login, English/Hindi, one image, one PDF, private preview, and
   feedback were checked.
+
+## Backup retention
+
+The current `cms:backup` command removes older automatically named SQL backups after validating the new backup. Archive historical recovery points securely before running it if they must be retained. Uploads and Flood PDFs are separate and must be copied with the matching database backup.

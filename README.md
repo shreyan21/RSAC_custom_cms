@@ -3,7 +3,9 @@
 This file explains what the project contains, which folders belong to the
 frontend and backend, where media is stored, and which libraries are used.
 
-The project has exactly three Markdown guides:
+Start with **[DEVELOPER_HANDOVER.md](DEVELOPER_HANDOVER.md)** for new-developer setup, architecture, file locations, content ownership, tests, deployment and troubleshooting. [UI_VERIFICATION.md](UI_VERIFICATION.md) records the latest UI fixes and testing limits.
+
+The existing guides provide more detail:
 
 1. `README.md`: project structure, files, media, architecture, and libraries.
 2. `PROJECT_TRANSFER_GUIDE.md`: moving or updating the project on another computer.
@@ -16,9 +18,9 @@ The repository contains three applications that share one `package.json`, one
 
 ```text
 Public browser
-  |-- Public React website      development: http://localhost:5173
-  |-- React CMS portal          development: http://localhost:5174
-  `-- Express API               development: http://localhost:3000
+  |-- Public React website      development: http://192.168.100.64:5173
+  |-- React CMS portal          development: http://192.168.100.64:5174
+  `-- Express API               development: http://192.168.100.64:3000
          |-- PostgreSQL database: rsac_custom_cms
          `-- Runtime uploads: server\uploads
 ```
@@ -165,9 +167,11 @@ Local development uses three processes:
 npm run dev:all
 ```
 
-- Website: `http://localhost:5173`
-- CMS: `http://localhost:5174`
-- API health: `http://localhost:3000/api/health`
+- Website: `http://192.168.100.64:5173`
+- CMS: `http://192.168.100.64:5174`
+- API health: `http://192.168.100.64:3000/api/health`
+
+These are the current office bindings. For a different computer or loopback-only setup, use the explicit commands/settings in [DEVELOPER_HANDOVER.md](DEVELOPER_HANDOVER.md).
 
 Production first builds both React applications, then one Express process serves
 the website, CMS, API, and uploads:

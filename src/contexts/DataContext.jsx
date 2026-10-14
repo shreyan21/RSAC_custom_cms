@@ -8,6 +8,7 @@ import {
 } from "../data/customCmsClient";
 import { setUiLabels } from "../data/uiLabels";
 import { DataContext } from "./DataContextCore";
+import { removeBrowserStorage, writeBrowserStorage } from "../utils/browserStorage";
 
 const bootstrapCacheKey = "rsac-custom-cms-bootstrap-v2";
 const previewMessageType = "rsac-cms-preview:update";
@@ -53,10 +54,9 @@ const readCachedBootstrap = (language) => {
 
 const cacheBootstrap = (value) => {
   if (!value?.language) return;
-  try {
-    window.sessionStorage.setItem(`${bootstrapCacheKey}:${value.language}`, JSON.stringify(value));
-  } catch {
-    window.sessionStorage.removeItem(`${bootstrapCacheKey}:${value.language}`);
+  const key = `${bootstrapCacheKey}:${value.language}`;
+  if (!writeBrowserStorage("sessionStorage", key, JSON.stringify(value))) {
+    removeBrowserStorage("sessionStorage", key);
   }
 };
 

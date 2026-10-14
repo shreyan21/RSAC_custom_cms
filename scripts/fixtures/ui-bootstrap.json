@@ -1,0 +1,10 @@
+{
+  "language": "en",
+  "contentVersion": "test-version",
+  "siteSettings": { "ui": {}, "appearance": {}, "footer": { "socialLinks": [] } },
+  "officials": [], "scientistProfiles": [], "technicalProfiles": [], "administrationProfiles": [],
+  "divisions": [{ "title": "Agriculture Division", "description": "Remote sensing for crops", "slug": "agriculture-division" }],
+  "notices": [], "geoportals": [], "policyPages": [], "menuItems": [], "rsacOfficialSections": [],
+  "contactDetails": { "address": "Test office", "email": "office@example.invalid" },
+  "floodData": { "floodSection": { "archives": [] }, "floodReports": [] }
+}
