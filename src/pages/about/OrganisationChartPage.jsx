@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Maximize2, X } from "lucide-react";
 import PageShell from "../../components/layout/PageShell";
 import BackButton from "../../components/navigation/BackButton";
 import OrganisationChartDiagram from "../../components/organisation/OrganisationChartDiagram";
 import { useSiteSettings } from "../../hooks/useData";
 import { useLanguage } from "../../hooks/useLanguage";
+import useModalFocus from "../../hooks/useModalFocus";
 
 const OrganisationChartPage = () => {
   const [expanded, setExpanded] = useState(false);
@@ -12,21 +13,11 @@ const OrganisationChartPage = () => {
   const { t } = useLanguage();
   const c = pageContent.organisationChart;
 
-  useEffect(() => {
-    if (!expanded) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setExpanded(false);
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [expanded]);
+  const hasRoles = Boolean(organisationChart.roles?.length);
+  const dialogRef = useModalFocus({
+    isOpen: expanded && hasRoles,
+    onClose: () => setExpanded(false),
+  });
 
   return (
     <>
@@ -44,8 +35,9 @@ const OrganisationChartPage = () => {
           <BackButton fallback="/about-us" label={c.backLabel} />
           <button
             type="button"
+            disabled={!hasRoles}
             onClick={() => setExpanded(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#102f46] shadow-sm transition duration-300 hover:border-[#0b6fa4]/30 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b6fa4]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#102f46] shadow-sm transition duration-300 hover:border-[#0b6fa4]/30 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b6fa4] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Maximize2 className="h-4 w-4" aria-hidden="true" />
             {t("Open full chart")}
@@ -85,6 +77,7 @@ const OrganisationChartPage = () => {
 
       {expanded && organisationChart.roles?.length > 0 && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="expanded-chart-title"
@@ -97,7 +90,6 @@ const OrganisationChartPage = () => {
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              autoFocus
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               aria-label={t("Close full chart")}
             >

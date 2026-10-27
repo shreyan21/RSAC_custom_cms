@@ -1,8 +1,10 @@
 # RSAC-UP developer handover
 
-Updated: 14 October 2026. Start here when taking over this project.
+Updated: 27 October 2026. Start here when taking over this project.
 
 This guide describes **`D:\RSAC_custom_cms`**, the React website, custom React CMS and Express API. The separate `D:\rsac_website` folder is an older Directus project. Do not mix their source files, environment settings, databases or instructions.
+
+Latest checked behaviour and limitations: [27 October end-to-end verification](E2E_VERIFICATION_2026-10-27.md).
 
 ## Contents
 

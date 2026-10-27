@@ -1,5 +1,7 @@
 # Website UI verification — 14 October 2026
 
+For the latest follow-up, see [27 October end-to-end verification](E2E_VERIFICATION_2026-10-27.md). The record below describes the 14 October work.
+
 This records the UI fixes and checks for the custom CMS project. It is a bounded verification, not a claim that every possible defect has been eliminated. See [DEVELOPER_HANDOVER.md](DEVELOPER_HANDOVER.md) for setup and maintenance.
 
 ## Fixed issues

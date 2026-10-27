@@ -40,6 +40,9 @@ const {DialogProvider}=await import(await moduleUrl('src/contexts/DialogContext.
 const {default:Lightbox}=await import(await moduleUrl('src/components/media/Lightbox.jsx',{'../../hooks/useLanguage':languageHook,'../../hooks/useModalFocus':modal}));
 const scrollStub=`data:text/javascript,${encodeURIComponent('export const scrollToTarget=()=>{};')}`;
 const {default:TopBar}=await import(await moduleUrl('src/components/navbar/TopBar.jsx',{'../../hooks/useData':dataHook,'../../hooks/useLanguage':languageHook,'../../hooks/useDialog':dialogHook,'../../utils/scroll':scrollStub,'../../utils/browserStorage':storage,'../../hooks/useModalFocus':modal}));
+const pageShellStub=`data:text/javascript,${encodeURIComponent('import {createElement as h} from "'+import.meta.resolve('react')+'";export default function PageShell({actions,children}){return h("main",null,actions,children);}')}`;
+const chartStub=`data:text/javascript,${encodeURIComponent('export default function Chart(){return null;}')}`;
+const {default:OrganisationChartPage}=await import(await moduleUrl('src/pages/about/OrganisationChartPage.jsx',{'../../hooks/useData':dataHook,'../../hooks/useLanguage':languageHook,'../../hooks/useModalFocus':modal,'../../components/layout/PageShell':pageShellStub,'../../components/navigation/BackButton':chartStub,'../../components/organisation/OrganisationChartDiagram':chartStub}));
 const apiStub=`data:text/javascript,${encodeURIComponent('export const clearCmsCache=()=>{};export const subscribeCmsUpdates=()=>()=>{};export const getCmsVersion=async()=>"test-version";export const getCmsBootstrap=async language=>({...globalThis.__uiFixture,language,contentVersion:"test-version"});')}`;
 globalThis.__uiFixture=fixture;
 const {DataProvider}=await import(await moduleUrl('src/contexts/DataContext.jsx',{'../hooks/useLanguage':languageHook,'../data/customCmsClient':apiStub,'../data/uiLabels':file('src/data/uiLabels.js'),'./DataContextCore':file('src/contexts/DataContextCore.js'),'../utils/browserStorage':storage}));
@@ -121,6 +124,25 @@ await test('CMS content still renders when both cache write and cleanup are deni
  await act(async()=>{for(const callback of idle.splice(0))callback();});
  assert.ok(document.getElementById('content-probe'));
 });
+await test('Full organisation chart contains keyboard focus and restores its opener',async()=>{
+ const data={...fixture,siteSettings:{...fixture.siteSettings,organisationChart:{roles:[{id:'test-role',title:'Test role'}]},pageContent:{...fixture.siteSettings?.pageContent,organisationChart:{title:'Organisation chart'}}}};
+ await mount(withLanguage(h(DataContext.Provider,{value:data},h(OrganisationChartPage))));
+ const opener=button('Open full chart');assert.ok(opener);opener.focus();await act(()=>opener.click());
+ const close=button('Close full chart');assert.ok(document.activeElement===close,'Full chart must focus its close control');
+ const tabEvent=new window.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});
+ await act(()=>close.dispatchEvent(tabEvent));assert.equal(tabEvent.defaultPrevented,true,'Tab must remain inside the full chart');
+ await key('Escape');assert.equal(document.querySelector('[role=dialog]'),null);
+ assert.ok(document.activeElement===opener,'Closing the chart must return focus to the opener');
+ assert.equal(document.body.style.overflow,'');
+});
+await test('An unpublished organisation chart cannot open an invisible scroll lock',async()=>{
+ const data={...fixture,siteSettings:{...fixture.siteSettings,organisationChart:{roles:[]},pageContent:{...fixture.siteSettings?.pageContent,organisationChart:{title:'Organisation chart'}}}};
+ await mount(withLanguage(h(DataContext.Provider,{value:data},h(OrganisationChartPage))));
+ const opener=button('Open full chart');
+ if(opener && !opener.disabled)await act(()=>opener.click());
+ assert.equal(document.querySelector('[role=dialog]'),null);
+ assert.equal(document.body.style.overflow,'','Missing chart roles must not lock the public page');
+});
 dom.window.close();delete globalThis.__uiFixture;
 assert.equal(failures.length,0,`${failures.length} UI scenarios failed: ${failures.join('; ')}`);
-console.log('Six mounted UI scenarios passed; no live data, API or uploads were changed.');
+console.log('Eight mounted UI scenarios passed; no live data, API or uploads were changed.');

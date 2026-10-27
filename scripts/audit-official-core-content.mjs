@@ -1,6 +1,9 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { config as loadEnv } from "dotenv";
+
+loadEnv({ path: ".env.local", quiet: true });
 
 const apiBase = String(process.env.CMS_API_URL || "http://localhost:3000").replace(/\/+$/, "");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
