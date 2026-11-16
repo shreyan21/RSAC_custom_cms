@@ -391,6 +391,7 @@ textarea { resize: vertical; }
 .password-panel label { gap: 6px; }
 .password-panel label > small { min-height: 0; }
 .password-panel .primary { justify-self: start; }
+.visitor-count-form { display: grid; gap: 12px; }
 .table-action { min-height: 34px; border: 1px solid #c8d5dc; border-radius: 5px; background: white; color: #175b7a; font-weight: 750; padding: 0 11px; }
 .user-table-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: max-content; }
 .table-action--danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-color: #e4b8b3; color: #a22f26; }

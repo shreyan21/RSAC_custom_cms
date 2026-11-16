@@ -7,12 +7,12 @@ import {
   updateImportedEditorRow,
 } from "../../shared/importedEditorRows";
 import { api, mediaPreviewUrl } from "./api";
-import { imageUploadAccept, useMediaItemList, useMediaUpload } from "./mediaUpload";
+import { createEditorId, imageUploadAccept, useMediaItemList, useMediaUpload } from "./mediaUpload";
 import ImportedAssetEditor from "./ImportedAssetEditor";
 import InlineRichTextEditor from "./InlineRichTextEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 
-const newBlock = (type) => ({ id: crypto.randomUUID(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", headingSize: "normal", eyebrowSize: "normal", mediaSize: "normal", spacing: "normal" });
+const newBlock = (type) => ({ id: createEditorId(), type, heading: "", text: "", html: "", items: [], rows: [], headers: [], textSize: "normal", headingSize: "normal", eyebrowSize: "normal", mediaSize: "normal", spacing: "normal" });
 const itemFields = {
   cards: [["title", "Card title"], ["text", "Description"], ["image", "Photo"], ["alt", "Image description"], ["url", "Where this card should open"]],
   stats: [["value", "Value"], ["label", "Label"]],
@@ -119,7 +119,7 @@ function ImportedNumberedItems({ block, referenceBlock, pageData, referencePageD
   };
   const addAtTop = () => onChange({
     children: [{
-      key: `cms-${crypto.randomUUID()}`,
+      key: `cms-${createEditorId()}`,
       label: `${sourceLabel} -> New item`,
       value: "",
       isNew: true,
@@ -174,7 +174,7 @@ export function ImportedContentFields({ block, referenceBlock, pageData, referen
       ? children.filter((_child, position) => position !== row.index)
       : updateImportedEditorRow(children, row, { hidden: true }) });
   };
-  const addAtTop = () => onChange({ children: [{ key: `cms-${crypto.randomUUID()}`, label: `${sourceLabel} -> New line`, value: "", isNew: true }, ...children] });
+  const addAtTop = () => onChange({ children: [{ key: `cms-${createEditorId()}`, label: `${sourceLabel} -> New line`, value: "", isNew: true }, ...children] });
 
   return (
     <div className="imported-list-editor">
@@ -216,7 +216,7 @@ function StructuredItems({ block, onChange, onBusy, onError }) {
   if (!fields) return null;
   const items = mediaItems;
   const updateItem = (index, name, value) => onChange({ items: items.map((item, position) => position === index ? { ...(typeof item === "object" ? item : {}), [name]: value } : item) });
-  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: crypto.randomUUID() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "Document or website link" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : imageUploadAccept} identity={item.id || index} onUploadStart={() => onChange({ items })} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
+  return <div className="structured-items"><strong>{blockTypes.find((type) => type.value === block.type)?.label} items</strong><button type="button" className="add-item" onClick={() => onChange({ items: [{ id: createEditorId() }, ...items] })}><Plus /> Add item at top</button>{items.map((item, index) => <div className="structured-item structured-item--fields" key={item.id || index}><span className="item-number">{index + 1}</span><div>{fields.map(([name, label]) => ((block.type === "cards" && name === "image") || block.type === "gallery" || (block.type === "links" && name === "url")) ? <BlockMediaField key={name} label={block.type === "links" ? "Document or website link" : label} value={typeof item === "object" ? item[name] || "" : ""} onChange={(value) => updateItem(index, name, value)} onBusy={onBusy} onError={onError} accept={block.type === "links" ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" : imageUploadAccept} identity={item.id || index} onUploadStart={() => onChange({ items })} showPreview={block.type !== "links"} /> : <label key={name}>{label}<input value={typeof item === "object" ? item[name] || "" : name === "title" ? item : ""} onChange={(event) => updateItem(index, name, event.target.value)} /></label>)}</div><button type="button" className="danger-icon" title="Remove item" onClick={() => onChange({ items: items.filter((_item, position) => position !== index) })}><Trash2 /></button></div>)}</div>;
 }
 
 export default function BlockEditor({ value, referenceValue, pageData, referencePageData, language = "en", onChange, onBusy = () => {}, onError = () => {} }) {
@@ -257,7 +257,7 @@ export default function BlockEditor({ value, referenceValue, pageData, reference
           <section className={`block-row${isOpen ? " open" : ""}`} key={blockKey}>
             <div className="block-row__head">
               <button type="button" className="block-toggle" aria-expanded={isOpen} onClick={() => setFocusedIndex(index)}><ChevronDown /><span><strong>{index + 1}. {sourceLabel}</strong><small>{isPeopleReference ? "Managed in Scientists / Officials / Staff" : block.editorMode === "numbered_list" ? `Numbered list - ${itemCount} items${assetCount ? `, ${assetCount} media` : ""}` : importedCount || assetCount ? `Editable section - ${itemCount} text fields${assetCount ? `, ${assetCount} media` : ""}` : blockTypes.find((type) => type.value === block.type)?.label || block.type}</small></span></button>
-              <div className="icon-actions"><button type="button" title="Move up" onClick={() => move(index, -1)}><ArrowUp /></button><button type="button" title="Move down" onClick={() => move(index, 1)}><ArrowDown /></button><button type="button" title="Duplicate" onClick={() => onChange([...blocks.slice(0, index + 1), { ...structuredClone(block), id: crypto.randomUUID() }, ...blocks.slice(index + 1)])}><Copy /></button><button type="button" className="danger-icon" title="Remove block" onClick={() => { onChange(blocks.filter((_item, position) => position !== index)); setFocusedIndex(null); }}><Trash2 /></button></div>
+              <div className="icon-actions"><button type="button" title="Move up" onClick={() => move(index, -1)}><ArrowUp /></button><button type="button" title="Move down" onClick={() => move(index, 1)}><ArrowDown /></button><button type="button" title="Duplicate" onClick={() => onChange([...blocks.slice(0, index + 1), { ...structuredClone(block), id: createEditorId() }, ...blocks.slice(index + 1)])}><Copy /></button><button type="button" className="danger-icon" title="Remove block" onClick={() => { onChange(blocks.filter((_item, position) => position !== index)); setFocusedIndex(null); }}><Trash2 /></button></div>
             </div>
             {isOpen && <div className="block-row__body">
               <p className="block-type-help">{blockTypes.find((type) => type.value === block.type)?.description || "This section controls the matching visible content on the website."}</p>

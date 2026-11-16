@@ -15,6 +15,7 @@ import useEditorValidation from "./useEditorValidation";
 import { getSourceFieldOwnership } from "./pageEditorOwnership";
 import { pageBodyOwnerForEntry } from "../../shared/pageBodyOwnership";
 import { mediaPreviewUrl } from "./api";
+import { createEditorId } from "./mediaUpload";
 import {
   createLocalizedDivisionBlock,
   findLocalizedDivisionBlockIndex,
@@ -304,7 +305,7 @@ export default function DivisionContentWorkspace({ pages, profiles = [], display
   });
 
   const addSection = () => {
-    const id = `cms-section-${crypto.randomUUID()}`;
+    const id = `cms-section-${createEditorId()}`;
     const englishBlock = {
       id,
       type: "rich_text",

@@ -52,12 +52,22 @@ export function useMediaUpload({ request, fileRef, imageOnly = false, identity, 
   };
 }
 
+export function createEditorId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  // The office CMS uses HTTP: getRandomValues is available even when randomUUID isn't.
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // Persist these IDs when an upload starts, so inserting/deleting another row
 // cannot move an in-flight upload to a different item.
 export function useMediaItemList(rows, stringField) {
   return useMemo(() => (Array.isArray(rows) ? rows : []).map((row) => {
-    if (typeof row === "string" && stringField) return { id: crypto.randomUUID(), [stringField]: row };
+    if (typeof row === "string" && stringField) return { id: createEditorId(), [stringField]: row };
     if (!row || typeof row !== "object" || row.id) return row;
-    return { ...row, id: crypto.randomUUID() };
+    return { ...row, id: createEditorId() };
   }), [rows, stringField]);
 }

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { FileUp, Film, ImagePlus, Search, Trash2, Undo2, Upload } from "lucide-react";
 import { api, mediaPreviewUrl } from "./api";
-import { imageUploadAccept, useMediaUpload } from "./mediaUpload";
+import { createEditorId, imageUploadAccept, useMediaUpload } from "./mediaUpload";
 
 const imagePattern = /\.(?:png|jpe?g|webp|avif|gif|svg)(?:[?#].*)?$/i;
 
@@ -88,7 +88,7 @@ export default function ImportedAssetEditor({ assets, language = "en", onChange,
       : list.map((item, position) => position === index ? { ...item, hidden: true } : item));
   };
   const add = (kind) => onChange([...list, {
-    key: `cms-asset-${crypto.randomUUID()}`,
+    key: `cms-asset-${createEditorId()}`,
     kind,
     label: kind === "image" ? "New section photo" : kind === "video" ? "New section video" : "New document or link",
     value: "",

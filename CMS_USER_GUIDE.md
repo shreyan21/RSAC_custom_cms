@@ -3,7 +3,7 @@
 This guide is for website editors. No coding, JSON, HTML, or database knowledge
 is required.
 
-Updated: 28 October 2026. Names below match the current custom CMS dashboard.
+Updated: 16 November 2026. Names below match the current custom CMS dashboard.
 The guide applies to `D:\RSAC_custom_cms`. Developers can find setup, project
 flow, image/video folders and backup requirements in
 [DEVELOPER_HANDOVER.md](DEVELOPER_HANDOVER.md).
@@ -17,6 +17,7 @@ flow, image/video folders and backup requirements in
 - [Change a homepage video or poster](#add-or-replace-a-homepage-video)
 - [Upload a PDF](#add-or-replace-a-pdfdocument)
 - [Preview and publish](#preview-and-publishing)
+- [Visitor count and Last updated](#visitor-count-and-last-updated)
 - [Find files and understand storage](#where-uploads-are-kept)
 - [Troubleshoot a problem](#common-problems)
 
@@ -63,6 +64,14 @@ Use the same seven steps for almost every change:
 The CMS does not auto-translate. A blank Hindi field stays blank. Images and
 documents are usually shared by both languages, while captions and alt text can
 be different.
+
+For example, to change text on the homepage, search for **Homepage, Sitemap
+and Shared Text**, click **Open editor**, then click **Edit** on its record.
+Find the section that contains the text, update English and Hindi, check
+**Private preview**, then click **Publish changes**. For a news item, photo,
+video or person, use its own editor in the tables below. If an area is missing,
+ask the CMS administrator to check your permissions. A change to how the site
+works or to a field the CMS does not expose needs a developer.
 
 ## Understand the Three Visibility Choices
 
@@ -399,6 +408,40 @@ only after checking the remaining layout.
 
 Archive a menu item only after checking that no important page becomes
 unreachable.
+
+## Visitor Count and Last Updated
+
+To change the number, sign in as a CMS administrator and select **Visitor
+count** in the sidebar. The screen shows the current public total. Enter a new
+whole number and choose **Set count**, then **Confirm change**. To start at
+zero, choose **Reset to 0**, then **Confirm reset**. If you only have an Editor
+account, ask the CMS administrator; this screen is available only to admins.
+
+The change is immediate. There is no separate Publish step. New website visits
+add to the new number, so the next page load may already show 1 after a reset.
+Use **Refresh count** in the CMS to check the latest total without adding a
+visit. The adjustment keeps the recorded daily visit history and is logged in
+**Audit history**. It does not change the **Last updated** date.
+
+To edit labels instead, go to **Edit website → Homepage, Sitemap and Shared
+Text → Open editor → Edit → Footer**. Edit English and Hindi separately, then
+choose **Publish changes**.
+
+| What you want to do | How it works today |
+| --- | --- |
+| Rename the visitor counter | Edit **Visitor counter label**. |
+| Change what visitors see if the count cannot load | Edit **Visitor counter unavailable message**. |
+| Reset the visitor count or set it to a chosen number | Use **Visitor count** in the admin sidebar. Changing a footer label does not change the total. |
+| Rename “Last updated” | Edit **Last updated label**. |
+| Understand the date beside “Last updated” | It shows the newest saved CMS content record's timestamp, formatted as a date. Saving content, including a draft or an archive action, can advance it. Opening or previewing an unsaved edit does not change the public date. |
+
+The count is a cumulative total of recorded page loads, not a count of unique
+people. A refresh can count again. A normal visit or a code-only change does
+not update the footer date. When there is no CMS content timestamp, the footer
+uses **Fallback review date** (or **Fallback review date label** when the date
+cannot be read). Those fallback fields do not override a recorded CMS update.
+If a new code release also changes CMS records, the date can advance because
+of those saved records.
 
 ## Edit Flood Reports
 

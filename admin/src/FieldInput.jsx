@@ -3,7 +3,7 @@ import { Plus, Search, Trash2, Upload } from "lucide-react";
 import BlockEditor from "./BlockEditor";
 import SectionRichTextEditor from "./SectionRichTextEditor";
 import { api, mediaPreviewUrl } from "./api";
-import { imageUploadAccept, isImageMediaField, useMediaItemList, useMediaUpload } from "./mediaUpload";
+import { createEditorId, imageUploadAccept, isImageMediaField, useMediaItemList, useMediaUpload } from "./mediaUpload";
 import { getSettingsFieldOwnership } from "./pageEditorOwnership";
 import { cmsButtonLabelSuggestions, cmsIconOptions } from "../../shared/cmsCollections";
 import { uiLabelDefaults } from "../../src/data/uiLabels";
@@ -915,14 +915,14 @@ function NestedSectionRows({ label, rows, fields, onChange, onBusy, onError }) {
 
 function SectionListEditor({ value, onChange, onBusy, onError }) {
   const sections = Array.isArray(value) ? value : [];
-  const [sectionKeys, setSectionKeys] = useState(() => sections.map(() => crypto.randomUUID()));
+  const [sectionKeys, setSectionKeys] = useState(() => sections.map(() => createEditorId()));
   const update = (index, patch) => onChange(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
   const remove = (index) => {
     setSectionKeys((current) => current.filter((_key, position) => position !== index));
     onChange(sections.filter((_section, position) => position !== index));
   };
   const addAtTop = () => {
-    setSectionKeys((current) => [crypto.randomUUID(), ...current]);
+    setSectionKeys((current) => [createEditorId(), ...current]);
     onChange([{ heading: "", body: "" }, ...sections]);
   };
   return (

@@ -20,6 +20,7 @@ import {
   permissionOptionsForCollection,
 } from "../shared/cmsPermissions.js";
 import { assertStrongPassword } from "../shared/passwordPolicy.js";
+import { isValidVisitorCount, maxVisitorCount } from "../shared/visitorCount.js";
 import { config } from "./config.js";
 import { pool, withTransaction } from "./db.js";
 import { assembleBootstrap, localize, mergePreviewRow, readPublishedEntries } from "./contentAssembler.js";
@@ -56,7 +57,11 @@ await pool.query(`
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_attempts integer NOT NULL DEFAULT 0;
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivered_at timestamptz;
   ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS delivery_error text NOT NULL DEFAULT '';
-  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS last_delivery_attempt_at timestamptz
+  ALTER TABLE cms_feedback ADD COLUMN IF NOT EXISTS last_delivery_attempt_at timestamptz;
+  CREATE TABLE IF NOT EXISTS cms_site_visit_display (
+    singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+    visit_offset bigint NOT NULL
+  )
 `);
 
 app.set("trust proxy", 1);
@@ -452,21 +457,31 @@ app.post("/api/feedback", publicFormLimiter, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+const readVisitCount = async (queryable = pool) => {
+  const { rows: [row] } = await queryable.query(`
+    SELECT COALESCE(sum(visit_count), 0) AS recorded,
+           COALESCE((SELECT visit_offset FROM cms_site_visit_display WHERE singleton), 0) AS offset
+      FROM cms_site_visits
+  `);
+  const recorded = BigInt(row.recorded);
+  return { recorded, count: Number(recorded + BigInt(row.offset)) };
+};
+
 app.post("/api/visits", async (_req, res, next) => {
   try {
     await pool.query(
       `INSERT INTO cms_site_visits (visit_day, visit_count) VALUES (current_date, 1)
        ON CONFLICT (visit_day) DO UPDATE SET visit_count=cms_site_visits.visit_count+1`
     );
-    const { rows } = await pool.query("SELECT COALESCE(sum(visit_count), 0)::bigint AS count FROM cms_site_visits");
-    res.json({ count: Number(rows[0].count) });
+    const { count } = await readVisitCount();
+    res.set("Cache-Control", "no-store").json({ count });
   } catch (error) { next(error); }
 });
 
 app.get("/api/visits", async (_req, res, next) => {
   try {
-    const { rows } = await pool.query("SELECT COALESCE(sum(visit_count), 0)::bigint AS count FROM cms_site_visits");
-    res.json({ count: Number(rows[0].count) });
+    const { count } = await readVisitCount();
+    res.set("Cache-Control", "no-store").json({ count });
   } catch (error) { next(error); }
 });
 
@@ -536,6 +551,34 @@ app.post("/api/auth/logout", requireAuth, requireCsrf, async (req, res, next) =>
 });
 
 app.use("/api/admin", requireAuth);
+
+app.get("/api/admin/visitor-count", requireAdmin, async (_req, res, next) => {
+  try {
+    const { count } = await readVisitCount();
+    res.json({ count });
+  } catch (error) { next(error); }
+});
+
+app.put("/api/admin/visitor-count", writeLimiter, requireAdmin, requireCsrf, async (req, res, next) => {
+  const count = req.body?.count;
+  if (!isValidVisitorCount(count)) {
+    return res.status(400).json({ error: `Enter a whole number from 0 to ${maxVisitorCount.toLocaleString("en-IN")}.` });
+  }
+  try {
+    await withTransaction(async (client) => {
+      // Serialize adjustments with daily increments. Read-only requests can still proceed.
+      await client.query("LOCK TABLE cms_site_visits IN SHARE ROW EXCLUSIVE MODE");
+      const before = await readVisitCount(client);
+      await client.query(
+        `INSERT INTO cms_site_visit_display (singleton, visit_offset) VALUES (true, $1)
+         ON CONFLICT (singleton) DO UPDATE SET visit_offset=EXCLUDED.visit_offset`,
+        [(BigInt(count) - before.recorded).toString()]
+      );
+      await audit(client, req, "visitor_count.set", { collection: "visitor_count", entry_key: "total" }, { count: before.count }, { count });
+    });
+    res.json({ count });
+  } catch (error) { next(error); }
+});
 
 const permissionError = (message = "Your account does not have permission for this CMS area") =>
   Object.assign(new Error(message), { status: 403 });

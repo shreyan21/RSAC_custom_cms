@@ -91,6 +91,11 @@ CREATE TABLE IF NOT EXISTS cms_site_visits (
   visit_count integer NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS cms_site_visit_display (
+  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  visit_offset bigint NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS cms_audit_log (
   id uuid PRIMARY KEY DEFAULT cms_random_uuid(),
   user_id uuid REFERENCES cms_users(id) ON DELETE SET NULL,

@@ -130,6 +130,7 @@ DROP TABLE IF EXISTS
   public.cms_feedback,
   public.cms_media,
   public.cms_sessions,
+  public.cms_site_visit_display,
   public.cms_site_visits,
   public.cms_users
 CASCADE;
@@ -149,6 +150,7 @@ ALTER TABLE public.cms_entries OWNER TO ${quotedAppRole};
 ALTER TABLE public.cms_feedback OWNER TO ${quotedAppRole};
 ALTER TABLE public.cms_media OWNER TO ${quotedAppRole};
 ALTER TABLE public.cms_sessions OWNER TO ${quotedAppRole};
+ALTER TABLE IF EXISTS public.cms_site_visit_display OWNER TO ${quotedAppRole};
 ALTER TABLE public.cms_site_visits OWNER TO ${quotedAppRole};
 ALTER TABLE public.cms_users OWNER TO ${quotedAppRole};
 ALTER SEQUENCE public.cms_audit_log_id_seq OWNER TO ${quotedAppRole};

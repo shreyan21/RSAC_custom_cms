@@ -33,6 +33,7 @@ import { pageBodyOwnerForEntry } from "../../shared/pageBodyOwnership";
 import { readPublishedDisplaySettings } from "./displaySettingsClient";
 import { readPublishedProfiles } from "./publishedProfilesClient";
 import { filterPageDisplayEditorFields, getSourceFieldOwnership, pageDisplayOwnershipNotice, sanitizePageDisplayDraft } from "./pageEditorOwnership";
+import VisitorCountView from "./VisitorCountView";
 
 const DivisionContentWorkspace = lazy(() => import("./DivisionContentWorkspace"));
 const CONTENT_PAGE_SIZE = 50;
@@ -1094,13 +1095,13 @@ export default function App() {
       <aside className={menuOpen ? "main-sidebar open" : "main-sidebar"}>
         <div className="government-brand"><img src={upEmblem} alt="Uttar Pradesh emblem" /><span>उत्तर प्रदेश सरकार<br />Government of Uttar Pradesh</span></div>
         <div className="brand"><div><strong>RSAC-UP</strong><span>Content Management</span></div></div>
-        <nav>{navButton("dashboard", <LayoutDashboard />, "Edit website")}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
+        <nav>{navButton("dashboard", <LayoutDashboard />, "Edit website")}{navButton("guide", <BookOpen />, "Editor guide")}{hasCmsPermission(user, "feedback") && navButton("feedback", <MessageSquare />, "Website feedback")}{user.role === "admin" && navButton("visitorCount", <UsersRound />, "Visitor count")}{hasCmsPermission(user, "audit") && navButton("audit", <History />, "Audit history", showAudit)}{user.role === "admin" && navButton("users", <Users />, "CMS users")}{navButton("password", <KeyRound />, "My password")}</nav>
         <div className="compliance-note"><ShieldCheck /><span>Accessible editing<br />Audit enabled</span></div>
         <div className="sidebar-user"><span>{user.displayName}</span><small>{user.role}</small><button onClick={logout}><LogOut /> Sign out</button></div>
       </aside>
       {menuOpen && <button className="sidebar-scrim" type="button" aria-label="Close CMS navigation" onClick={() => setMenuOpen(false)} />}
       <main className="main-content">
-        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Content Management</span><h1>{view === "dashboard" ? "Edit website" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "users" ? "User management" : view === "password" ? "My password" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
+        <header className="top-header"><button className="menu-button" aria-label={menuOpen ? "Close CMS navigation" : "Open CMS navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><Menu /></button><div><span>RSAC-UP Content Management</span><h1>{view === "dashboard" ? "Edit website" : view === "content_workspace" ? selected?.label : view === "collection" ? selected?.label : view === "guide" ? "Editor guide" : view === "feedback" ? "Website feedback" : view === "visitorCount" ? "Visitor count" : view === "users" ? "User management" : view === "password" ? "My password" : "Audit history"}</h1></div><img className="top-header-logo" src={rsacLogo} alt="RSAC-UP logo" /></header>
         {notice && <div className={`page-notice ${notice.type}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X /></button></div>}
         {view === "collection" && selected?.storageId === "profiles" && profileDuplicatePairs.length > 0 && <div className="page-notice error" role="alert"><span><strong>{profileDuplicatePairs.length} possible duplicate profile pair(s).</strong> Search these names, edit the correct record, then archive the extra: {profileDuplicatePairs.map(({ left, right }) => `${titleOf(left)} / ${titleOf(right)}`).join("; ")}</span></div>}
         {busy && <div className="loading-bar"><LoaderCircle className="spin" /> Loading</div>}
@@ -1317,6 +1318,7 @@ export default function App() {
         )}
         {view === "guide" && <GuideView />}
         {view === "feedback" && <FeedbackView notify={notify} />}
+        {view === "visitorCount" && user.role === "admin" && <VisitorCountView />}
         {view === "users" && user.role === "admin" && <UsersView currentUser={user} notify={notify} />}
         {view === "password" && <PasswordView notify={notify} />}
         {view === "audit" && <section className="audit-view"><div className="section-intro"><div><h2>Recent editor activity</h2><p>Who changed which website area and when.</p></div></div><div className="content-table-wrap"><table className="content-table"><thead><tr><th>Time</th><th>Editor</th><th>Action</th><th>Collection</th><th>Item key</th></tr></thead><tbody>{audit.map((item) => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString()}</td><td>{item.display_name || item.username || "System"}</td><td><span className="status published">{item.action}</span></td><td>{item.collection || "-"}</td><td>{item.entry_key || "-"}</td></tr>)}</tbody></table></div></section>}
